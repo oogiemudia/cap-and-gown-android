@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Light theme: the planner's "Match phone" setting follows the phone's dark mode through this. -->
+    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/bg_light</item>
+        <item name="android:statusBarColor">#FF14121F</item>
+        <item name="android:navigationBarColor">#FF14121F</item>
+    </style>
+    <style name="AlarmTheme" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="android:statusBarColor">#FF14121F</item>
+        <item name="android:navigationBarColor">#FF14121F</item>
+    </style>
+</resources>

@@ -1,0 +1,45 @@
+plugins {
+    id 'com.android.application'
+}
+
+def runNumber = Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+
+android {
+    namespace 'io.github.oogiemudia.capgown'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'io.github.oogiemudia.capgown'
+        minSdk 26
+        targetSdk 34
+        versionCode runNumber
+        versionName "1.0.${runNumber}"
+    }
+
+    signingConfigs {
+        release {
+            // Keep the same key for every build, so a new version installs over the old one and keeps your ticks.
+            storeFile file('capgown.keystore')
+            storePassword '4ttV6ukXzQZhs0y3oqFUQv4Q'
+            keyAlias 'capgown'
+            keyPassword '4ttV6ukXzQZhs0y3oqFUQv4Q'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}
