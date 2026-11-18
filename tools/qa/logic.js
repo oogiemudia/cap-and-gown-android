@@ -588,6 +588,170 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     await ctx.close();
   }
 
+  // ---------- I. podcasts play inside the app ----------
+  {
+    const wait = (page, ms) => page.evaluate((m) => new Promise((r) => setTimeout(r, m)), ms || 60);
+    const calls = (page, name) => page.evaluate((n) => window.__calls.filter((c) => c[0] === n).map((c) => c.slice(1)), name);
+    const toastText = (page) => page.evaluate(() => { const t = document.querySelector('#toast'); return t && !t.hidden ? t.textContent : ''; });
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-18T19:30:00', state: rich });
+    // every podcast in the library knows its show, and each finds its own episode in the show's list
+    const M = await page.evaluate(async () => {
+      const P = window.__planner;
+      const out = {};
+      for (const it of P.catalogue().filter((x) => x.kind === 'Listen' && x.src === 'online')) {
+        const p = P.podOf(it);
+        if (!p) { out[it.id] = null; continue; }
+        const d = await P.podFeed(p.key);
+        const i = P.epFor(d, it, p);
+        out[it.id] = { whole: p.whole, ep: i >= 0 ? d.eps[i].t : '' };
+      }
+      return out;
+    });
+    ok('podcasts: every podcast in the library plays in the app', Object.values(M).length >= 12 && Object.values(M).every(Boolean), M);
+    const want = { on03: 'Episode 2: Retrieval Practice', on05: 'Ep 6: Cognitive science in the classroom', on11: 'Effective professional development in 16-19 settings', on14: 'Ep 18: Special educational needs and disabilities', on16: 'Exploring disadvantage in 16–19 settings', on21: 'Metacognition: moving forward with new evidence', on27: 'Teaching: an art or science? Part 3', on48: 'Renewed Education Inspections' };
+    ok('podcasts: each episode is matched by its page, or its title when the link is a news page', Object.entries(want).every(([id, t]) => M[id] && !M[id].whole && M[id].ep === t), Object.fromEntries(Object.keys(want).map((k) => [k, M[k]])));
+    ok('podcasts: a whole show plays its newest episode', ['pd12', 'pd13', 'pd35', 'pd36'].every((id) => M[id] && M[id].whole && M[id].ep) && M.pd13.ep === 'Our favourite studies, with John Hattie', M);
+    const reqs = (await calls(page, 'podFeed')).map((c) => c[1]);
+    ok('podcasts: shows are asked for by feed, then Apple id; InnerDrive by its id only', reqs.some((q) => q.feeds[0] === 'https://feed.podbean.com/evidenceintoaction/feed.xml' && q.term === 'Evidence into Action') && reqs.some((q) => q.apple === '1875223587' && q.term === '' && q.feeds.length === 0), reqs);
+    ok('podcasts: a list is fetched once and kept', reqs.filter((q) => q.feeds[0] === 'https://feed.podbean.com/evidenceintoaction/feed.xml').length === 1, reqs.length);
+
+    // For you and Home: the day's podcast has a Play button
+    await page.evaluate(() => { window.__planner.setEnergy('low'); window.__planner.sub.stab = 'foryou'; window.__planner.go('study'); });
+    const R = await page.evaluate(() => { const r = window.__planner.recommend(); const l = r.picks.find((x) => x.it.kind === 'Listen'); return l ? l.it.id : ''; });
+    ok('podcasts: a low-energy evening has a podcast in For you', !!R, R);
+    ok('podcasts: its card says Play here', await page.evaluate((id) => !!document.querySelector(`#screen [data-act="pod-go"][data-id="${id}"]`) && /Play here/.test(document.querySelector(`#screen [data-act="pod-go"][data-id="${id}"]`).textContent), R));
+    await page.evaluate(() => window.__planner.go('home'));
+    ok('podcasts: Home offers to play today’s podcast', await page.evaluate((id) => { const b = document.querySelector(`#screen [data-act="pod-go"][data-id="${id}"]`); return !!b && /today’s podcast/.test(b.textContent); }, R));
+    await click(page, `#screen [data-act="pod-go"][data-id="${R}"]`);
+    await wait(page, 120);
+    const played = (await calls(page, 'podPlay')).map((c) => c[0]);
+    const st = await page.evaluate(() => ({ pod: window.__planner.POD.state, bar: !document.querySelector('#player').hidden, text: document.querySelector('#player').textContent, listening: document.body.classList.contains('listening'), time: (document.querySelector('#pod-time') || {}).textContent }));
+    ok('podcasts: Play finds the episode and plays it in the app', played.length === 1 && played[0].id === R && /^https:\/\/audio\.example\//.test(played[0].url) && played[0].show && st.pod === 'playing', { played, st });
+    ok('podcasts: the player bar shows the episode and the time', st.bar && st.listening && st.text.includes(played[0] && played[0].title) && /0:00 \/ \d+:\d\d/.test(st.time), st);
+    ok('podcasts: playing counts as opening it', await page.evaluate((id) => { const r = window.__planner.state.res[id]; return !!(r && r.open && r.ep); }, R));
+    await click(page, '#player [data-act="pod-fwd"]'); await wait(page);
+    await click(page, '#player [data-act="pod-fwd"]'); await wait(page);
+    await click(page, '#player [data-act="pod-back"]'); await wait(page);
+    ok('podcasts: back 15 and forward 30 seconds', JSON.stringify(await calls(page, 'podSkip')) === JSON.stringify([[30], [30], [-15]]) && await page.evaluate(() => window.__planner.POD.pos === 45000 && document.querySelector('#pod-time').textContent.startsWith('0:45')));
+    await click(page, '#player [data-act="pod-rate"]'); await wait(page);
+    ok('podcasts: speed goes up a step', JSON.stringify(await calls(page, 'podRate')) === '[[1.25]]' && /1\.25×/.test(await page.evaluate(() => document.querySelector('#player [data-act="pod-rate"]').textContent)));
+    await page.evaluate(() => { const r = document.querySelector('#pod-seek'); r.value = '600'; r.dispatchEvent(new Event('input', { bubbles: true })); r.dispatchEvent(new Event('change', { bubbles: true })); });
+    await wait(page);
+    ok('podcasts: dragging the bar moves to that place', JSON.stringify(await calls(page, 'podSeek')) === '[[600000]]' && await page.evaluate(() => window.__pod.pos === 600000));
+    await click(page, '#player [data-act="pod-toggle"]'); await wait(page);
+    ok('podcasts: pause', await page.evaluate(() => window.__pod.state === 'paused' && window.__planner.POD.state === 'paused' && document.querySelector('#player [data-act="pod-toggle"]').getAttribute('aria-label') === 'Play'));
+    await click(page, '#player [data-act="pod-toggle"]'); await wait(page);
+    ok('podcasts: play again', (await calls(page, 'podResume')).length === 1 && await page.evaluate(() => window.__planner.POD.state === 'playing'));
+    // the ticker keeps the time right while it plays
+    await page.evaluate(() => { window.__pod.pos = 754000; });
+    await wait(page, 1150);
+    ok('podcasts: the time follows the phone every second', /^12:34/.test(await page.evaluate(() => document.querySelector('#pod-time').textContent)));
+    // the title opens the episode's sheet, with its controls
+    await click(page, '#player [data-act="pod-sheet"]'); await wait(page);
+    ok('podcasts: the bar’s title opens the episode', await page.evaluate(() => !!document.querySelector('#layer [data-podpanel] [data-act="pod-toggle"]')));
+    await page.evaluate(() => { const c = document.querySelector('[data-act="close-sheet"]'); if (c) c.click(); });
+    // Listen (the phone's voice) and a podcast never play together
+    await page.evaluate(() => window.__planner.listen('A note', 'Some words to read.'));
+    await wait(page);
+    ok('podcasts: starting Listen stops the episode and shows Listen’s bar', await page.evaluate(() => window.__planner.POD.state === 'idle' && window.__planner.LS.state === 'playing' && !document.querySelector('#pod-time') && /Some|A note/.test(document.querySelector('#player').textContent)));
+    await page.evaluate(() => window.__planner.listenCmd('stop'));
+    // finishing an episode
+    await page.evaluate((id) => window.__planner.podQuick(id), R); await wait(page, 120);
+    ok('podcasts: playing it again carries on from where it stopped', await page.evaluate(() => window.__pod.resumed && window.__pod.pos === 754000) && /Carrying on from 12:34/.test(await toastText(page)));
+    await page.evaluate(() => window.__podEnd(true)); await wait(page);
+    ok('podcasts: the end says so and asks if it stuck', /Finished/.test(await toastText(page)) && await page.evaluate(() => !!document.querySelector('#toast [data-act="res-done"]') && document.querySelector('#player').hidden && !document.body.classList.contains('listening')));
+    ok('podcasts: a finished episode is remembered', await page.evaluate((id) => { const r = window.__planner.state.res[id]; return Array.isArray(r.heard) && r.heard.includes(window.__pod.url); }, R));
+    // a dropped connection
+    await page.evaluate((id) => window.__planner.podQuick(id), R); await wait(page, 120);
+    await page.evaluate(() => window.__podEnd(false, 'The episode stopped loading. Check your connection, then tap Play to carry on from the same place.')); await wait(page);
+    ok('podcasts: a dropped connection is explained, with the episode page to fall back on', /stopped loading/.test(await toastText(page)) && await page.evaluate(() => !!document.querySelector('#toast [data-act="open-url"]')));
+
+    // a podcast's sheet: this episode, where you got to, and the rest of the show
+    await page.evaluate(() => { window.__podPlaces['https://audio.example/exploring-disadvantage-in-16-19-settings-evidence-into-action.mp3'] = 600000; window.__planner.go('library'); });
+    await page.evaluate(() => { const b = document.createElement('button'); b.dataset.act = 'res'; b.dataset.id = 'on16'; document.querySelector('#screen').appendChild(b); b.click(); b.remove(); });
+    await wait(page);
+    const S = await page.evaluate(() => { const box = document.querySelector('#layer [data-podpanel="on16"]'); return box ? { text: box.textContent, rows: box.querySelectorAll('.list [data-act="pod-ep"]').length, start: !!box.querySelector('[data-act="pod-ep"][data-t="start"]'), more: !!box.querySelector('[data-act="pod-more"]'), page: (document.querySelector('#layer [data-act="res-open"]') || {}).textContent } : null; });
+    ok('podcasts: the sheet shows this episode with Carry on from 10:00 and From the start', S && /This episode/.test(S.text) && /Exploring disadvantage/.test(S.text) && /Carry on from 10:00/.test(S.text) && S.start, S);
+    ok('podcasts: the sheet lists more of the show, with more on request', S && S.rows === 6 && S.more && /More from Evidence into Action/.test(S.text) && /Open the episode’s page/.test(S.page), S);
+    await click(page, '#layer [data-act="pod-more"]'); await wait(page);
+    ok('podcasts: Show more lists every episode', await page.evaluate(() => document.querySelectorAll('#layer [data-podpanel] .list [data-act="pod-ep"]').length === 7 && !document.querySelector('#layer [data-act="pod-more"]')));
+    await page.evaluate(() => { window.__calls.length = 0; });
+    await click(page, '#layer [data-act="pod-ep"][data-t="start"]'); await wait(page);
+    const fromStart = (await calls(page, 'podPlay')).map((c) => c[0]);
+    ok('podcasts: From the start plays from 0:00', fromStart.length === 1 && fromStart[0].at === 0 && fromStart[0].id === 'on16', fromStart);
+    ok('podcasts: the open sheet now shows Pause for it', await page.evaluate(() => /Pause/.test(document.querySelector('#layer [data-podpanel]').textContent)));
+    await page.evaluate(() => { window.__calls.length = 0; document.querySelectorAll('#layer .list [data-act="pod-ep"]')[2].click(); });
+    await wait(page);
+    const other = (await calls(page, 'podPlay')).map((c) => c[0]);
+    ok('podcasts: tapping another episode plays that one', other.length === 1 && other[0].id === 'on16' && other[0].at === undefined && !/exploring/.test(other[0].url), other);
+    await page.evaluate(() => { const c = document.querySelector('[data-act="close-sheet"]'); if (c) c.click(); window.__planner.podCmd('stop'); });
+    // a whole show: where you got to, else the newest you have not heard
+    const W = await page.evaluate(async () => {
+      const P = window.__planner;
+      const it = P.catalogue().find((x) => x.id === 'pd13');
+      const p = P.podOf(it);
+      const d = await P.podFeed(p.key);
+      const r = (P.state.res.pd13 = { heard: [d.eps[0].u] });
+      const a = d.eps[P.epFor(d, it, p)].t;
+      r.ep = d.eps[0].u; r.heard = [];
+      const b = d.eps[P.epFor(d, it, p)].t;
+      delete P.state.res.pd13;
+      return { a, b };
+    });
+    ok('podcasts: a whole show skips what you have heard and carries on with what you started', W.a === 'An introduction' && W.b === 'Our favourite studies, with John Hattie', W);
+    ok('podcasts (app): no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  {
+    // a show that cannot be reached
+    const { SAMPLE_FEEDS } = require('./lib');
+    const feeds = Object.assign({}, SAMPLE_FEEDS, { 'https://feed.podbean.com/evidenceintoaction/feed.xml': 'fail' });
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-18T19:30:00', state: rich, feeds });
+    await page.evaluate(() => window.__planner.podQuick('on16'));
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 120)));
+    ok('podcasts offline: Play explains and offers the episode page', await page.evaluate(() => /Could not reach Evidence into Action/.test(document.querySelector('#toast').textContent) && !!document.querySelector('#toast [data-act="res-open"]') && document.querySelector('#player').hidden));
+    await page.evaluate(() => { window.__planner.go('library'); const b = document.createElement('button'); b.dataset.act = 'res'; b.dataset.id = 'on16'; document.querySelector('#screen').appendChild(b); b.click(); b.remove(); });
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 80)));
+    ok('podcasts offline: the sheet says so, with Try again', await page.evaluate(() => /Could not reach Evidence into Action/.test(document.querySelector('#layer [data-podpanel]').textContent) && !!document.querySelector('#layer [data-act="pod-retry"]')));
+    ok('podcasts offline: other shows still play', await page.evaluate(async () => { const P = window.__planner; P.podQuick('on48'); await new Promise((r) => setTimeout(r, 120)); return P.POD.state === 'playing' && /Renewed/.test(P.POD.title); }));
+    ok('podcasts offline: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  {
+    // the app before this version: podcasts open their page, and the newest app is offered
+    const { ctx, page, errors } = await open(browser, { app: true, app5: true, now: '2026-11-18T19:30:00', state: rich });
+    await page.evaluate(() => { window.__planner.setEnergy('low'); window.__planner.sub.stab = 'foryou'; window.__planner.go('study'); });
+    ok('older app: no Play buttons it cannot keep', await page.evaluate(() => !document.querySelector('[data-act="pod-go"]')));
+    await page.evaluate(() => { const b = document.createElement('button'); b.dataset.act = 'res'; b.dataset.id = 'on16'; document.querySelector('#screen').appendChild(b); b.click(); b.remove(); });
+    ok('older app: the sheet offers the newest app and still opens the episode page', await page.evaluate(() => /needs the newest app/.test(document.querySelector('#layer [data-podpanel]').textContent) && !!document.querySelector('#layer [data-act="get-app"]') && !!document.querySelector('#layer [data-act="res-open"]')));
+    await page.evaluate(() => { document.querySelector('[data-act="close-sheet"]').click(); window.__planner.podQuick('on16'); });
+    ok('older app: Play opens the page in the reader', await page.evaluate(() => window.__calls.some((c) => c[0] === 'openReader' && /exploring-disadvantage/.test(c[1])) && !window.__calls.some((c) => c[0] === 'podPlay')));
+    ok('older app: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  {
+    // a browser: no app, so the page tries the feed itself (blocked here) and says so
+    const { ctx, page, errors } = await open(browser, { app: false, now: '2026-11-18T19:30:00', state: rich });
+    await page.evaluate(() => window.__planner.podQuick('on16'));
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 400)));
+    ok('browser: Play tries, then explains', /Could not reach/.test(await page.evaluate(() => document.querySelector('#toast').textContent)));
+    ok('browser (podcasts): no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  {
+    // small phones: the player bar fits
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-18T19:30:00', state: rich, width: 320 });
+    await page.evaluate(() => window.__planner.podQuick('on14'));
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 120)));
+    await page.evaluate(() => { window.__pod.pos = 3725000; window.__pod.dur = 4080000; window.__planner.podState(JSON.parse(JSON.stringify(window.__pod)), true); window.__planner.go('home'); });
+    const ov = await overflow(page);
+    const fit = await page.evaluate(() => { const b = document.querySelector('#player'); const r = b.getBoundingClientRect(); return { w: r.width, right: Array.from(b.querySelectorAll('*')).every((x) => x.getBoundingClientRect().right <= r.right + 1), time: document.querySelector('#pod-time').textContent }; });
+    ok('podcasts 320px: the bar fits, with an hour-long time', ov.length === 0 && fit.right && fit.time === '1:02:05 / 1:08:00', { ov, fit });
+    if (SHOTS) await page.screenshot({ path: require('path').join(SHOTS, 'podcast-bar-320.png') });
+    ok('podcasts 320px: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+
   // ---------- H. looks: dark, dyslexia display, small and large phones ----------
   for (const look of [{ name: 'dark', dark: true, width: 360 }, { name: 'dys', width: 360, dys: true }, { name: 'wide', width: 430 }, { name: 'narrow', width: 320 }]) {
     const state = JSON.parse(JSON.stringify(rich));

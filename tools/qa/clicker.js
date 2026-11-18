@@ -20,6 +20,8 @@ async function setup(page, seedJson, sc) {
     // nothing left reading or listening from the tap before
     if (P.DICT.on) { window.__dictating = false; P.dictEvent('end', ''); }
     if (window.__listen && window.__listen.state !== 'idle') { window.__listen.state = 'idle'; P.listenState({ state: 'idle' }, true); } else if (P.LS.state !== 'idle') P.listenCmd('stop');
+    if (window.__pod) window.__pod.state = 'idle'; else if (P.POD.state !== 'idle') P.podCmd('stop');
+    P.PODQ.run++; P.PODQ.id = ''; P.podState({ state: 'idle' }, true);
     const st = P.state;
     Object.keys(st).forEach((k) => delete st[k]);
     Object.assign(st, JSON.parse(seed));

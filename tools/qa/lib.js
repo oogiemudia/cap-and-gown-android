@@ -8,10 +8,36 @@ const PAGE_FILE = process.env.PAGE_FILE ? path.resolve(process.env.PAGE_FILE) : 
 // Its page number, from the capgown-page meta tag in the head.
 const PAGE_NO = Number((fs.readFileSync(PAGE_FILE, 'utf8').slice(0, 4096).match(/name="capgown-page" content="(\d+)"/) || [])[1]) || 0;
 
+// Episode lists the stand-in app gives for each show (PodFeed.java fetches these from the shows' own feeds).
+// Keyed by a show's first feed address, or apple:<id> for shows found through Apple's directory.
+const EP = (t, l, days, mins, n) => ({ t, u: 'https://audio.example/' + encodeURIComponent(t.toLowerCase().replace(/[^a-z0-9]+/g, '-')) + '.mp3', l, i: '', n: n || '', d: Date.UTC(2026, 10, 18) - days * 86400000, s: mins * 60 });
+const SAMPLE_FEEDS = {
+  'https://feed.podbean.com/evidenceintoaction/feed.xml': { title: 'Evidence into Action', eps: [
+    EP('Maths: prioritising problem solving | Evidence into Action', 'https://evidenceintoaction.podbean.com/e/maths-prioritising-problem-solving/', 160, 39),
+    EP('Exploring disadvantage in 16–19 settings | Evidence into Action', 'https://evidenceintoaction.podbean.com/e/exploring-disadvantage-in-16%E2%80%9319-settings/', 265, 39, 'Co-hosts explore socioeconomic disadvantage in 16–19 education.'),
+    EP('Effective professional development in 16-19 settings', 'https://evidenceintoaction.podbean.com/e/effective-professional-development-in-16-19-settings', 300, 33),
+    EP('Teaching: an art or science? Part 3', 'https://evidenceintoaction.podbean.com/e/teaching-an-art-or-science-part-3/', 600, 26),
+    EP('Teaching: an art or science? Part 1', 'https://evidenceintoaction.podbean.com/e/teaching-an-art-or-science-part-1/', 640, 31),
+    EP('Metacognition: moving forward with new evidence', 'https://evidenceintoaction.podbean.com/e/metacognition-moving-forward-with-new-evidence/', 700, 34),
+    EP('Ep 18: Special educational needs and disabilities', 'https://evidenceintoaction.podbean.com/e/ep-18-special-educational-needs-and-disabilities/', 1000, 68),
+    EP('Ep 6: Cognitive science in the classroom', 'https://evidenceintoaction.podbean.com/e/ep-6-cognitive-science-in-the-classroom/', 1890, 57)
+  ] },
+  'https://feed.podbean.com/ofstedtalks/feed.xml': { title: 'Ofsted Talks', eps: [
+    EP('Renewed Education Inspections', 'https://ofstedtalks.podbean.com/e/renewed-education-inspections/', 313, 30)
+  ] },
+  'https://www.learningscientists.org/learning-scientists-podcast/?format=rss': { title: 'The Learning Scientists Podcast', eps: [
+    EP('Episode 95: Supporting Neurodivergent Kids and Adults', 'https://www.learningscientists.org/learning-scientists-podcast/2025/12/18/episode-95', 335, 35),
+    EP('Episode 2: Retrieval Practice', 'https://www.learningscientists.org/learning-scientists-podcast/2017/9/6/episode-2-retrieval-practice', 3360, 20)
+  ] },
+  'apple:1875223587': { title: 'The Science of Learning', eps: [EP('Our favourite studies, with John Hattie', 'https://anchor.fm/innerdrive/episodes/3', 250, 43), EP('An introduction', 'https://anchor.fm/innerdrive/episodes/1', 280, 12)] },
+  'apple:1516532537': { title: 'Mind the Gap: Making Education Work Across the Globe', eps: [EP('Teaching through examples with Tom Needham', 'https://anchor.fm/mindthegap-edu/episodes/122', 40, 58)] },
+  'apple:1437192863': { title: 'Teaching Excellence Podcast', eps: [EP('Initial assessment: establishing learner start points', 'https://anchor.fm/TeachingExcellence/episodes/62', 1150, 30)] }
+};
+
 function bridgeScript(opts) {
   // Runs in the page before its own script. Mirrors Bridge.java.
   return `(() => {
-    const o = ${JSON.stringify(opts || {})};
+    const o = ${JSON.stringify(Object.assign({ feeds: SAMPLE_FEEDS }, opts || {}))};
     window.__calls = [];
     window.__opened = [];
     window.open = (u) => { window.__opened.push(String(u)); return {}; };
@@ -29,6 +55,14 @@ function bridgeScript(opts) {
     const tellSpeak = (kind, text) => setTimeout(() => { if (window.__capgownDictate) window.__capgownDictate(kind, text || ''); }, 0);
     window.__listen = L;
     window.__listenEnd = (done, error) => { Object.assign(L, { state: 'idle', done: !!done, error: error || '' }); tellListen(); };
+    // Podcasts (Podcast.java, PodFeed.java): episode lists come from o.feeds; 'fail' for a show that cannot be reached.
+    // A test ends an episode with __podEnd(done, error).
+    const P = { state: 'idle', id: '', url: '', title: '', show: '', image: '', page: '', pos: 0, dur: 0, rate: 1, done: false, resumed: false, wait: false, error: '' };
+    const places = Object.assign({}, o.podPlaces || {});
+    const tellPod = () => setTimeout(() => { if (window.__capgownPod) window.__capgownPod(JSON.parse(JSON.stringify(P))); }, 0);
+    window.__pod = P;
+    window.__podPlaces = places;
+    window.__podEnd = (done, error) => { if (done) delete places[P.url]; Object.assign(P, { state: 'idle', done: !!done, error: error || '' }); tellPod(); };
     window.__dictating = false;
     window.__say = (words, kind) => { if (window.__capgownDictate) window.__capgownDictate(kind || 'final', words); };
     window.__dictateEnd = (why) => { window.__dictating = false; if (window.__capgownDictate) window.__capgownDictate('end', why || ''); };
@@ -47,6 +81,7 @@ function bridgeScript(opts) {
       speak: rec('speak'), stopSpeaking: rec('stopSpeaking'), toast: rec('toast'),
       listenStart: (title, text) => {
         rec('listenStart')(title, text);
+        if (P.state !== 'idle') { places[P.url] = P.pos; P.state = 'idle'; tellPod(); }
         window.__lastListen = String(text);
         if (!/[A-Za-z0-9]/.test(String(text))) return false;
         Object.assign(L, { state: 'playing', title: String(title), i: o.listenResumed ? 4 : 1, n: Math.max(o.listenResumed ? 9 : 1, Math.ceil(String(text).length / 280)), done: false, resumed: !!o.listenResumed, error: '' });
@@ -61,6 +96,34 @@ function bridgeScript(opts) {
       listenRestart: () => { rec('listenRestart')(); if (L.state !== 'idle') { L.i = 1; L.resumed = false; tellListen(); } },
       listenStatus: () => JSON.stringify(L),
       listenTo: (u, t) => { rec('listenTo')(u, t); return /^https:\\/\\//.test(u); },
+      podFeed: (req, json) => {
+        const q = JSON.parse(json);
+        rec('podFeed')(req, q);
+        const keys = (q.feeds || []).concat(q.apple ? ['apple:' + q.apple] : []);
+        let ans = { ok: false, error: 'no feed' };
+        for (const k of keys) { const f = (o.feeds || {})[k]; if (f && f !== 'fail') { ans = Object.assign({ ok: true, stale: false, at: Date.now(), feed: k, image: '' }, JSON.parse(JSON.stringify(f))); break; } }
+        setTimeout(() => { if (window.__capgownPodFeed) window.__capgownPodFeed(req, ans); }, o.feedDelay || 0);
+      },
+      podPlay: (json) => {
+        const g = JSON.parse(json);
+        rec('podPlay')(g);
+        if (!/^https?:\\/\\//.test(g.url || '')) return false;
+        if (L.state !== 'idle') { L.state = 'idle'; tellListen(); }
+        if (P.url === g.url && P.state !== 'idle') { if (g.at != null) P.pos = g.at * 1000; P.state = 'playing'; tellPod(); return true; }
+        if (P.state !== 'idle') places[P.url] = P.pos;
+        const saved = places[g.url] || 0;
+        Object.assign(P, { state: 'playing', id: g.id || '', url: g.url, title: g.title || '', show: g.show || '', image: g.image || '', page: g.page || '', pos: g.at != null ? g.at * 1000 : saved, dur: (g.dur || 0) * 1000 || 1800000, done: false, resumed: g.at == null && saved > 0, wait: false, error: '' });
+        tellPod();
+        return true;
+      },
+      podPause: () => { rec('podPause')(); if (P.state === 'playing' || P.state === 'loading') { P.state = 'paused'; places[P.url] = P.pos; tellPod(); } },
+      podResume: () => { rec('podResume')(); if (P.state === 'paused') { P.state = 'playing'; P.resumed = false; tellPod(); } },
+      podStop: () => { rec('podStop')(); if (P.state !== 'idle') { places[P.url] = P.pos; P.state = 'idle'; tellPod(); } },
+      podSkip: (sec) => { rec('podSkip')(sec); if (P.state !== 'idle') { P.pos = Math.max(0, Math.min(P.dur - 1000, P.pos + sec * 1000)); P.resumed = false; tellPod(); } },
+      podSeek: (ms) => { rec('podSeek')(ms); if (P.state !== 'idle') { P.pos = Math.max(0, Math.min(P.dur - 1000, ms)); P.resumed = false; tellPod(); } },
+      podRate: (r) => { rec('podRate')(r); P.rate = r; tellPod(); },
+      podStatus: () => JSON.stringify(P),
+      podPlaces: () => JSON.stringify(places),
       dictateAvailable: () => !o.noRecogniser,
       dictateStart: () => {
         rec('dictateStart')();
@@ -79,6 +142,8 @@ function bridgeScript(opts) {
       setAutoUpdate: (on) => { live.auto = !!on; rec('setAutoUpdate')(on); },
       revertUpdate: rec('revertUpdate')
     };
+    // app5: the app as it was before podcasts played inside it (page 42).
+    if (o.oldApp || o.app4 || o.app5) ['podFeed', 'podPlay', 'podPause', 'podResume', 'podStop', 'podSkip', 'podSeek', 'podRate', 'podStatus', 'podPlaces'].forEach((k) => { delete window.AndroidApp[k]; });
     // app4: the app as it was before Listen and Speak (it still has the reader and live updates).
     if (o.oldApp || o.app4) ['listenStart', 'listenPause', 'listenResume', 'listenStop', 'listenSkip', 'listenRate', 'listenRestart', 'listenStatus', 'listenTo', 'dictateAvailable', 'dictateStart', 'dictateStop'].forEach((k) => { delete window.AndroidApp[k]; });
     if (o.oldApp) ['openReader', 'takeSavedLinks', 'liveStatus', 'checkUpdate', 'applyUpdate', 'pageReady', 'setAutoUpdate', 'revertUpdate'].forEach((k) => { delete window.AndroidApp[k]; });
@@ -149,4 +214,4 @@ async function overflow(page) {
   });
 }
 
-module.exports = { chromium, open, overflow, PAGE_FILE, PAGE_NO };
+module.exports = { chromium, open, overflow, PAGE_FILE, PAGE_NO, SAMPLE_FEEDS };

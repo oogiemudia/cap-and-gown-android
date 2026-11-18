@@ -155,6 +155,7 @@ final class ReadAloud {
         final String place = label + "|" + text.length() + "|" + text.hashCode();
         onMain(() -> {
             app = appContext;
+            Podcast.stop(); // one thing plays at a time; the episode keeps its place
             if (state != IDLE) savePlace(); // the place in whatever was being read before
             halt();
             parts = cut;
@@ -196,6 +197,7 @@ final class ReadAloud {
     static void resume() {
         onMain(() -> {
             if (state != PAUSED || app == null) return;
+            Podcast.pause();
             state = PLAYING;
             pausedByFocus = false;
             resumed = false;
