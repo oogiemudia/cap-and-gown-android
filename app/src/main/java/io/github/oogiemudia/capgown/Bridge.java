@@ -1,21 +1,17 @@
 package io.github.oogiemudia.capgown;
 
 import android.app.NotificationManager;
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
-import android.provider.MediaStore;
 import android.provider.Settings;
 import android.webkit.JavascriptInterface;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 /** What the planner page can ask the phone to do. Exposed to the page as window.AndroidApp. */
@@ -116,33 +112,9 @@ public class Bridge {
     @JavascriptInterface
     public boolean saveFile(String name, String text, String mime) {
         if (name == null || text == null) return false;
-        String safe = name.replaceAll("[^A-Za-z0-9._-]", "_");
+        String safe = Files.safeName(name);
         String type = mime == null || mime.isEmpty() ? "application/octet-stream" : mime;
-        if (Build.VERSION.SDK_INT >= 29) {
-            ContentResolver cr = activity.getContentResolver();
-            ContentValues cv = new ContentValues();
-            cv.put(MediaStore.Downloads.DISPLAY_NAME, safe);
-            cv.put(MediaStore.Downloads.MIME_TYPE, type);
-            cv.put(MediaStore.Downloads.IS_PENDING, 1);
-            Uri uri = null;
-            try {
-                uri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
-                if (uri == null) return false;
-                try (OutputStream os = cr.openOutputStream(uri)) {
-                    if (os == null) return false;
-                    os.write(text.getBytes(StandardCharsets.UTF_8));
-                }
-                cv.clear();
-                cv.put(MediaStore.Downloads.IS_PENDING, 0);
-                cr.update(uri, cv, null, null);
-                return true;
-            } catch (Exception e) {
-                if (uri != null) {
-                    try { cr.delete(uri, null, null); } catch (Exception ignored) { }
-                }
-                return false;
-            }
-        }
+        if (Build.VERSION.SDK_INT >= 29) return Files.saveToDownloads(activity, safe, text.getBytes(StandardCharsets.UTF_8), type);
         // Older Android: hand the text to another app (email, Drive, notes).
         activity.runOnUiThread(() -> {
             Intent send = new Intent(Intent.ACTION_SEND).setType("text/plain")
@@ -153,5 +125,69 @@ public class Bridge {
             } catch (Exception ignored) { }
         });
         return true;
+    }
+
+    /* ---------- the Chat tab (claude.ai inside the app) ---------- */
+
+    /** Shows the chat between the planner's top bar and tab bar. Sizes are in the page's CSS pixels. */
+    @JavascriptInterface
+    public void chatShow(int top, int bottom, int cssWidth, String startUrl) {
+        activity.runOnUiThread(() -> activity.chat.show(top, bottom, cssWidth, startUrl));
+    }
+
+    @JavascriptInterface
+    public void chatHide() {
+        activity.runOnUiThread(() -> activity.chat.hide());
+    }
+
+    @JavascriptInterface
+    public void chatGo(String url) {
+        if (url == null) return;
+        activity.runOnUiThread(() -> activity.chat.go(url));
+    }
+
+    @JavascriptInterface
+    public void chatReload() {
+        activity.runOnUiThread(() -> activity.chat.reload());
+    }
+
+    /** Opens a sign-in link copied from the Claude email. Returns ok, empty or nolink. */
+    @JavascriptInterface
+    public String chatPasteLink() {
+        String link = activity.chat.readCopiedLink();
+        if (!link.startsWith("https://")) return link;
+        activity.runOnUiThread(() -> activity.chat.load(link));
+        return "ok";
+    }
+
+    /** Puts text (the week's plan) into the chat's message box. */
+    @JavascriptInterface
+    public void chatInsert(String text) {
+        if (text == null || text.length() > 50_000) return;
+        activity.runOnUiThread(() -> activity.chat.insert(text));
+    }
+
+    @JavascriptInterface
+    public void chatOpenBrowser() {
+        activity.runOnUiThread(() -> {
+            String u = activity.chat.currentUrl();
+            activity.openOutside(Uri.parse(u != null && u.startsWith("https://") ? u : ChatPane.NEW_CHAT));
+        });
+    }
+
+    @JavascriptInterface
+    public void chatSignOut() {
+        activity.runOnUiThread(() -> activity.chat.signOut());
+    }
+
+    @JavascriptInterface
+    public boolean copyText(String text) {
+        return text != null && text.length() <= 200_000 && ChatPane.copy(activity, text);
+    }
+
+    /** A phone toast, used while the chat covers the page. */
+    @JavascriptInterface
+    public void toast(String message) {
+        if (message != null && !message.isEmpty()) activity.toastNative(message);
     }
 }

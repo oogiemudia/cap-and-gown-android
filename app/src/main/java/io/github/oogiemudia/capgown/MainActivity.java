@@ -2,11 +2,13 @@ package io.github.oogiemudia.capgown;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -14,21 +16,30 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
+import android.widget.Toast;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-/** Shows the planner (bundled in the app) and links it to the alarms through the AndroidApp bridge. */
+/**
+ * Shows the planner (bundled in the app) and links it to the alarms through the AndroidApp bridge.
+ * The Chat tab's claude.ai view (ChatPane) sits in the same frame, on top of the planner.
+ */
 public class MainActivity extends Activity {
 
     static final String HOST = "appassets.androidplatform.net";
     static final String START = "https://" + HOST + "/index.html";
     static final int REQ_FILE = 11;
     static final int REQ_NOTIFY = 12;
+    static final int REQ_MIC = 13;
 
+    private FrameLayout root;
     private WebView web;
+    ChatPane chat;
     private ValueCallback<Uri[]> fileCallback;
+    private PermissionRequest pendingMedia;
     private boolean loaded;
 
     @Override
@@ -36,8 +47,12 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         AlarmService.ensureChannels(this);
 
+        root = new FrameLayout(this);
         web = new WebView(this);
-        setContentView(web);
+        root.addView(web, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        setContentView(root);
+        chat = new ChatPane(this, root);
+
         WebSettings ws = web.getSettings();
         ws.setJavaScriptEnabled(true);
         ws.setDomStorageEnabled(true);
@@ -68,16 +83,38 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (chat != null) chat.resume();
         if (loaded) js("window.__capgownResume && window.__capgownResume()");
     }
 
     @Override
+    protected void onPause() {
+        if (chat != null) chat.pause();
+        super.onPause();
+    }
+
+    @Override
     protected void onDestroy() {
+        if (chat != null) chat.destroy();
         if (web != null) {
             web.destroy();
             web = null;
         }
         super.onDestroy();
+    }
+
+    /** Back: inside the chat first, then the planner's own screens and sheets, then leave the app. */
+    @Override
+    @SuppressWarnings("deprecation")
+    public void onBackPressed() {
+        if (chat != null && chat.back()) return;
+        if (web == null || !loaded) {
+            moveTaskToBack(true);
+            return;
+        }
+        web.evaluateJavascript("(function(){try{return window.__capgownBack?!!window.__capgownBack():false;}catch(e){return false;}})()", v -> {
+            if (!"true".equals(v)) moveTaskToBack(true);
+        });
     }
 
     private void handleIntent(Intent intent) {
@@ -92,6 +129,20 @@ public class MainActivity extends Activity {
     void js(String code) {
         runOnUiThread(() -> {
             if (web != null) web.evaluateJavascript(code, null);
+        });
+    }
+
+    void toastNative(String message) {
+        runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_LONG).show());
+    }
+
+    void openOutside(Uri uri) {
+        runOnUiThread(() -> {
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } catch (Exception e) {
+                Toast.makeText(this, "No app on this phone can open that link.", Toast.LENGTH_LONG).show();
+            }
         });
     }
 
@@ -114,10 +165,51 @@ public class MainActivity extends Activity {
         return true;
     }
 
+    /** The microphone, for talking to Claude in the Chat tab. Only claude.ai can ask, and only for sound. */
+    void handleMediaRequest(PermissionRequest request) {
+        boolean audio = false;
+        for (String r : request.getResources()) {
+            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(r)) audio = true;
+        }
+        Uri origin = request.getOrigin();
+        if (!audio || origin == null || !ChatPane.allowedHost(origin.getHost())) {
+            request.deny();
+            return;
+        }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            request.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
+            return;
+        }
+        if (pendingMedia != null) pendingMedia.deny();
+        pendingMedia = request;
+        requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_MIC);
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_MIC && pendingMedia != null) {
+            boolean ok = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            if (ok) pendingMedia.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
+            else pendingMedia.deny();
+            pendingMedia = null;
+        }
         if (loaded) js("window.__capgownResume && window.__capgownResume()");
+    }
+
+    /** File picker for both pages: a backup to restore, or files to attach in the chat. */
+    boolean chooseFiles(ValueCallback<Uri[]> callback, boolean many, String title) {
+        if (fileCallback != null) fileCallback.onReceiveValue(null);
+        fileCallback = callback;
+        Intent pick = new Intent(Intent.ACTION_GET_CONTENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+        if (many) pick.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        try {
+            startActivityForResult(Intent.createChooser(pick, title), REQ_FILE);
+            return true;
+        } catch (Exception e) {
+            fileCallback = null;
+            return false;
+        }
     }
 
     @Override
@@ -125,7 +217,15 @@ public class MainActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQ_FILE && fileCallback != null) {
             Uri[] result = null;
-            if (resultCode == RESULT_OK && data != null && data.getData() != null) result = new Uri[]{data.getData()};
+            if (resultCode == RESULT_OK && data != null) {
+                ClipData clip = data.getClipData();
+                if (clip != null && clip.getItemCount() > 0) {
+                    result = new Uri[clip.getItemCount()];
+                    for (int i = 0; i < clip.getItemCount(); i++) result[i] = clip.getItemAt(i).getUri();
+                } else if (data.getData() != null) {
+                    result = new Uri[]{data.getData()};
+                }
+            }
             fileCallback.onReceiveValue(result);
             fileCallback = null;
         }
@@ -151,9 +251,7 @@ public class MainActivity extends Activity {
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
             Uri u = request.getUrl();
             if (HOST.equals(u.getHost())) return false;
-            try {
-                startActivity(new Intent(Intent.ACTION_VIEW, u).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-            } catch (Exception ignored) { }
+            openOutside(u);
             return true;
         }
 
@@ -166,16 +264,7 @@ public class MainActivity extends Activity {
     private class Chrome extends WebChromeClient {
         @Override
         public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
-            if (fileCallback != null) fileCallback.onReceiveValue(null);
-            fileCallback = callback;
-            Intent pick = new Intent(Intent.ACTION_GET_CONTENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
-            try {
-                startActivityForResult(Intent.createChooser(pick, "Choose your backup file"), REQ_FILE);
-                return true;
-            } catch (Exception e) {
-                fileCallback = null;
-                return false;
-            }
+            return chooseFiles(callback, false, "Choose your backup file");
         }
     }
 

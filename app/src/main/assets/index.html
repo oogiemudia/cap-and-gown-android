@@ -139,28 +139,82 @@ button, input, select, textarea { font: inherit; color: inherit; }
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 
-/* Hero band */
-.hero {
+/* App shell (Studypath layout in Cap and Gown colours): a top bar for each screen,
+   one scrolling screen and a five-tab bar. Home's top bar is the colourful hero with the cap. */
+html, body { height: 100%; }
+body { overflow: hidden; }
+.app {
+  position: relative;
+  height: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.appbar {
+  flex: none;
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 3.75rem;
+  padding: 0.6rem max(16px, env(safe-area-inset-right, 0px)) 0.65rem max(16px, env(safe-area-inset-left, 0px));
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.appbar h2 { flex: 1; min-width: 0; font-size: 1.25rem; font-weight: 800; }
+.appbar .sub { display: block; font-family: var(--font-body); font-size: 0.8rem; font-weight: 700; color: var(--muted); letter-spacing: 0; margin-top: 0.15rem; }
+.appbar .btn.small { min-height: 2.4rem; }
+.appbar.hero {
   background:
     linear-gradient(120deg, transparent 0 62%, rgba(255, 255, 255, 0.16) 62% 68%, transparent 68%),
     linear-gradient(135deg, var(--hero-a), var(--hero-b));
   color: var(--on-hero);
-  padding-block: 1rem 1.4rem;
-  border-radius: 0 0 28px 28px;
+  border-bottom: 0;
+  border-radius: 0 0 24px 24px;
+  padding-block: 0.9rem 1.05rem;
 }
-.hero .wrap { position: relative; }
-.hero-top {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding-top: 1.4rem;
+.appbar.hero h2 { font-size: 1.4rem; }
+.appbar.hero .sub { color: inherit; opacity: 0.88; }
+.iconbtn {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink);
+  cursor: pointer;
 }
+.iconbtn svg { width: 1.2rem; height: 1.2rem; }
+.appbar.hero .iconbtn { background: rgba(255, 255, 255, 0.3); color: var(--on-hero); }
+.iconbtn .dot { position: absolute; top: 6px; right: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); }
+.screen {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+.inner {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem max(16px, env(safe-area-inset-right, 0px)) 1.75rem max(16px, env(safe-area-inset-left, 0px));
+}
+body[data-route="chat"] .screen { overflow: hidden; }
 .cap {
-  width: 4rem;
-  height: 4rem;
+  width: 2.2rem;
+  height: 2.2rem;
   flex: none;
   transform-origin: 50% 80%;
 }
+.appbar.hero .cap { width: 3.4rem; height: 3.4rem; }
 .cap .board { fill: var(--cap-board); }
 .cap .edge { fill: var(--cap-board); opacity: 0.75; }
 .cap .tassel { fill: var(--tassel); }
@@ -173,31 +227,19 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .cap .tassel-group, .cap.toss { animation: none; }
   * { scroll-behavior: auto !important; transition: none !important; }
 }
-.brand { min-width: 0; }
-.brand h1 { font-size: 1.45rem; font-weight: 800; }
-.brand p { font-size: 0.9rem; opacity: 0.85; }
 .sync-pill {
-  position: absolute;
-  top: 0;
-  right: max(16px, env(safe-area-inset-right, 0px));
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 0.25rem 0.6rem;
+  padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.3);
   white-space: nowrap;
 }
-.tonight {
-  margin-top: 1rem;
-  background: var(--surface);
-  color: var(--ink);
-  border-radius: var(--radius);
-  padding: 1rem;
-  box-shadow: 0 10px 30px rgba(14, 18, 34, 0.18);
-  display: grid;
-  gap: 0.7rem;
-}
+.sync-pill:empty { display: none; }
 .tonight-head {
   display: flex;
   justify-content: space-between;
@@ -214,8 +256,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .tonight-head .mins { font-family: var(--font-display); font-weight: 700; color: var(--accent-ink); }
 
-main { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 1.5rem); }
-.view { display: grid; gap: 1.25rem; padding-block: 1.25rem 0; }
 .section { display: grid; gap: 0.65rem; }
 .section-head {
   display: flex;
@@ -272,7 +312,7 @@ main { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) +
 .step.pgce { --c: var(--pgce); }
 .step.assess { --c: var(--assess); }
 .step.other { --c: var(--other); }
-.tonight .step { background: var(--surface-2); }
+.card .step, .deadline .step { background: var(--surface-2); }
 .step.is-done .step-title { text-decoration: line-through; color: var(--muted); }
 .step-body { min-width: 0; display: grid; gap: 0.2rem; }
 .step-title { font-weight: 700; }
@@ -344,7 +384,8 @@ main { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) +
 /* Deadlines */
 .deadline {
   background: var(--surface);
-  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  border-radius: 18px;
   padding: 1rem;
   display: grid;
   gap: 0.6rem;
@@ -380,7 +421,9 @@ details .steps { margin-top: 0.6rem; }
   gap: 0.5rem;
 }
 .week-head .load { font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-.day { display: grid; grid-template-columns: 3.4rem 1fr; gap: 0.6rem; }
+.day { display: grid; grid-template-columns: 3.4rem 1fr; gap: 0.6rem; scroll-margin-top: 0.75rem; }
+.day.flash { animation: flash 1.6s ease; border-radius: 12px; }
+@keyframes flash { 0% { background: var(--accent-soft); } 100% { background: transparent; } }
 .day-date { text-align: center; padding-top: 0.35rem; }
 .day-date .dow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
 .day-date .num { font-family: var(--font-display); font-size: 1.45rem; font-weight: 800; line-height: 1.05; }
@@ -405,7 +448,7 @@ details .steps { margin-top: 0.6rem; }
 /* Week strip on the Today view */
 .strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4rem; }
 .strip-day {
-  background: var(--surface);
+  background: var(--surface-2);
   border-radius: 12px;
   padding: 0.5rem 0.3rem;
   text-align: center;
@@ -425,7 +468,8 @@ details .steps { margin-top: 0.6rem; }
 
 .empty {
   background: var(--surface);
-  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  border-radius: 18px;
   padding: 1rem;
   color: var(--muted);
 }
@@ -439,7 +483,8 @@ details .steps { margin-top: 0.6rem; }
 /* Forms and settings */
 .panel {
   background: var(--surface);
-  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  border-radius: 18px;
   padding: 1rem;
   display: grid;
   gap: 0.9rem;
@@ -447,7 +492,7 @@ details .steps { margin-top: 0.6rem; }
 .field { display: grid; gap: 0.35rem; }
 .field label, .field .label { font-weight: 700; font-size: 0.95rem; }
 .field .help { font-size: 0.85rem; color: var(--muted); }
-.field input[type="text"], .field input[type="date"], .field input[type="time"], .field input[type="number"], .field select, .field textarea {
+.field input[type="url"], .field input[type="text"], .field input[type="date"], .field input[type="time"], .field input[type="number"], .field select, .field textarea {
   width: 100%;
   min-height: 2.75rem;
   border-radius: 10px;
@@ -498,18 +543,17 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
 
 /* Bottom tab bar */
 .tabbar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 20;
+  flex: none;
+  position: relative;
+  z-index: 3;
   background: var(--surface);
   border-top: 1px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  padding-left: max(8px, env(safe-area-inset-left, 0px));
-  padding-right: max(8px, env(safe-area-inset-right, 0px));
+  padding-left: max(6px, env(safe-area-inset-left, 0px));
+  padding-right: max(6px, env(safe-area-inset-right, 0px));
 }
-.tabbar-inner { max-width: 46rem; margin: 0 auto; display: grid; grid-template-columns: repeat(6, 1fr); }
+body.kb .tabbar { display: none; }
+.tabbar-inner { display: grid; grid-template-columns: repeat(5, 1fr); }
 .tab {
   border: 0;
   background: none;
@@ -529,19 +573,20 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
 .tab[aria-current="page"] svg { background: var(--accent-soft); border-radius: 10px; padding: 2px; box-sizing: content-box; margin: -2px; }
 
 .toast {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 0.6rem;
+  z-index: 40;
   background: var(--ink);
   color: var(--bg);
-  padding: 0.65rem 1rem;
-  border-radius: 12px;
+  padding: 0.7rem 0.95rem;
+  border-radius: 14px;
   font-weight: 700;
-  max-width: min(92vw, 30rem);
-  z-index: 30;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  animation: drop 0.3s ease;
 }
+@keyframes drop { from { transform: translateY(-12px); opacity: 0; } }
 
 /* Weekly PebblePad review and portfolio */
 .tag.review { background: var(--review-soft); color: var(--review); }
@@ -637,77 +682,164 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
+/* Studypath parts: cards, the one next step, energy, stats, notices, sheets, tiles, the log */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.7rem;
+  min-width: 0;
+}
+.card h3 { font-size: 1.05rem; }
+.kicker { font-size: 0.72rem; letter-spacing: 0.09em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+.row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+.grow { flex: 1; min-width: 0; }
+.pill { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 999px; white-space: nowrap; background: var(--surface-2); color: var(--muted); }
+.pill.good { background: rgba(31, 138, 76, 0.15); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--danger-soft); color: var(--danger); }
+.pill.info { background: var(--accent-soft); color: var(--accent-ink); }
+.btn.block { width: 100%; }
+
+.nextstep { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.nextstep .kicker { color: inherit; opacity: 0.7; }
+.nextstep h3 { font-size: 1.2rem; }
+.nextstep .meta { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; font-size: 0.88rem; }
+.nextstep .tip, .nextstep .why { font-size: 0.9rem; opacity: 0.85; }
+.nextstep .tag.pgce { background: var(--pgce); color: #fff; }
+.nextstep .tag.assess { background: var(--assess); color: #fff; }
+.nextstep .tag.other { background: var(--other); color: #fff; }
+.nextstep .tag.review { background: var(--review); color: #fff; }
+.nextstep .btn.light { background: var(--bg); color: var(--ink); border-color: var(--bg); }
+.nextstep .btn.on-ink { background: transparent; color: var(--bg); border-color: rgba(127, 127, 127, 0.55); }
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+.stat-tile { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 0.7rem 0.75rem; display: grid; gap: 0.15rem; min-width: 0; align-content: start; }
+.stat-tile b { font-family: var(--font-display); font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat-tile span { font-size: 0.78rem; color: var(--muted); }
+
+.notice { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.9rem; border-radius: 16px; background: var(--accent-soft); }
+.notice .ic { width: 2rem; height: 2rem; border-radius: 10px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex: none; }
+.notice .ic svg { width: 1.05rem; height: 1.05rem; }
+.notice > div { display: grid; gap: 0.25rem; justify-items: start; min-width: 0; }
+.notice p { font-size: 0.9rem; }
+.card.warn-card { border-color: var(--warn); }
+.card.prompt { border-color: var(--review); border-width: 2px; }
+.stale-group { display: grid; gap: 0.5rem; }
+.quote { white-space: pre-wrap; background: var(--surface-2); border-radius: 12px; padding: 0.7rem 0.8rem; }
+
+.scrim { position: absolute; inset: 0; z-index: 30; background: rgba(8, 12, 23, 0.45); }
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 31;
+  max-height: 88%;
+  overflow-y: auto;
+  background: var(--surface);
+  border-radius: 22px 22px 0 0;
+  padding: 0.6rem 1.1rem calc(1.2rem + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: 0.75rem;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25);
+  animation: rise 0.22s ease;
+}
+.sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--line); justify-self: center; }
+@keyframes rise { from { transform: translateY(24px); opacity: 0; } }
+.menu { display: grid; gap: 0.4rem; }
+.menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.8rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--ink);
+}
+.menu svg { width: 1.2rem; height: 1.2rem; flex: none; color: var(--accent-ink); }
+ol.signin { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.5rem; }
+
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 0.9rem; text-align: left; display: grid; gap: 0.3rem; cursor: pointer; color: var(--ink); font: inherit; align-content: start; }
+.tile b { font-size: 1rem; }
+.tile span:last-child { font-size: 0.82rem; color: var(--muted); }
+.tile-ic { width: 2.2rem; height: 2.2rem; border-radius: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-ink); }
+.tile-ic svg { width: 1.2rem; height: 1.2rem; }
+
+.list { display: grid; }
+.li { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.7rem 0; border-top: 1px solid var(--line); }
+.li:first-child { border-top: 0; padding-top: 0; }
+.logi { display: grid; grid-template-columns: 6.8rem 1fr; gap: 0.25rem 0.75rem; padding: 0.8rem 0; border-top: 1px solid var(--line); }
+.logi:first-child { border-top: 0; padding-top: 0; }
+.logi time { font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 0.15rem; }
+.logi > div { display: grid; gap: 0.3rem; justify-items: start; min-width: 0; }
+.logi.is-undone b { text-decoration: line-through; color: var(--muted); }
+.loglines { margin: 0; padding-left: 1.1rem; font-size: 0.85rem; color: var(--muted); display: grid; gap: 0.15rem; }
+@media (max-width: 420px) { .logi { grid-template-columns: 1fr; } }
+@media (max-width: 380px) { .stats { gap: 0.4rem; } .stat-tile { padding: 0.6rem; } }
+
+.weekpick { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem; }
+.wday { display: grid; justify-items: center; gap: 0.2rem; padding: 0.45rem 0; border-radius: 12px; border: 0; background: none; cursor: pointer; color: var(--muted); font: inherit; font-size: 0.75rem; font-weight: 700; }
+.wday b { font-family: var(--font-display); font-size: 1.1rem; color: var(--ink); }
+.wday.is-today { background: var(--ink); color: var(--bg); }
+.wday.is-today b { color: var(--bg); }
+.wday .load { width: 70%; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.wday .load i { display: block; height: 100%; background: var(--accent); }
+.wday.over .load i { background: var(--danger); }
+.wday .m { font-variant-numeric: tabular-nums; font-size: 0.72rem; }
+
+.chat-hole { display: grid; place-items: center; text-align: center; min-height: 55vh; color: var(--muted); padding: 2rem 1rem; }
+.chat-hole .cap { width: 3rem; height: 3rem; margin: 0 auto 0.6rem; }
+
 </style>
-<header class="hero">
-  <div class="wrap">
-    <div class="hero-top">
-      <svg class="cap" id="cap" viewBox="0 0 512 512" aria-hidden="true">
-        <polygon class="edge" points="70,230 256,310 442,230 442,244 256,324 70,244"/>
-        <path class="board" d="M150 262 V342 C150 396 362 396 362 342 V262 L256 309 Z"/>
-        <polygon class="board" points="256,138 442,218 256,298 70,218"/>
-        <polygon points="256,152 410,218 256,284 102,218" fill="#ffffff" fill-opacity="0.08"/>
-        <g class="tassel-group">
-          <path class="cord" d="M256 218 L404 252 L404 326" fill="none" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle class="tassel" cx="404" cy="330" r="14"/>
-          <path class="tassel" d="M390 338 H418 L430 400 H378 Z"/>
-        </g>
-        <circle class="tassel" cx="256" cy="218" r="14"/>
-      </svg>
-      <div class="brand">
-        <h1 id="greeting">Cap and Gown Planner</h1>
-        <p id="today-line">PGCE and Assessor Awards</p>
-      </div>
-      <span class="sync-pill" id="sync-pill">This device</span>
+<div class="app" id="app">
+  <header class="appbar" id="appbar"></header>
+  <main class="screen" id="screen"></main>
+  <nav class="tabbar" id="nav" aria-label="Sections">
+    <div class="tabbar-inner">
+      <button class="tab" data-tab="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+        Home
+      </button>
+      <button class="tab" data-tab="plan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M7.5 13.5h3M7.5 17h6"/></svg>
+        Plan
+      </button>
+      <button class="tab" data-tab="chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.3-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 11h7M8.5 14h4.5"/></svg>
+        Chat
+      </button>
+      <button class="tab" data-tab="portfolio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13.8l2.1 2.1 4.1-4.2"/></svg>
+        Portfolio
+      </button>
+      <button class="tab" data-tab="more">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>
+        More
+      </button>
     </div>
-    <section class="tonight" id="tonight" aria-live="polite"></section>
-  </div>
-</header>
-
-<main class="wrap" id="main">
-  <section class="view" id="view-today" data-view="today"></section>
-  <section class="view" id="view-plan" data-view="plan" hidden></section>
-  <section class="view" id="view-portfolio" data-view="portfolio" hidden></section>
-  <section class="view" id="view-deadlines" data-view="deadlines" hidden></section>
-  <section class="view" id="view-add" data-view="add" hidden></section>
-  <section class="view" id="view-settings" data-view="settings" hidden></section>
-</main>
-
-<nav class="tabbar" aria-label="Sections">
-  <div class="tabbar-inner">
-    <button class="tab" data-tab="today" aria-current="page">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-      Today
-    </button>
-    <button class="tab" data-tab="plan">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M7.5 13.5h3M7.5 17h6"/></svg>
-      Plan
-    </button>
-    <button class="tab" data-tab="portfolio">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13.8l2.1 2.1 4.1-4.2"/></svg>
-      Portfolio
-    </button>
-    <button class="tab" data-tab="deadlines">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>
-      Deadlines
-    </button>
-    <button class="tab" data-tab="add">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
-      Add
-    </button>
-    <button class="tab" data-tab="settings">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
-      Settings
-    </button>
-  </div>
-</nav>
-
-<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  </nav>
+  <div id="layer"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</div>
 <script>window.STUDY_DATA = {"version": 4, "owner": "Godswill", "timezone": "Europe/London", "updated": "2026-10-28", "defaults": {"eveningStart": "19:00", "dueTime": "09:00"}, "courses": [{"id": "pgce", "short": "PGCE", "name": "PGCE FE and Skills, Year 2", "detail": "Module 2 (7X-710020): change project and presentation. Module 3 (7X-710021): PebblePad portfolio and professional discussion."}, {"id": "assess", "short": "Assessor", "name": "L3 Assessor Awards", "detail": "L3 Award in Assessing Vocationally Related Achievement and L3 Award in Assessing Competence in the Work Environment. Assessor: Andrea."}], "deadlines": [{"id": "pg-ctd", "course": "pgce", "kind": "submission", "title": "Draft Change Template", "due": "2026-10-14", "status": "confirmed", "how": "Submitted to the tutor team", "chunks": []}, {"id": "as-icq1", "course": "assess", "kind": "event", "title": "1:1 learner interview for the ICQ", "due": "2026-10-12", "status": "confirmed", "how": "With Andrea. First action plan agreed.", "chunks": []}, {"id": "as-icq2", "course": "assess", "kind": "event", "title": "Second 1:1 learner interview for the ICQ", "due": "2026-10-19", "status": "confirmed", "how": "With Andrea", "chunks": []}, {"id": "as-o12", "course": "assess", "kind": "submission", "title": "Workbook outcomes 1 and 2, plus SOL and assessment schedule", "due": "2026-11-02", "status": "confirmed", "how": "Email to Andrea", "note": "Half term week, so a bit more time each evening.", "chunks": [{"id": "as-o12-1", "date": "2026-10-26", "mins": 40, "title": "Answer Q1.1", "tip": "Usually the functions of assessment in learning. Check the exact wording in your workbook, then answer in your own words with one example from your T Level groups."}, {"id": "as-o12-2", "date": "2026-10-27", "mins": 40, "title": "Answer Q1.2", "tip": "Key concepts and principles of assessment. VACSR (valid, authentic, current, sufficient, reliable) is a good frame. One short example for each."}, {"id": "as-o12-3", "date": "2026-10-28", "mins": 50, "title": "Answer Q1.3 and Q1.4", "tip": "Your responsibilities as an assessor, then the rules that apply in your own area: awarding body, safeguarding, data protection. Keep it about your setting."}, {"id": "as-o12-4", "date": "2026-10-29", "mins": 40, "title": "Answer Q2.1", "tip": "Compare assessment methods: strengths and limits, linked to what individual learners need. A small table first, then a short paragraph."}, {"id": "as-o12-5", "date": "2026-10-30", "mins": 50, "title": "Tidy the SOL and assessment schedule, then email everything", "tip": "Read outcomes 1 and 2 once more and send it all to Andrea tonight, so Monday is not a rush."}]}, {"id": "pg-ctf", "course": "pgce", "kind": "submission", "title": "Final Change Template (retrieval practice)", "due": "2026-11-11", "status": "confirmed", "how": "Submit to the tutor team on Teams", "note": "Write it from the scaffold in your project. The project itself cannot start until this is approved.", "chunks": [{"id": "pg-ctf-1", "date": "2026-10-27", "mins": 20, "title": "Read the draft feedback and list what to change", "tip": "One line per comment. You tick them off as you go."}, {"id": "pg-ctf-2", "date": "2026-10-29", "mins": 10, "title": "Email your mentor to book a chat about the narrower project", "tip": "Q13 needs what they say about the retrieval-only version."}, {"id": "pg-ctf-s1", "date": "2026-11-01", "mins": 40, "title": "Write Q1 and Q2 from the scaffold", "tip": "Weekend slot. Move it with the arrow if Sunday is no good. Q1 280 to 340 words, Q2 280 to 340."}, {"id": "pg-ctf-s2", "date": "2026-11-02", "mins": 20, "title": "Pull hub results from both trackers for Q3", "tip": "For each game: learners with a result, first-attempt scores, and the dates results came in."}, {"id": "pg-ctf-s3", "date": "2026-11-03", "mins": 25, "title": "Write Q13 from your mentor chat", "tip": "When you met, what they said, any concerns, what you changed. 120 to 160 words."}, {"id": "pg-ctf-s4", "date": "2026-11-04", "mins": 20, "title": "Set up the delayed check and the baseline survey", "tip": "8 to 10 questions learners first met in September, same format. Three or four statements in an anonymous Form. Run both in lessons this week or early next."}, {"id": "pg-ctf-s5", "date": "2026-11-05", "mins": 25, "title": "Write Q4, Q5 and Q6", "tip": "One main outcome in Q4. Keep your adaptive teaching list in Q5. Four to six KSBs in Q6."}, {"id": "pg-ctf-s6", "date": "2026-11-08", "mins": 50, "title": "Write Q7 to Q11", "tip": "Weekend slot. Q11 has four short sections and the Lewin table."}, {"id": "pg-ctf-s7", "date": "2026-11-09", "mins": 40, "title": "Write Q3 and Q12 with your baseline numbers", "tip": "Fill the baseline table, then set the SMART target from the gap between September and the delayed check."}, {"id": "pg-ctf-s8", "date": "2026-11-10", "mins": 45, "title": "Write Q14, delete the grey boxes, run the final checks", "tip": "Read it aloud once. Reading aloud catches the sentences that do not sound like you."}, {"id": "pg-ctf-s9", "date": "2026-11-11", "mins": 10, "title": "Submit the final template", "time": "08:00"}]}, {"id": "as-o36", "course": "assess", "kind": "submission", "title": "Workbook outcomes 3 to 6 (3.1 to 6.3, 13 questions)", "due": "2026-11-09", "status": "confirmed", "how": "Email to Andrea for formative assessment", "chunks": [{"id": "as-o36-1", "date": "2026-11-02", "mins": 45, "title": "Outcome 3: planning assessment", "tip": "What you plan around, holistic assessment and risks. Use your own assessment plan as the example."}, {"id": "as-o36-2", "date": "2026-11-03", "mins": 40, "title": "Outcome 4: involving learners and others", "tip": "Why involve them, what information they need, peer and self-assessment, and adapting arrangements for individual needs."}, {"id": "as-o36-3", "date": "2026-11-04", "mins": 30, "title": "Outcome 5: making assessment decisions", "tip": "How you judge evidence is sufficient, authentic and current, and how decisions stay valid, reliable and fair."}, {"id": "as-o36-4", "date": "2026-11-05", "mins": 35, "title": "Outcome 6: quality assurance", "tip": "Why QA matters, how standardisation works where you are, and what happens if a learner disputes a decision."}, {"id": "as-o36-5", "date": "2026-11-06", "mins": 25, "title": "Read through 3 to 6 and email Andrea", "tip": "Check every question number has an answer. Send it before the weekend."}]}, {"id": "pg-tp", "course": "pgce", "kind": "target", "title": "Alternative placement reflection (TotalPeople) in PebblePad", "due": "2026-11-20", "status": "target", "how": "Upload to PebblePad", "note": "Carried over from Year 1. The date is your own target, not a university deadline.", "chunks": [{"id": "pg-tp-1", "date": "2026-11-17", "mins": 20, "title": "Rough notes from the placement", "tip": "What you saw, what surprised you, one thing you would take into your own lessons."}, {"id": "pg-tp-2", "date": "2026-11-19", "mins": 30, "title": "Write the reflection", "tip": "Your notebook pages from the visit are a good starting point."}, {"id": "pg-tp-3", "date": "2026-11-20", "mins": 15, "title": "Map to the OS and upload to PebblePad"}]}, {"id": "as-l1u1", "course": "assess", "kind": "submission", "title": "Assessment records for learner 1 (one whole unit)", "due": "2026-11-30", "status": "confirmed", "how": "Email to Andrea", "chunks": [{"id": "as-l1u1-1", "date": "2026-11-16", "mins": 20, "title": "List the unit criteria and the evidence you already hold", "tip": "Three columns: criterion, evidence, where it is. The gaps tell you what to do next."}, {"id": "as-l1u1-2", "date": "2026-11-18", "mins": 30, "title": "Gather the assessment plan and observation records"}, {"id": "as-l1u1-3", "date": "2026-11-23", "mins": 40, "title": "Write up missing records and Q&A", "tip": "Questioning records count. Note the question, the answer and your judgement."}, {"id": "as-l1u1-4", "date": "2026-11-25", "mins": 30, "title": "Feedback and sign-off check", "tip": "Each decision needs feedback to the learner. Every record signed and dated by both of you."}, {"id": "as-l1u1-5", "date": "2026-11-27", "mins": 15, "title": "Final check, then email the records"}]}, {"id": "pg-osr", "course": "pgce", "kind": "target", "title": "OS professional discussion 2: reflection and portfolio updates", "due": "2026-12-11", "status": "target", "how": "PebblePad", "note": "Your tutor recommended portfolio updates after the second formative discussion. The date is your own target.", "chunks": [{"id": "pg-osr-1", "date": "2026-11-24", "mins": 20, "title": "List what came out of the discussion", "tip": "Include each update your tutor asked for, so nothing gets missed."}, {"id": "pg-osr-2", "date": "2026-11-26", "mins": 30, "title": "Write the reflection"}, {"id": "pg-osr-3", "date": "2026-12-08", "mins": 30, "title": "Portfolio updates, first half"}, {"id": "pg-osr-4", "date": "2026-12-10", "mins": 30, "title": "Portfolio updates, second half, and check the OS mapping"}, {"id": "pg-osr-5", "date": "2026-12-11", "mins": 15, "title": "Upload to PebblePad"}]}, {"id": "as-o78", "course": "assess", "kind": "submission", "title": "Workbook outcomes 7 and 8 (7.1, 7.2, 8.1 to 8.4)", "due": "2026-12-07", "status": "confirmed", "how": "Email to Andrea", "chunks": [{"id": "as-o78-1", "date": "2026-11-30", "mins": 30, "title": "Answer Q7.1", "tip": "Managing assessment information: why the procedures matter (records, storage, data protection)."}, {"id": "as-o78-2", "date": "2026-12-01", "mins": 30, "title": "Answer Q7.2", "tip": "How feedback and questioning feed into assessment. One real example from learner 1 works well."}, {"id": "as-o78-3", "date": "2026-12-02", "mins": 45, "title": "Answer Q8.1 and Q8.2", "tip": "Legal issues and policies (confidentiality, health and safety, welfare), then how technology helps, such as Teams, Forms and your tracker."}, {"id": "as-o78-4", "date": "2026-12-03", "mins": 45, "title": "Answer Q8.3 and Q8.4", "tip": "Equality and diversity in assessment, then reflective practice and CPD. Your PGCE gives you plenty here."}, {"id": "as-o78-5", "date": "2026-12-04", "mins": 20, "title": "Read through and email Andrea"}]}, {"id": "as-wb", "course": "assess", "kind": "submission", "title": "Complete knowledge workbook, and agree a professional discussion date", "due": "2027-01-04", "status": "confirmed", "how": "Email to Andrea", "note": "Aim to finish on 18 December so the Christmas break stays a break.", "chunks": [{"id": "as-wb-1", "date": "2026-12-14", "mins": 40, "title": "Put all outcomes in one workbook and act on feedback for 1 and 2"}, {"id": "as-wb-2", "date": "2026-12-16", "mins": 40, "title": "Act on feedback for outcomes 3 to 6"}, {"id": "as-wb-3", "date": "2026-12-18", "mins": 40, "title": "Feedback for 7 and 8, then a last proofread", "tip": "Last working day before the break. Finish here if you can."}, {"id": "as-wb-4", "date": "2027-01-04", "time": "08:00", "mins": 15, "title": "Email the workbook and offer dates for the professional discussion"}]}, {"id": "pg-cp", "course": "pgce", "kind": "project", "title": "Change project: run and evaluate (spring term)", "due": "2027-04-02", "status": "target", "how": "Weekly in-lesson retrieval rounds in both groups, about six teaching weeks", "note": "Main measure: scores on questions that come back 2 to 3 weeks later. The end date is your own target, so the analysis is done before Easter.", "chunks": [{"id": "pg-cp-w0", "date": "2026-11-25", "mins": 15, "title": "Note what you took from the change project workshop", "tip": "Wednesday session: exemplars and assignment support."}, {"id": "pg-cp-1", "date": "2026-12-09", "mins": 15, "title": "Check the template was approved and note any conditions"}, {"id": "pg-cp-2", "date": "2027-01-05", "mins": 40, "title": "Write the first two weeks of rounds, with returning questions planned", "tip": "Include at least two explain or apply questions in each round."}, {"id": "pg-cp-r0", "date": "2027-01-14", "mins": 20, "title": "Before the run: tell both groups what the rounds are for and check support plans"}, {"id": "pg-cp-r1", "date": "2027-01-21", "mins": 20, "title": "Run week 1: log results, the most-missed question and what you retaught"}, {"id": "pg-cp-r2", "date": "2027-01-28", "mins": 20, "title": "Run week 2: results, most-missed question, reteach"}, {"id": "pg-cp-r3", "date": "2027-02-04", "mins": 20, "title": "Run week 3: results, most-missed question, reteach"}, {"id": "pg-cp-r4", "date": "2027-02-11", "mins": 25, "title": "Run week 4 and a mid-point look", "tip": "Are returning-question scores moving? Is anyone missing out?"}, {"id": "pg-cp-r5", "date": "2027-02-25", "mins": 20, "title": "Run week 5: results, most-missed question, reteach"}, {"id": "pg-cp-r6", "date": "2027-03-04", "mins": 20, "title": "Run week 6: results, most-missed question, reteach"}, {"id": "pg-cp-e1", "date": "2027-03-08", "mins": 20, "title": "Set the end survey and a final delayed check for lessons this week"}, {"id": "pg-cp-e2", "date": "2027-03-11", "mins": 30, "title": "Put every result in one sheet"}, {"id": "pg-cp-e3", "date": "2027-03-16", "mins": 40, "title": "Compare returning-question scores with the baseline, group by group"}, {"id": "pg-cp-e4", "date": "2027-03-18", "mins": 30, "title": "Other explanations and limits: what else could explain the change?"}, {"id": "pg-cp-e5", "date": "2027-03-23", "mins": 30, "title": "Refreeze decision: keep, change or drop the rounds, and why"}, {"id": "pg-cp-e6", "date": "2027-03-30", "mins": 40, "title": "Write analysis notes you can build slides from"}]}, {"id": "as-obs1", "course": "assess", "kind": "event", "title": "Observation of you assessing a learner (1)", "due": "2027-01-11", "status": "confirmed", "how": "Time and place to confirm with Andrea", "chunks": [{"id": "as-obs1-1", "date": "2027-01-04", "mins": 10, "title": "Confirm learner, time and place for both observations"}, {"id": "as-obs1-2", "date": "2027-01-07", "mins": 40, "title": "Prepare paperwork: assessment plan, observation record, Q&A sheet"}, {"id": "as-obs1-3", "date": "2027-01-08", "mins": 15, "title": "Check the learner is still free and print everything"}, {"id": "as-obs1-4", "date": "2027-01-12", "mins": 20, "title": "Notes from observation 1 while it is fresh"}]}, {"id": "as-obs2", "course": "assess", "kind": "event", "title": "Observation of you assessing a learner (2)", "due": "2027-01-18", "status": "confirmed", "how": "Time and place to confirm with Andrea", "chunks": [{"id": "as-obs2-1", "date": "2027-01-15", "mins": 20, "title": "Prep for observation 2: act on points from the first one"}]}, {"id": "as-l1u2", "course": "assess", "kind": "submission", "title": "Assessment records for learner 1, second unit", "due": "2027-01-25", "status": "confirmed", "how": "Email to Andrea", "chunks": [{"id": "as-l1u2-1", "date": "2027-01-13", "mins": 25, "title": "List unit 2 criteria and the evidence you hold"}, {"id": "as-l1u2-2", "date": "2027-01-19", "mins": 40, "title": "Write up the records from observation 2"}, {"id": "as-l1u2-3", "date": "2027-01-20", "mins": 30, "title": "Fill the gaps: Q&A and feedback records"}, {"id": "as-l1u2-4", "date": "2027-01-22", "mins": 20, "title": "Check, sign and email the records"}]}, {"id": "as-std", "course": "assess", "kind": "submission", "title": "Evidence of attending standardisation meetings", "due": "2027-02-15", "status": "confirmed", "how": "Email to Andrea", "note": "15 February is half term, so the plan sends it the week before.", "chunks": [{"id": "as-std-1", "date": "2027-02-01", "mins": 20, "title": "List the meetings you attended and find minutes or sign-in sheets"}, {"id": "as-std-2", "date": "2027-02-03", "mins": 25, "title": "Short note on each: what was standardised and what you changed after"}, {"id": "as-std-3", "date": "2027-02-09", "mins": 15, "title": "Scan or save everything and email it"}]}, {"id": "as-l2", "course": "assess", "kind": "submission", "title": "Evidence for learner 2 (two whole units)", "due": "2027-03-01", "status": "check", "how": "Email to Andrea", "note": "The schedule says 29/02, which does not exist in 2027. Ask Andrea to confirm the date.", "chunks": [{"id": "as-l2-1", "date": "2027-02-08", "mins": 30, "title": "Plan with learner 2: units, methods and dates", "tip": "Ask Andrea to confirm the due date while you are at it."}, {"id": "as-l2-2", "date": "2027-02-11", "mins": 30, "title": "Unit A: assessment plan agreed and signed"}, {"id": "as-l2-3", "date": "2027-02-16", "mins": 40, "title": "Unit A: records and Q&A"}, {"id": "as-l2-4", "date": "2027-02-18", "mins": 40, "title": "Unit B: assessment plan and first records"}, {"id": "as-l2-5", "date": "2027-02-22", "mins": 40, "title": "Unit B: finish the records"}, {"id": "as-l2-6", "date": "2027-02-24", "mins": 30, "title": "Feedback check across both units"}, {"id": "as-l2-7", "date": "2027-02-26", "mins": 20, "title": "Final check and email"}]}, {"id": "as-pd", "course": "assess", "kind": "event", "title": "Professional discussion with Andrea", "due": null, "status": "nodate", "template": "event", "how": "Agree the date when you send the workbook on 4 January", "chunks": []}, {"id": "pg-m2", "course": "pgce", "kind": "submission", "title": "Module 2 presentation slides uploaded", "due": "2027-05-21", "status": "confirmed", "how": "MS Teams Assignments by 3pm. 20 minutes plus up to 10 minutes of questions, recorded.", "chunks": [{"id": "pg-m2-1", "date": "2027-04-12", "mins": 40, "title": "Plan the slides: what each LO needs", "tip": "LO1 planning and teaching your subject. LO2 subject pedagogy, adaptive teaching and inclusion. LO3 inclusive education. LO4 research, how you used it and its limits."}, {"id": "pg-m2-2", "date": "2027-04-14", "mins": 40, "title": "Draft the slides on your context and the change (LO1 and LO2)"}, {"id": "pg-m2-3", "date": "2027-04-16", "mins": 40, "title": "Draft the slides on impact and inclusion (LO2 and LO3)"}, {"id": "pg-m2-4", "date": "2027-04-20", "mins": 40, "title": "Draft the slides on research and its limits (LO4), with APA 7 references"}, {"id": "pg-m2-5", "date": "2027-04-21", "mins": 15, "title": "Take the draft to the workshop and note the feedback"}, {"id": "pg-m2-6", "date": "2027-04-28", "mins": 15, "title": "Second workshop: list the questions you might be asked"}, {"id": "pg-m2-7", "date": "2027-04-30", "mins": 30, "title": "Full run-through against a 20-minute timer"}, {"id": "pg-m2-8", "date": "2027-05-04", "mins": 20, "title": "Get ready for the peer review on 5 May"}, {"id": "pg-m2-9", "date": "2027-05-06", "mins": 30, "title": "Act on the peer review feedback"}, {"id": "pg-m2-10", "date": "2027-05-13", "mins": 30, "title": "Final edit and the opening slide", "tip": "Module code 7X-710020, module title, name, student number, assignment title, AI statement."}, {"id": "pg-m2-11", "date": "2027-05-18", "mins": 15, "title": "File check", "tip": ".pptx, no password, filename only letters, numbers, hyphens and underscores, under 72 characters."}, {"id": "pg-m2-12", "date": "2027-05-20", "mins": 15, "title": "Upload the slides a day early"}], "dueTime": "15:00", "note": "Marked against LO1 to LO4. AI is allowed for shaping only (AITS 2), and the opening slide needs a short AI statement."}, {"id": "pg-obs6", "course": "pgce", "kind": "target", "title": "Obs 6 (mentor): feedback form and reflection in PebblePad", "due": "2026-11-06", "status": "target", "how": "Feedback form uploaded, 200 to 300 word reflection within two weeks of the observation", "note": "The Obs 6 window closed on 23 October. If it did not go ahead, tell your tutor straight away.", "chunks": [{"id": "pg-obs6-1", "date": "2026-10-29", "mins": 10, "title": "Check Obs 6: is the feedback form uploaded and the reflection written?", "tip": "The reflection should argue with the feedback a little, not just accept it."}]}, {"id": "pg-obs7", "course": "pgce", "kind": "event", "title": "Obs 7 (joint)", "due": null, "status": "nodate", "template": "observation", "how": "Window 2 November to 11 December. The booking deadline was 23 October, so confirm the date with your mentor and tutor now.", "chunks": []}, {"id": "pg-obs8b", "course": "pgce", "kind": "submission", "title": "Book Obs 8 (mentor)", "due": "2026-12-18", "status": "confirmed", "how": "Agree a date with your mentor, then email your tutor. Window 4 January to 5 February.", "chunks": [{"id": "pg-obs8b-1", "date": "2026-12-14", "mins": 10, "title": "Agree the Obs 8 date with your mentor and email your tutor", "tip": "Keep at least two weeks after Obs 10."}]}, {"id": "pg-obs8", "course": "pgce", "kind": "event", "title": "Obs 8 (mentor)", "due": null, "status": "nodate", "template": "observation", "how": "Window 4 January to 5 February. Set the date once it is booked and the planner adds the prep steps.", "chunks": []}, {"id": "pg-obs10", "course": "pgce", "kind": "event", "title": "Obs 10: online microteach", "due": "2027-01-06", "status": "check", "how": "Taught sessions on 6 and 13 January. Check which one is your slot.", "chunks": [{"id": "pg-obs10-1", "date": "2026-12-16", "mins": 5, "title": "Find out whether your microteach is on 6 or 13 January"}, {"id": "pg-obs10-2", "date": "2027-01-04", "mins": 40, "title": "Plan the online microteach and test camera, microphone and screen share"}, {"id": "pg-obs10-3", "date": "2027-01-19", "mins": 30, "title": "Upload the Obs 10 feedback and write the reflection (200 to 300 words)", "tip": "Within two weeks of the microteach."}]}, {"id": "pg-obs9b", "course": "pgce", "kind": "submission", "title": "Book Obs 9 (joint)", "due": "2027-02-12", "status": "confirmed", "how": "Agree a date with your mentor first, then your tutor. Window 22 February to 31 March.", "chunks": [{"id": "pg-obs9b-1", "date": "2027-02-08", "mins": 10, "title": "Agree the Obs 9 date with your mentor and email your tutor", "tip": "Offer your tutor two or three options."}]}, {"id": "pg-obs9", "course": "pgce", "kind": "event", "title": "Obs 9 (joint)", "due": null, "status": "nodate", "template": "observation", "how": "Window 22 February to 31 March. Set the date once it is booked.", "chunks": []}, {"id": "pg-tut2", "course": "pgce", "kind": "event", "title": "Individual tutorial 2 (window 7 to 18 December)", "due": "2026-12-18", "status": "confirmed", "how": "Your slot shows in your Teams calendar", "chunks": [{"id": "pg-tut2-1", "date": "2026-12-04", "mins": 15, "title": "Notes for tutorial 2: wellbeing, placement, mentoring, observations, portfolio"}]}, {"id": "pg-tut3", "course": "pgce", "kind": "event", "title": "Individual tutorial 3 (window 1 to 12 February)", "due": "2027-02-12", "status": "confirmed", "how": "Your slot shows in your Teams calendar", "chunks": [{"id": "pg-tut3-1", "date": "2027-01-29", "mins": 15, "title": "Notes for tutorial 3, including your KSB gap list"}]}, {"id": "pg-tut4", "course": "pgce", "kind": "event", "title": "Individual tutorial 4 (window 22 March to 2 April)", "due": "2027-04-02", "status": "confirmed", "how": "Your slot shows in your Teams calendar", "chunks": [{"id": "pg-tut4-1", "date": "2027-03-19", "mins": 15, "title": "Notes for tutorial 4: change project results and presentation plan"}]}, {"id": "pg-ap2", "course": "pgce", "kind": "submission", "title": "Alternative placement 2: 10 hours, logged, with a reflection", "due": "2027-03-25", "status": "confirmed", "how": "Hours and activities recorded in PebblePad, plus a structured reflection", "note": "Mandatory. One of your two placements should be in a SEND, ESOL, alternative provision, prison or community setting.", "chunks": [{"id": "pg-ap2-1", "date": "2026-11-12", "mins": 10, "title": "Check placement 2 is being arranged with the programme team"}, {"id": "pg-ap2-2", "date": "2026-11-27", "mins": 10, "title": "Placement 2 dates agreed and in your diary"}, {"id": "pg-ap2-3", "date": "2027-02-26", "mins": 15, "title": "Log placement 2 hours and what you did each visit"}, {"id": "pg-ap2-4", "date": "2027-03-03", "mins": 30, "title": "Draft the placement 2 reflection", "tip": "Compare their teaching, assessment and learner support with yours. What will you take back?"}, {"id": "pg-ap2-5", "date": "2027-03-10", "mins": 30, "title": "Finish the reflection, map it to the OS and upload"}]}, {"id": "pg-pres", "course": "pgce", "kind": "event", "title": "Module 2 presentation (week of 24 May)", "due": "2027-05-24", "status": "check", "how": "20 minutes plus up to 10 minutes of questions on MS Teams. Check your slot.", "chunks": [{"id": "pg-pres-1", "date": "2027-05-21", "mins": 20, "title": "One last run-through against the timer"}]}, {"id": "pg-pd", "course": "pgce", "kind": "event", "title": "Module 3 portfolio professional discussion (week of 7 June)", "due": "2027-06-07", "status": "check", "how": "30 minutes online with your mentor and tutor. Every piece of evidence must be in the portfolio first.", "note": "Choose visual storytelling (nine stories) or question and answer (nine questions), one for each occupational duty.", "chunks": [{"id": "pg-pd-1", "date": "2027-02-02", "mins": 15, "title": "Take your KSB gap list to the portfolio workshop (3 February)"}, {"id": "pg-pd-2", "date": "2027-04-23", "mins": 40, "title": "Final KSB check: every KSB has at least one piece of evidence"}, {"id": "pg-pd-3", "date": "2027-05-12", "mins": 15, "title": "Note what came up at the professional discussion speed dating"}, {"id": "pg-pd-4", "date": "2027-06-01", "mins": 30, "title": "Practise duties 1 to 3 out loud"}, {"id": "pg-pd-5", "date": "2027-06-02", "mins": 30, "title": "Practise duties 4 to 6 out loud"}, {"id": "pg-pd-6", "date": "2027-06-03", "mins": 30, "title": "Practise duties 7 to 9 out loud"}, {"id": "pg-pd-7", "date": "2027-06-04", "mins": 20, "title": "Check everything on the portfolio list is uploaded"}]}, {"id": "pg-exit", "course": "pgce", "kind": "event", "title": "Exit tutorial (week of 14 June)", "due": "2027-06-14", "status": "check", "how": "Check your slot on Teams", "chunks": []}], "review": {"start": "2026-10-26", "end": "2027-06-04", "day": 5, "mins": 20, "items": [{"id": "mentor", "title": "Mentor meeting recorded", "tip": "Add this week’s meeting to PebblePad on the Mentor Meeting Record. The handbook suggests about 30 minutes a week. No meeting? Note why."}, {"id": "hours", "title": "Teaching hours log updated", "tip": "Add this week’s lead teaching hours and any remote teaching, then update the numbers below."}, {"id": "obs", "title": "Observation paperwork up to date", "tip": "New feedback form uploaded? A 200 to 300 word reflection is due within two weeks of each observation. Next one booked?"}, {"id": "session", "title": "This week’s taught session", "tip": "Slides saved to the Claude project, and one line in PebblePad on what you will try in class, tagged to a KSB."}, {"id": "ksb", "title": "New evidence mapped to KSBs", "tip": "Tag anything new (lessons, feedback, learner work) to the KSBs it shows. Update the KSB count below."}, {"id": "ap", "title": "Alternative placements", "tip": "Placement 1 (TotalPeople) reflection uploaded? Placement 2 arranged, hours logged, reflection started? Due 25 March.", "until": "2027-03-26"}, {"id": "cp", "title": "Change project evidence filed", "tip": "This week’s round results, the most-missed question and what you retaught.", "from": "2027-01-18", "until": "2027-03-12"}, {"id": "actions", "title": "Feedback actions", "tip": "Tick off anything your mentor or tutor asked you to change. Carry the rest forward."}], "breaks": ["2026-12-21", "2026-12-28", "2027-04-05", "2027-04-12"]}, "portfolio": {"ksbTotal": 51, "hoursTarget": 150, "settingTarget": 250, "remoteTarget": 20, "observations": [{"n": 1, "label": "Obs 1", "kind": "Microteach"}, {"n": 2, "label": "Obs 2", "kind": "Joint"}, {"n": 3, "label": "Obs 3", "kind": "Mentor"}, {"n": 4, "label": "Obs 4", "kind": "Mentor"}, {"n": 5, "label": "Obs 5", "kind": "Joint"}, {"n": 6, "label": "Obs 6", "kind": "Mentor", "window": "Closed 23 Oct"}, {"n": 7, "label": "Obs 7", "kind": "Joint", "window": "2 Nov to 11 Dec"}, {"n": 8, "label": "Obs 8", "kind": "Mentor", "window": "4 Jan to 5 Feb"}, {"n": 9, "label": "Obs 9", "kind": "Joint", "window": "22 Feb to 31 Mar"}, {"n": 10, "label": "Obs 10", "kind": "Online microteach", "window": "6 or 13 Jan"}], "checks": [{"id": "ap1h", "group": "Alternative placements", "title": "Placement 1 (TotalPeople): hours logged"}, {"id": "ap1r", "group": "Alternative placements", "title": "Placement 1: reflection uploaded"}, {"id": "ap2a", "group": "Alternative placements", "title": "Placement 2: arranged"}, {"id": "ap2h", "group": "Alternative placements", "title": "Placement 2: 10 hours logged"}, {"id": "ap2r", "group": "Alternative placements", "title": "Placement 2: reflection uploaded"}, {"id": "safe", "group": "Certificates and records", "title": "Safeguarding certificate uploaded"}, {"id": "prev", "group": "Certificates and records", "title": "Prevent certificate uploaded"}, {"id": "tt", "group": "Certificates and records", "title": "Timetable or log showing 150 lead teaching hours"}, {"id": "levels", "group": "Certificates and records", "title": "Evidence of teaching two levels (for example T Level Year 1 and Year 2)"}], "duties": ["Passion for learning and high expectations", "A focus on outcomes for all students", "Pedagogy, subject, curriculum and industry knowledge", "Evidence-informed teaching, assessment and safe use of technology", "Diversity, equality of opportunity and inclusion", "Professional relationships", "Professional boundaries, legal and ethical standards", "Roles, sustainable practice, resilience and adaptability", "Next steps, progression and information, advice and guidance"], "los": {"Module 2 presentation (7X-710020)": ["LO1: Critically analyse planning and teaching of your subject in the FES sector.", "LO2: Apply a critical approach to developing subject specific pedagogies which support adaptive teaching and promote inclusion.", "LO3: Critically explore and evaluate the inclusive education in relation to subject curriculum and teaching practice.", "LO4: Critically evaluate the significance, application and limitations of relevant educational research."], "Module 3 professional practice (7X-710021)": ["LO1: Plan and teach well-structured lessons that demonstrate good subject knowledge and pedagogy and effective use of assessment and feedback to promote positive outcomes for learners.", "LO2: Manage behaviour and demonstrate high expectations which inspire, motivate and challenge learners of all strengths and abilities.", "LO3: Take responsibility for own conduct and professional development across the FES sector, reflecting on feedback and self-evaluation to develop professional practice.", "LO4: Fulfil the wider professional responsibilities associated with teaching across the FES sector, showing resilience and adaptability."]}}};</script>
 <script>
-/* Cap and Gown Planner
-   One script for both versions:
+/* Cap and Gown Planner, version 2 (Studypath layout)
+   One script for every version:
+   - the Android app (window.AndroidApp exists): real alarms, and claude.ai in the Chat tab
    - the Claude-hosted page (window.claude exists): progress syncs through the artifact database
-   - the GitHub Pages app: progress stays on the phone, with offline support and calendar export */
+   - the GitHub Pages app: progress stays on the phone, with offline support and calendar export
+   New in version 2: one next step, energy check-in, a self-healing planner with a log of every
+   change, and a weekly reflection that shapes the next week. */
 (() => {
   'use strict';
 
@@ -747,7 +879,12 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
     reviewDay: (DATA.review && DATA.review.day) || 5,
     alarms: true,
     alarmLead: 5,
-    alarmCatchup: true
+    alarmCatchup: true,
+    heal: true,
+    energyCheck: true,
+    chatStart: 'project',
+    claudeProject: 'https://claude.ai/project/019d485b-0f91-72ba-89fe-e961050a06cc',
+    chatTipSeen: false
   };
   const REVIEW = DATA.review || null;
   const PORT = DATA.portfolio || null;
@@ -793,7 +930,11 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
 
   /* ---------- state and saving ---------- */
   function freshState() {
-    return { v: 1, updatedAt: 0, done: {}, moved: {}, due: {}, hidden: {}, custom: [], reviews: {}, portfolio: freshPortfolio(), settings: { ...DEFAULT_SETTINGS } };
+    return {
+      v: 1, updatedAt: 0, done: {}, moved: {}, due: {}, hidden: {}, custom: [], reviews: {}, portfolio: freshPortfolio(), settings: { ...DEFAULT_SETTINGS },
+      // version 2: energy by date, the change log, evening limits set by reflections, reflections by week, missed dates by step
+      energy: {}, log: [], weekCap: {}, reflections: {}, missed: {}, logSeen: 0
+    };
   }
   function freshPortfolio() {
     return { nums: {}, obs: {}, checks: {}, duties: {}, approach: '' };
@@ -803,8 +944,10 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
     if (!s || typeof s !== 'object') return base;
     const out = { ...base, ...s };
     out.settings = { ...DEFAULT_SETTINGS, ...(s.settings || {}) };
-    ['done', 'moved', 'due', 'hidden', 'reviews'].forEach((k) => { if (!out[k] || typeof out[k] !== 'object') out[k] = {}; });
+    ['done', 'moved', 'due', 'hidden', 'reviews', 'energy', 'weekCap', 'reflections', 'missed'].forEach((k) => { if (!out[k] || typeof out[k] !== 'object' || Array.isArray(out[k])) out[k] = {}; });
     if (!Array.isArray(out.custom)) out.custom = [];
+    if (!Array.isArray(out.log)) out.log = [];
+    out.logSeen = Number(out.logSeen) || 0;
     const p = out.portfolio && typeof out.portfolio === 'object' ? out.portfolio : {};
     out.portfolio = { ...freshPortfolio(), ...p };
     ['nums', 'obs', 'checks', 'duties'].forEach((k) => { if (!out.portfolio[k] || typeof out.portfolio[k] !== 'object') out.portfolio[k] = {}; });
@@ -822,9 +965,15 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
     try { const raw = APP.loadState(); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
   }
   let state = normalise(loadLocal() || loadFromApp());
-  let view = 'today';
-  try { view = localStorage.getItem(VIEW_KEY) || 'today'; } catch (e) { /* ignore */ }
-  if (/^#(today|plan|portfolio|deadlines|add|settings)$/.test(location.hash)) view = location.hash.slice(1);
+  // Five tabs; the other screens open from More (or from links) and have a back button.
+  const TABS = ['home', 'plan', 'chat', 'portfolio', 'more'];
+  const ROUTE_NAMES = ['home', 'plan', 'chat', 'portfolio', 'more', 'deadlines', 'add', 'reflect', 'log', 'settings'];
+  const routeOf = (v) => (v === 'today' ? 'home' : (ROUTE_NAMES.includes(v) ? v : 'home'));
+  let route = 'home';
+  let stack = [];
+  try { route = routeOf(localStorage.getItem(VIEW_KEY) || 'home'); } catch (e) { /* ignore */ }
+  if (route === 'chat' || !TABS.includes(route)) route = 'home';
+  if (/^#[a-z]+$/.test(location.hash) && ROUTE_NAMES.concat('today').includes(location.hash.slice(1))) route = routeOf(location.hash.slice(1));
   let addDraft = null; // the plan preview in the Add view
   let prefill = null;
   let confirmReset = false;
@@ -853,6 +1002,7 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
             state = remote;
             saveLocal();
             applyLook();
+            heal();
             renderAll();
           } else if ((remote.updatedAt || 0) < (state.updatedAt || 0)) {
             this.queue();
@@ -886,7 +1036,7 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
       this.status = s;
       const pill = $('#sync-pill');
       if (!pill) return;
-      pill.textContent = { connecting: 'Connecting', device: APP ? 'On this phone' : 'This device', synced: 'Synced', retry: 'Saving later' }[s] || 'This device';
+      pill.textContent = { connecting: 'Connecting', device: '', synced: 'Synced', retry: 'Saving later' }[s] || '';
       pill.title = s === 'synced' ? 'Your ticks are saved to your Claude account and show on every device you open this on.' : 'Your ticks are saved in this browser.';
     }
   };
@@ -939,10 +1089,9 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
   }
   function nextFreeEvening(fromKey, m, exceptId) {
     const load = loadMap(exceptId);
-    const cap = Number(state.settings.cap) || 60;
     let d = fromKey;
     for (let i = 0; i < 120; i++) {
-      if (isWeekday(d) && (load[d] || 0) + m <= cap) return d;
+      if (isWeekday(d) && (load[d] || 0) + m <= capFor(d)) return d;
       d = addDays(d, 1);
     }
     return nextWeekday(fromKey);
@@ -1080,8 +1229,8 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
     clearTimeout(alarmTimer);
     alarmTimer = setTimeout(() => {
       try { APP.setAlarms(JSON.stringify(alarmPlan())); } catch (e) { /* the app will keep its last list */ }
-      if (view === 'settings') { const p = $('#alarm-next'); if (p) p.innerHTML = nextAlarmText(); }
-      if (state.settings.alarms !== false) { const line = $('#tonight .alarm-line'); if (line) line.innerHTML = nextAlarmText(); }
+      if (route === 'settings') { const p = $('#alarm-next'); if (p) p.innerHTML = nextAlarmText(); }
+      if (state.settings.alarms !== false) { const line = $('.tonight .alarm-line'); if (line) line.innerHTML = nextAlarmText(); }
     }, 250);
   }
   function appStatus() {
@@ -1474,7 +1623,6 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
 
   function spread(steps, dueKey) {
     const today = todayKey();
-    const cap = Number(state.settings.cap) || 60;
     let days = [];
     for (let d = today; d < dueKey && days.length < 400; d = addDays(d, 1)) if (isWeekday(d)) days.push(d);
     if (!days.length) days = [today];
@@ -1488,8 +1636,8 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
       const target = n === 1 ? usable.length - 1 : Math.round((i * (usable.length - 1)) / (n - 1));
       const from = Math.max(target, last);
       let pick = -1;
-      for (let j = from; j < usable.length; j++) if ((load[usable[j]] || 0) + s.mins <= cap) { pick = j; break; }
-      if (pick < 0) for (let j = from; j >= last; j--) if ((load[usable[j]] || 0) + s.mins <= cap) { pick = j; break; }
+      for (let j = from; j < usable.length; j++) if ((load[usable[j]] || 0) + s.mins <= capFor(usable[j])) { pick = j; break; }
+      if (pick < 0) for (let j = from; j >= last; j--) if ((load[usable[j]] || 0) + s.mins <= capFor(usable[j])) { pick = j; break; }
       if (pick < 0) {
         // nothing fits under the limit: use the lightest evening that keeps the order
         pick = Math.min(from, usable.length - 1);
@@ -1501,11 +1649,401 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
     });
   }
 
+  /* ---------- the adaptive planner ----------
+     Self-healing: a step whose evening has passed moves to the first weekday evening with room
+     before its deadline, closest deadline first. Energy check-in: a low evening keeps only the
+     most urgent step, a good evening pulls one step forward. Weekly reflection: a lighter or
+     fuller week changes next week's evening limit. Every change goes in the log with its reason,
+     and the ones that can be undone have an Undo button for a week. */
+  const LOW_CAP = 20;
+  const BREAKS = (REVIEW && REVIEW.breaks) || [];
+  const inBreak = (k) => BREAKS.includes(mondayOf(k));
+  const byUrgency = (a, b) => (a.deadline.due || '9999').localeCompare(b.deadline.due || '9999')
+    || a.dateEff.localeCompare(b.dateEff) || (a.time || '').localeCompare(b.time || '');
+  const plural = (n, word, many) => `${n} ${n === 1 ? word : (many || word + 's')}`;
+
+  // Most minutes for one evening: the setting, changed for a week by a reflection, cut on a low-energy night.
+  function capFor(k) {
+    const base = Number(state.settings.cap) || 60;
+    const wk = Number(state.weekCap && state.weekCap[mondayOf(k)]) || base;
+    return state.energy && state.energy[k] === 'low' ? Math.min(wk, LOW_CAP) : wk;
+  }
+
+  // The last evening a step can sit on and still be ready for its deadline.
+  function lastDayFor(c) {
+    const d = c.deadline;
+    if (!d || !d.due) return null;
+    if (c.date && c.date > d.due) return addDays(c.date, 14); // a follow-up planned after an event
+    let lim = d.due;
+    if (d.kind !== 'event' && d.status !== 'target') {
+      const t = d.dueTime || (DATA.defaults && DATA.defaults.dueTime) || '09:00';
+      if (t < '17:00') lim = addDays(d.due, -1); // handed in by day, so the work happens the evening before
+    }
+    return c.date && c.date > lim ? c.date : lim;
+  }
+
+  // First weekday evening from fromKey with room, up to the step's last day. Christmas and Easter
+  // weeks are skipped unless nothing else fits. Returns null when the last day has already gone.
+  function findSlot(c, fromKey, load) {
+    const lim = lastDayFor(c);
+    const m = c.mins || 30;
+    if (lim && lim < fromKey) return null;
+    const end = lim || addDays(fromKey, 120);
+    for (let d = fromKey; d <= end; d = addDays(d, 1)) {
+      if (isWeekday(d) && !inBreak(d) && (load[d] || 0) + m <= capFor(d)) return { day: d, fits: true };
+    }
+    let best = null;
+    for (let d = fromKey; d <= end; d = addDays(d, 1)) {
+      if (isWeekday(d) && (best === null || (load[d] || 0) < (load[best] || 0))) best = d;
+    }
+    return { day: best || fromKey, fits: false };
+  }
+
+  function addLog(e) {
+    state.log.unshift({ id: uid(), at: now().getTime(), ...e });
+    if (state.log.length > 80) state.log.length = 80;
+  }
+  function undoEntry(e) {
+    if (!e || !e.undo || e.undone) return false;
+    Object.entries(e.undo.moved || {}).forEach(([id, prev]) => { if (prev) state.moved[id] = prev; else delete state.moved[id]; });
+    Object.entries(e.undo.weekCap || {}).forEach(([mon, prev]) => { if (prev) state.weekCap[mon] = prev; else delete state.weekCap[mon]; });
+    e.undone = true;
+    return true;
+  }
+
+  // Missed steps whose deadline is still ahead move forward. Steps past their deadline stay put
+  // and show on Home under "Check these", because the work may already have gone in.
+  function heal() {
+    if (state.settings.heal === false) return 0;
+    const today = todayKey();
+    const from = now().getHours() >= 21 ? addDays(today, 1) : today;
+    const movable = allChunks(deadlines())
+      .filter((c) => !c.done && c.dateEff < today)
+      .filter((c) => { const lim = lastDayFor(c); return !lim || lim >= today; })
+      .sort(byUrgency);
+    if (!movable.length) return 0;
+    const load = loadMap();
+    const lines = [];
+    let over = 0;
+    movable.forEach((c) => {
+      const slot = findSlot(c, from, load) || { day: today, fits: false };
+      const seen = (state.missed[c.id] = state.missed[c.id] || []);
+      if (!seen.includes(c.dateEff)) seen.push(c.dateEff);
+      state.moved[c.id] = slot.day;
+      load[slot.day] = (load[slot.day] || 0) + (c.mins || 30);
+      if (!slot.fits) over++;
+      lines.push(`${c.title}: ${fmtShort(c.dateEff)} to ${fmtShort(slot.day)}${slot.fits ? '' : ' (over your evening limit)'}`);
+    });
+    const n = movable.length;
+    addLog({
+      kind: 'heal',
+      what: n === 1 ? `Moved a missed step to ${fmtShort(state.moved[movable[0].id])}` : `Moved ${n} missed steps to evenings with room`,
+      why: `${n === 1 ? 'It was' : 'They were'} not ticked off on the night. Each one goes to the first weekday evening with room before its deadline, closest deadline first.${over ? ` ${plural(over, 'step')} only fitted by going over your evening limit, because the deadline is close.` : ''}`,
+      lines
+    });
+    commit();
+    return n;
+  }
+
+  // Evens out evenings that are over the limit: the step with the furthest deadline moves first,
+  // and only later, to an evening with room before its own deadline.
+  function balance(from, to) {
+    const load = loadMap();
+    const open = allChunks(deadlines()).filter((c) => !c.done && !c.time && c.dateEff >= from && c.dateEff <= to);
+    const undo = {};
+    const lines = [];
+    for (let d = from; d <= to; d = addDays(d, 1)) {
+      if (!isWeekday(d) || (load[d] || 0) <= capFor(d)) continue;
+      const here = open.filter((c) => c.dateEff === d && !(c.id in undo)).sort(byUrgency).reverse();
+      let left = here.length;
+      for (const c of here) {
+        if ((load[d] || 0) <= capFor(d) || left <= 1) break;
+        const m = c.mins || 30;
+        load[d] -= m;
+        const slot = findSlot(c, addDays(d, 1), load);
+        if (!slot || !slot.fits) { load[d] += m; continue; }
+        undo[c.id] = state.moved[c.id] || null;
+        state.moved[c.id] = slot.day;
+        c.dateEff = slot.day;
+        load[slot.day] = (load[slot.day] || 0) + m;
+        left--;
+        lines.push(`${c.title}: ${fmtShort(d)} to ${fmtShort(slot.day)}`);
+      }
+    }
+    return { undo, lines };
+  }
+
+  function replan() {
+    const healed = heal();
+    const today = todayKey();
+    const r = balance(today, addDays(today, 27));
+    if (r.lines.length) {
+      addLog({
+        kind: 'replan',
+        what: `Evened out ${plural(r.lines.length, 'step')} over the next four weeks`,
+        why: 'Some evenings were over your limit. The step with the furthest deadline moved first, and only to an evening with room before its own deadline.',
+        lines: r.lines,
+        undo: { moved: r.undo }
+      });
+      commit();
+    } else if (!healed) {
+      const last = state.log[0];
+      if (!(last && last.kind === 'check' && keyOf(new Date(last.at)) === today)) {
+        addLog({ kind: 'check', what: 'Checked the next four weeks', why: `Nothing was missed and every evening is within your limit (${state.settings.cap} minutes). Nothing needed to move.` });
+        commit();
+      }
+    }
+    return { healed, moved: r.lines.length };
+  }
+
+  // Energy check-in. Changing your answer first undoes what the last answer did tonight.
+  function setEnergy(level) {
+    const today = todayKey();
+    state.log.forEach((e) => { if (e.kind === 'energy' && e.day === today) undoEntry(e); });
+    state.energy[today] = level;
+    let result = { level, moved: 0, bonus: null };
+    if (level === 'low' || level === 'high') {
+      const load = loadMap();
+      const undo = {};
+      const lines = [];
+      if (level === 'low') {
+        const tonight = allChunks(deadlines()).filter((c) => !c.done && c.dateEff === today).sort(byUrgency);
+        let kept = 0;
+        const stayed = [];
+        tonight.forEach((c, i) => {
+          const m = c.mins || 30;
+          if (i === 0 || c.time || kept + m <= LOW_CAP) { kept += m; return; }
+          load[today] -= m;
+          const slot = findSlot(c, addDays(today, 1), load);
+          if (!slot || !slot.fits) { load[today] += m; kept += m; stayed.push(c.title); return; }
+          undo[c.id] = state.moved[c.id] || null;
+          state.moved[c.id] = slot.day;
+          load[slot.day] = (load[slot.day] || 0) + m;
+          lines.push(`${c.title}: moved to ${fmtShort(slot.day)}`);
+        });
+        result.moved = lines.length;
+        addLog({
+          kind: 'energy', day: today,
+          what: lines.length ? `Lighter evening: ${plural(lines.length, 'step')} moved` : 'Lighter evening: nothing needed to move',
+          why: tonight.length
+            ? `You said your energy is low. Tonight keeps "${tonight[0].title}", the step with the closest deadline${stayed.length ? `, plus ${plural(stayed.length, 'step')} with no room before ${stayed.length === 1 ? 'its' : 'their'} deadline` : ''}.${lines.length ? ' The rest go to the next evenings with room.' : ''}`
+            : 'You said your energy is low. Nothing was planned tonight, so nothing moved.',
+          lines,
+          undo: { moved: undo }
+        });
+      } else {
+        const tl = load[today] || 0;
+        const cand = allChunks(deadlines())
+          .filter((c) => !c.done && !c.time && c.dateEff > today && c.dateEff <= addDays(today, 7) && tl + (c.mins || 30) <= capFor(today) + 30)
+          .sort(byUrgency)[0];
+        if (cand) {
+          undo[cand.id] = state.moved[cand.id] || null;
+          state.moved[cand.id] = today;
+          lines.push(`${cand.title}: ${fmtShort(cand.dateEff)} to tonight`);
+          result.bonus = cand;
+        }
+        addLog({
+          kind: 'energy', day: today,
+          what: cand ? `Bonus step tonight: ${cand.title}` : 'Good energy: nothing to pull forward',
+          why: cand
+            ? `You said you have good energy. This is the next step with the closest deadline (${cand.deadline.title}${cand.deadline.due ? ', due ' + fmtShort(cand.deadline.due) : ''}). Doing it tonight frees up ${fmtShort(cand.dateEff)}.`
+            : 'Nothing in the next seven days fits tonight without going well over your evening limit.',
+          lines,
+          undo: { moved: undo }
+        });
+      }
+    }
+    commit();
+    return result;
+  }
+
+  // Weekly reflection
+  const MOODS = ['Tired', 'Busy at work', 'Focused', 'Confident', 'Stuck', 'Behind'];
+  const HEAVY = ['Tired', 'Busy at work', 'Stuck', 'Behind'];
+  const lighterCap = () => Math.max(30, (Number(state.settings.cap) || 60) - 20);
+  const pushCap = () => Math.min(180, (Number(state.settings.cap) || 60) + 20);
+  const planLabel = (p) => (p === 'lighter' ? `lighter, evenings up to ${lighterCap()} minutes` : p === 'push' ? `fuller, evenings up to ${pushCap()} minutes` : `the usual ${state.settings.cap} minutes an evening`);
+  function suggestPlan(moods) {
+    const list = moods || [];
+    const heavy = list.filter((m) => HEAVY.includes(m));
+    if (heavy.length) return { plan: 'lighter', why: `you picked ${heavy.map((m) => m.toLowerCase()).join(' and ')}` };
+    if (list.length) return { plan: 'same', why: `you picked ${list.map((m) => m.toLowerCase()).join(' and ')}` };
+    return { plan: 'same', why: '' };
+  }
+  function reflectionDue() {
+    if (!REVIEW) return false;
+    const today = todayKey();
+    const mon = mondayOf(today);
+    return inReviewRange(mon) && !state.reflections[mon] && today >= reviewDayKey(mon);
+  }
+  function saveReflection(mon, text, moods, plan) {
+    state.log.forEach((e) => { if (e.kind === 'reflect' && e.week === mon) undoEntry(e); });
+    const next = addDays(mon, 7);
+    state.reflections[mon] = { text, moods, plan, at: now().getTime() };
+    const undo = { moved: {}, weekCap: { [next]: state.weekCap[next] || null } };
+    let lines = [];
+    if (plan === 'lighter') {
+      state.weekCap[next] = lighterCap();
+      const r = balance(next, addDays(next, 6));
+      undo.moved = r.undo;
+      lines = r.lines;
+    } else if (plan === 'push') {
+      state.weekCap[next] = pushCap();
+    } else {
+      delete state.weekCap[next];
+    }
+    const capNext = state.weekCap[next] || state.settings.cap;
+    addLog({
+      kind: 'reflect', week: mon,
+      what: plan === 'lighter' ? `Lighter week planned for ${weekLabel(next)}` : plan === 'push' ? `Fuller week allowed for ${weekLabel(next)}` : `Usual limit kept for ${weekLabel(next)}`,
+      why: `From your reflection${moods.length ? ` (${moods.join(', ').toLowerCase()})` : ''}. Evenings in ${weekLabel(next)} go up to ${capNext} minutes${lines.length ? `, so ${plural(lines.length, 'step')} moved to evenings with room before ${lines.length === 1 ? 'its' : 'their'} deadline` : ''}.`,
+      lines,
+      undo
+    });
+    commit();
+    return lines.length;
+  }
+
+  // What the app has noticed, from real ticks, misses, reflections and check-ins only.
+  function patterns() {
+    const out = [];
+    const by = {};
+    const bump = (k, field) => { const w = dow(k); if (w < 1 || w > 5) return; (by[w] = by[w] || { on: 0, missed: 0 })[field]++; };
+    allChunks(deadlines()).forEach((c) => {
+      const t = state.done[c.id];
+      if (t && keyOf(new Date(t)) <= c.dateEff) bump(c.dateEff, 'on');
+    });
+    Object.values(state.missed).forEach((arr) => (arr || []).forEach((k) => bump(k, 'missed')));
+    const rows = Object.entries(by).map(([w, v]) => ({ w: Number(w), on: v.on, n: v.on + v.missed, rate: v.on / (v.on + v.missed) })).filter((r) => r.n >= 2);
+    if (rows.reduce((a, r) => a + r.n, 0) >= 6 && rows.length >= 2) {
+      rows.sort((a, b) => b.rate - a.rate || b.n - a.n);
+      const best = rows[0];
+      const worst = rows[rows.length - 1];
+      const days = (w) => DAY_NAMES[w - 1] + 's';
+      out.push(`${days(best.w)} work best: ${best.on} of ${best.n} steps done on the night.${worst.rate < best.rate ? ` ${days(worst.w)} are hardest: ${worst.on} of ${worst.n}.` : ''}`);
+    }
+    const recent = Object.entries(state.reflections).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 4);
+    const count = {};
+    recent.forEach(([, r]) => (r.moods || []).forEach((m) => { count[m] = (count[m] || 0) + 1; }));
+    const top = Object.entries(count).sort((a, b) => b[1] - a[1])[0];
+    if (top && top[1] >= 2) out.push(`You picked "${top[0]}" in ${top[1]} of your last ${recent.length} reflections.`);
+    const since = addDays(todayKey(), -14);
+    const lows = Object.entries(state.energy).filter(([k, v]) => v === 'low' && k > since).length;
+    if (lows >= 3) out.push(`${lows} low-energy evenings in the last two weeks. A lighter week might help.`);
+    return out;
+  }
+
+  // The single best thing to do now.
+  function nextStep() {
+    const today = todayKey();
+    const open = allChunks(deadlines()).filter((c) => !c.done);
+    const late = overdueReviews();
+    const reviewOf = (w) => ({ type: 'review', week: w, mins: (REVIEW && REVIEW.mins) || 20 });
+    if (late.length) return { ...reviewOf(late[0]), why: `The PebblePad review for ${weekLabel(late[0].mon)} is still open, and an open review always comes first until it is done.` };
+    const tonight = open.filter((c) => c.dateEff <= today).filter((c) => { const lim = lastDayFor(c); return !lim || lim >= today; }).sort(byUrgency);
+    const rw = thisWeekReview();
+    const reviewTonight = rw && rw.state === 'tonight';
+    if (tonight.length) {
+      const c = tonight[0];
+      const n = c.deadline.due ? daysBetween(today, c.deadline.due) : null;
+      if (reviewTonight && (n === null || n > 3)) return { ...reviewOf(rw), why: 'The weekly review is due tonight, and none of tonight\'s steps has a deadline in the next three days.' };
+      const when = n === null ? 'It has no deadline yet' : `Due ${fmtShort(c.deadline.due)}, ${n <= 0 ? 'today' : n === 1 ? 'tomorrow' : `in ${n} days`}`;
+      const among = tonight.length > 1 ? ` It has the closest deadline of the ${tonight.length} steps tonight.` : '';
+      const low = state.energy[today] === 'low' ? ' Your energy is low, so the evening can stop after this one.' : '';
+      return { type: 'step', c, why: `${when}.${among}${low}` };
+    }
+    if (reviewTonight) return { ...reviewOf(rw), why: 'The weekly review is due tonight. It takes about 20 minutes.' };
+    const next = open.filter((c) => c.dateEff > today).sort((a, b) => a.dateEff.localeCompare(b.dateEff) || byUrgency(a, b))[0];
+    if (next) return { type: 'ahead', c: next, why: `Nothing is left tonight. This is the next step in your plan, on ${fmtLong(next.dateEff)}.` };
+    return null;
+  }
+
+  // Weekday evenings in a row where every planned step was done and nothing was missed.
+  function streak() {
+    const today = todayKey();
+    const all = allChunks(deadlines());
+    const missedOn = {};
+    Object.values(state.missed).forEach((arr) => (arr || []).forEach((k) => { missedOn[k] = true; }));
+    const start = (REVIEW && REVIEW.start) || addDays(today, -90);
+    let n = 0;
+    const tonight = all.filter((c) => c.dateEff === today);
+    if (tonight.length && tonight.every((c) => c.done)) n++;
+    for (let d = addDays(today, -1), i = 0; i < 120 && d >= start; d = addDays(d, -1), i++) {
+      if (missedOn[d]) break;
+      const items = all.filter((c) => c.dateEff === d);
+      if (!items.length) continue;
+      if (items.every((c) => c.done)) n++; else break;
+    }
+    return n;
+  }
+
+  // A plain summary of the plan, to paste into a Claude chat.
+  function weekText() {
+    const today = todayKey();
+    const list = deadlines();
+    const open = allChunks(list).filter((c) => !c.done);
+    const short = (id) => (COURSES[id] || COURSES.other).short;
+    const line = (c) => `${short(c.course)}: ${c.title} (${mins(c.mins || 30)}), for "${c.deadline.title}"${c.deadline.due ? `, due ${fmtShort(c.deadline.due)}` : ''}`;
+    const out = [`My study plan from my Cap and Gown planner, ${fmtLong(today)} ${parseKey(today).getFullYear()}.`, ''];
+    const tonight = open.filter((c) => c.dateEff === today).sort(byUrgency);
+    out.push(isWeekday(today) ? 'Tonight:' : 'Today:');
+    out.push(...(tonight.length ? tonight.map((c) => '- ' + line(c)) : ['- Nothing planned.']));
+    const soon = open.filter((c) => c.dateEff > today && c.dateEff <= addDays(today, 7)).sort((a, b) => a.dateEff.localeCompare(b.dateEff));
+    if (soon.length) { out.push('', 'Next seven days:'); soon.forEach((c) => out.push(`- ${fmtShort(c.dateEff)}, ${line(c)}`)); }
+    const dues = list.filter((d) => d.due && d.due >= today && !d.complete).sort((a, b) => a.due.localeCompare(b.due)).slice(0, 5);
+    if (dues.length) {
+      out.push('', 'Next deadlines:');
+      dues.forEach((d) => out.push(`- ${fmtShort(d.due)}: ${d.title} (${short(d.course)}${d.status === 'target' ? ', my own target' : d.status === 'check' ? ', date still to check' : ''})`));
+    }
+    const stale = open.filter((c) => c.dateEff < today);
+    if (stale.length) out.push('', `Not ticked off from earlier: ${plural(stale.length, 'step')} (${[...new Set(stale.map((c) => c.deadline.title))].slice(0, 3).join('; ')}).`);
+    const ov = overdueReviews();
+    if (ov.length) out.push(`Weekly PebblePad review still open for ${plural(ov.length, 'week')}.`);
+    const e = state.energy[today];
+    if (e === 'low' || e === 'high') out.push(`Energy tonight: ${e === 'low' ? 'low' : 'good'}.`);
+    const lastR = Object.entries(state.reflections).sort((a, b) => b[0].localeCompare(a[0]))[0];
+    if (lastR && lastR[1].text) out.push(`My last weekly reflection (${weekLabel(lastR[0])}): "${lastR[1].text.slice(0, 300)}"`);
+    out.push('', 'My question: ');
+    return out.join('\n');
+  }
+
   /* ---------- rendering ---------- */
   const ICON = {
     cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v6M9 15.5h6"/></svg>',
     move: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h12M13 7l5 5-5 5"/></svg>'
   };
+  const svg = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  Object.assign(ICON, {
+    back: svg('<path d="M15 5l-7 7 7 7"/>'),
+    fwd: svg('<path d="M9 5l7 7-7 7"/>'),
+    bell: svg('<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>'),
+    spark: svg('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>'),
+    dots: svg('<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>'),
+    week: svg('<path d="M8 6h12M8 12h12M8 18h8"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>'),
+    plus: svg('<path d="M12 5v14M5 12h14"/>'),
+    folder: svg('<path d="M3 7.5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'),
+    chats: svg('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.3-4.6A8 8 0 1 1 21 12z"/>'),
+    link: svg('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'),
+    help: svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.4M12 17h.01"/>'),
+    reload: svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
+    out: svg('<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'),
+    deadlines: svg('<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>'),
+    add: svg('<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>'),
+    reflect: svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>'),
+    log: svg('<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/>'),
+    settings: svg('<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>')
+  });
+  const CAP_PATHS = `<polygon class="edge" points="70,230 256,310 442,230 442,244 256,324 70,244"/>
+        <path class="board" d="M150 262 V342 C150 396 362 396 362 342 V262 L256 309 Z"/>
+        <polygon class="board" points="256,138 442,218 256,298 70,218"/>
+        <polygon points="256,152 410,218 256,284 102,218" fill="#ffffff" fill-opacity="0.08"/>
+        <g class="tassel-group">
+          <path class="cord" d="M256 218 L404 252 L404 326" fill="none" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle class="tassel" cx="404" cy="330" r="14"/>
+          <path class="tassel" d="M390 338 H418 L430 400 H378 Z"/>
+        </g>
+        <circle class="tassel" cx="256" cy="218" r="14"/>`;
+  const capSvg = (id) => `<svg class="cap"${id ? ` id="${id}"` : ''} viewBox="0 0 512 512" aria-hidden="true">${CAP_PATHS}</svg>`;
 
   function tag(course) {
     const c = COURSES[course] || COURSES.other;
@@ -1589,102 +2127,191 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
     </article>`;
   }
 
-  function renderTonight() {
-    const el = $('#tonight');
+  /* ---------- Home ---------- */
+  function heroBar() {
     const today = todayKey();
-    const list = deadlines();
-    const chunks = allChunks(list);
+    const hour = now().getHours();
+    const upcoming = deadlines().filter((d) => d.due && d.due >= today && !d.complete).sort((a, b) => a.due.localeCompare(b.due))[0];
+    let line = fmtLong(today);
+    if (upcoming) {
+      const n = daysBetween(today, upcoming.due);
+      line += ` · next ${upcoming.kind === 'event' ? 'date' : 'deadline'} ${n === 0 ? 'today' : n === 1 ? 'tomorrow' : `in ${n} days`}`;
+    }
+    const unseen = state.log.some((e) => e.at > (state.logSeen || 0));
+    return `${capSvg('cap')}
+      <h2>${hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening'}, ${esc(DATA.owner || 'there')}<span class="sub">${esc(line)}</span><span class="sync-pill" id="sync-pill"></span></h2>
+      <button class="iconbtn" data-go="log" aria-label="How the plan has changed${unseen ? ', new changes' : ''}">${ICON.bell}${unseen ? '<span class="dot"></span>' : ''}</button>`;
+  }
+
+  function nextStepCard(ns) {
+    if (ns.type === 'review') {
+      const w = ns.week;
+      return `<section class="card nextstep" aria-label="Your one next step">
+        <span class="kicker">Your one next step</span>
+        <h3>${w.state === 'overdue' ? 'Finish' : 'Do'} the PebblePad review for ${esc(weekLabel(w.mon))}</h3>
+        <p class="meta"><span class="tag review">Portfolio</span><span>${esc(mins(ns.mins))}</span><span>${w.done} of ${w.total} checked</span></p>
+        <p class="why">${esc(ns.why)}</p>
+        <div class="btn-row"><button class="btn small light" data-action="open-review" data-id="${esc(w.mon)}">Open the review</button><button class="btn small on-ink" data-action="why-next">Why this?</button></div>
+      </section>`;
+    }
+    const c = ns.c;
+    const ahead = ns.type === 'ahead';
+    return `<section class="card nextstep" aria-label="Your one next step">
+      <span class="kicker">${ahead ? 'Next in your plan' : 'Your one next step'}</span>
+      <h3>${esc(c.title)}</h3>
+      <p class="meta">${tag(c.course)}<span>${esc(mins(c.mins || 30))}</span><span>for ${esc(c.deadline.title)}</span></p>
+      ${c.tip && !ahead ? `<p class="tip">${esc(c.tip)}</p>` : ''}
+      <p class="why">${esc(ns.why)}</p>
+      <div class="btn-row">
+        ${ahead
+          ? `<button class="btn small light" data-action="pull" data-id="${esc(c.id)}">Do it tonight</button>`
+          : `<button class="btn small light" data-action="tick-now" data-id="${esc(c.id)}">Done</button><button class="btn small on-ink" data-action="move" data-id="${esc(c.id)}">Not tonight</button>`}
+        <button class="btn small on-ink" data-action="why-next">Why this?</button>
+      </div>
+    </section>`;
+  }
+
+  function energyCard() {
+    const e = state.energy[todayKey()];
+    const opts = [['low', 'Low, keep it light'], ['okay', 'Okay'], ['high', 'Good, push me']];
+    const pill = e === 'low' ? '<span class="pill warn">Lighter evening</span>' : e === 'high' ? '<span class="pill good">Bonus step</span>' : '';
+    const help = e === 'low' ? 'Tonight keeps the step with the closest deadline. The rest moved to evenings with room. Change your answer to undo it.'
+      : e === 'high' ? 'One step from later in the week is on tonight instead. Change your answer to undo it.'
+      : 'Low keeps only the most urgent step tonight. Good pulls one step forward from later in the week.';
+    return `<section class="card">
+      <div class="row between"><h3>How is your energy tonight?</h3>${pill}</div>
+      <div class="chips" role="group" aria-label="Energy tonight">${opts.map(([id, l]) => `<button class="chip" data-action="energy" data-id="${id}" aria-pressed="${e === id}">${l}</button>`).join('')}</div>
+      <p class="small-print">${help}</p>
+    </section>`;
+  }
+
+  // Steps that were not ticked: past their deadline (or every missed step when self-healing is off).
+  function staleCard(list, healOff) {
+    const groups = {};
+    list.forEach((c) => { (groups[c.deadline.id] = groups[c.deadline.id] || { d: c.deadline, items: [] }).items.push(c); });
+    const body = Object.values(groups).map((g) => {
+      const rows = `<ul class="steps">${g.items.map((c) => stepRow(c, { showDate: true, showFor: false, showTip: false })).join('')}</ul>`;
+      return `<div class="stale-group">
+        <div class="row between"><b class="grow">${esc(g.d.title)}</b>${healOff ? '' : `<button class="btn small" data-action="tick-group" data-id="${esc(g.d.id)}">It went in: tick ${g.items.length}</button>`}</div>
+        ${g.items.length > 3 ? `<details><summary>${plural(g.items.length, 'step')}</summary>${rows}</details>` : rows}
+      </div>`;
+    }).join('');
+    return `<section class="card warn-card">
+      <div class="row between"><h3>${healOff ? 'Catch up' : 'Check these'}</h3>${healOff ? '<button class="btn small" data-action="move-all">Spread them over free evenings</button>' : ''}</div>
+      <p class="small-print">${healOff
+        ? 'These steps were not ticked off on the night.'
+        : 'Not ticked off, and the deadline has passed, so the planner has left them where they were. If the work went in, tick them off. If not, talk to your tutor or assessor, then move them with the arrow.'}</p>
+      ${body}
+    </section>`;
+  }
+
+  function tonightCard() {
+    const today = todayKey();
+    const chunks = allChunks(deadlines());
     const todays = chunks.filter((c) => c.dateEff === today);
     const left = todays.filter((c) => !c.done);
     const total = left.reduce((a, c) => a + (c.mins || 0), 0);
-    const next = chunks.find((c) => !c.done && c.dateEff > today);
     const weekend = !isWeekday(today);
     const rw = thisWeekReview();
     const overdue = overdueReviews();
     const reviewTonight = rw && rw.state === 'tonight';
     const reviewMins = REVIEW ? (REVIEW.mins || 20) : 0;
     const shownTotal = total + (reviewTonight || overdue.length ? reviewMins : 0);
-    let head = `<div class="tonight-head"><span class="eyebrow">${weekend ? 'This weekend' : 'Tonight'} · ${esc(fmtShort(today))}</span>${left.length || reviewTonight || overdue.length ? `<span class="mins">${esc(mins(shownTotal))}</span>` : ''}</div>`;
+    const head = `<div class="tonight-head"><h3>${weekend ? 'This weekend' : 'Tonight'} <span class="eyebrow">${esc(fmtShort(today))}</span></h3>${left.length || reviewTonight || overdue.length ? `<span class="mins">${esc(mins(shownTotal))}</span>` : ''}</div>`;
     let nudge = '';
     if (overdue.length) {
       const w = overdue[0];
-      nudge = `<div class="nudge is-overdue"><p><strong>PebblePad review still open</strong> for ${esc(weekLabel(w.mon))}${overdue.length > 1 ? ` and ${overdue.length - 1} more week${overdue.length > 2 ? 's' : ''}` : ''}. ${w.done} of ${w.total} checked. It stays here until it is done.</p><div class="btn-row"><button class="btn small primary" data-action="open-review" data-id="${esc(w.mon)}">Finish the review</button></div></div>`;
+      nudge = `<div class="nudge is-overdue"><p><strong>PebblePad review still open</strong> for ${esc(weekLabel(w.mon))}${overdue.length > 1 ? ` and ${plural(overdue.length - 1, 'more week')}` : ''}. ${w.done} of ${w.total} checked. It stays here until it is done.</p><div class="btn-row"><button class="btn small primary" data-action="open-review" data-id="${esc(w.mon)}">Finish the review</button></div></div>`;
     } else if (reviewTonight) {
       nudge = `<div class="nudge"><p><strong>Weekly PebblePad review tonight</strong>, about ${esc(mins(reviewMins))}. ${rw.done} of ${rw.total} checked so far.</p><div class="btn-row"><button class="btn small primary" data-action="open-review" data-id="${esc(rw.mon)}">Start the review</button></div></div>`;
     }
     let body = '';
     if (todays.length) {
-      body = `<ul class="steps">${todays.map((c) => stepRow(c, { showTip: true })).join('')}</ul>`;
-      if (!left.length) body = `<p><strong>All done for tonight.</strong> That is one less thing for later.</p>` + body;
-    } else if (next) {
-      body = `<p>${weekend ? 'Nothing planned. Enjoy the weekend.' : 'Nothing planned tonight.'} Next step is on <strong>${esc(fmtLong(next.dateEff))}</strong>:</p><ul class="steps">${stepRow(next, { showTip: false })}</ul>`;
+      body = `<ul class="steps">${todays.slice().sort((a, b) => Number(a.done) - Number(b.done) || byUrgency(a, b)).map((c) => stepRow(c, { showTip: true })).join('')}</ul>`;
+      if (!left.length) body = '<p><strong>All done for tonight.</strong> That is one less thing for later.</p>' + body;
     } else if (!nudge) {
-      body = '<p>No steps left in the plan. Add a deadline when you get one.</p>';
+      body = `<p class="small-print">${weekend ? 'Nothing planned. Enjoy the weekend.' : 'Nothing planned tonight.'}</p>`;
     }
-    if (nudge && !todays.length) body = body.replace(/^<p>Nothing planned[^<]*/, '<p>No other steps tonight.');
     let alarmLine = '';
     if (APP) {
       alarmLine = state.settings.alarms === false
-        ? '<p class="alarm-line">Alarms are off. <button class="linkish" data-tab-link="settings">Turn them on</button></p>'
+        ? '<p class="alarm-line">Alarms are off. <button class="linkish" data-go="settings">Turn them on</button></p>'
         : `<p class="alarm-line">${nextAlarmText()}</p>`;
     }
-    el.innerHTML = head + nudge + body + alarmLine;
-    const hour = now().getHours();
-    $('#greeting').textContent = `${hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening'}, ${DATA.owner || 'there'}`;
-    const upcoming = list.filter((d) => d.due && d.due >= today && !d.complete).sort((a, b) => a.due.localeCompare(b.due))[0];
-    let line = fmtLong(today);
-    if (upcoming) {
-      const n = daysBetween(today, upcoming.due);
-      const what = upcoming.kind === 'event' ? 'Next date' : 'Next deadline';
-      line = n === 0 ? `${what} is today: ${upcoming.title}` : `${what} in ${n} day${n === 1 ? '' : 's'}: ${upcoming.title}`;
-    }
-    $('#today-line').textContent = line;
+    return `<section class="card tonight">${head}${nudge}${body}${alarmLine}</section>`;
   }
 
-  function renderToday() {
+  function statsRow() {
     const today = todayKey();
-    const list = deadlines();
-    const chunks = allChunks(list);
-    const behind = chunks.filter((c) => !c.done && c.dateEff < today && passesFilter(c.course));
+    const mon = mondayOf(today);
+    const sun = addDays(mon, 6);
+    const chunks = allChunks(deadlines());
+    const startMs = parseKey(mon).getTime();
+    const done = chunks.filter((c) => c.done && Number(state.done[c.id]) >= startMs).length;
+    const left = chunks.filter((c) => !c.done && c.dateEff >= today && c.dateEff <= sun).reduce((a, c) => a + (c.mins || 0), 0);
+    const st = streak();
+    return `<div class="stats">
+      <div class="stat-tile"><b style="color:var(--accent-ink)">${st}</b><span>${st === 1 ? 'evening' : 'evenings'} on plan in a row</span></div>
+      <div class="stat-tile"><b>${done}</b><span>${done === 1 ? 'step' : 'steps'} done this week</span></div>
+      <div class="stat-tile"><b>${esc(mins(left))}</b><span>left this week</span></div>
+    </div>`;
+  }
+
+  function weekStrip() {
+    const today = todayKey();
+    const chunks = allChunks(deadlines());
     const mon = mondayOf(today);
     const week = [0, 1, 2, 3, 4].map((i) => addDays(mon, i));
-    const upcoming = list.filter((d) => d.due && d.due >= today && !d.complete && passesFilter(d.course)).sort((a, b) => a.due.localeCompare(b.due)).slice(0, 3);
-    const nodate = list.filter((d) => !d.due);
-    let html = '';
-    if (APP && !state.settings.alarmSetupSeen) {
-      html += `<div class="callout"><strong>Check your alarms once.</strong> Open Settings, fix anything marked with a red mark, then tap Test the alarm. It takes two minutes. <div class="btn-row" style="margin-top:.5rem"><button class="btn small primary" data-action="goto-alarms">Check the alarms</button><button class="btn small" data-action="dismiss-alarms">Later</button></div></div>`;
-    } else if (!APP && !state.settings.remindersSeen) {
-      html += `<div class="callout"><strong>Get these on your phone.</strong> Each step has a calendar button, and Settings shows how to put the whole plan into Google Calendar with notifications. <div class="btn-row" style="margin-top:.5rem"><button class="btn small primary" data-action="goto-reminders">Set up reminders</button><button class="btn small" data-action="dismiss-reminders">Later</button></div></div>`;
-    }
-    if (REVIEW) {
-      const overdue = overdueReviews();
-      const rw = thisWeekReview();
-      if (overdue.length) {
-        html += `<div class="section"><div class="section-head"><h2>PebblePad review</h2><button class="btn small" data-tab-link="portfolio">Portfolio</button></div>
-          ${overdue.map((w) => `<div class="nudge is-overdue"><p><strong>${esc(weekLabel(w.mon))} is not done yet.</strong> ${w.done} of ${w.total} checked. This stays at the top until you finish it.</p><div class="btn-row"><button class="btn small primary" data-action="open-review" data-id="${esc(w.mon)}">Finish it now</button></div></div>`).join('')}</div>`;
-      } else if (rw) {
-        const when = rw.complete ? 'Done for this week.' : (rw.state === 'tonight' ? 'Due tonight.' : `Due ${esc(fmtLong(rw.day))}.`);
-        html += `<div class="section"><div class="section-head"><h2>PebblePad review</h2><span class="hint">${rw.done} of ${rw.total} checked</span></div>
-          <div class="nudge"><p><strong>${when}</strong> ${rw.complete ? 'Next one is next week.' : `About ${esc(mins(REVIEW.mins || 20))}: reflections, hours, observations, KSBs and placements.`}</p><div class="btn-row"><button class="btn small primary" data-action="open-review" data-id="${esc(rw.mon)}">${rw.complete ? 'See this week' : 'Open the review'}</button></div></div></div>`;
-      }
-    }
-    if (behind.length) {
-      html += `<div class="section"><div class="section-head"><h2>Catch up</h2><button class="btn small" data-action="move-all">Spread them over free evenings</button></div>
-        <ul class="steps">${behind.map((c) => stepRow(c, { showDate: true })).join('')}</ul></div>`;
-    }
-    html += `<div class="section"><div class="section-head"><h2>This week</h2><span class="hint">w/c ${esc(fmt(mon, { day: 'numeric', month: 'short' }))}</span></div>
+    return `<section class="card"><div class="row between"><h3>This week</h3><button class="btn small" data-tab="plan">Planner</button></div>
       <div class="strip">${week.map((d) => {
         const items = chunks.filter((c) => c.dateEff === d);
         const rv = REVIEW && inReviewRange(mon) && reviewDayKey(mon) === d ? reviewWeek(mon) : null;
         const m = items.reduce((a, c) => a + (c.done ? 0 : c.mins || 0), 0) + (rv && !rv.complete ? (REVIEW.mins || 20) : 0);
         return `<div class="strip-day${d === today ? ' is-today' : ''}"><span class="dow">${esc(fmt(d, { weekday: 'short' }))}</span><span class="m">${m ? esc(m) : '–'}</span><span class="dots">${items.map((c) => `<i class="${esc(c.course)}${c.done ? ' done' : ''}"></i>`).join('')}${rv ? `<i class="review${rv.complete ? ' done' : ''}" title="PebblePad review"></i>` : ''}</span></div>`;
-      }).join('')}</div><p class="small-print">Minutes left each evening. Round dots are steps, coloured by course. The square is the PebblePad review.</p></div>`;
-    html += `<div class="section"><div class="section-head"><h2>Coming up</h2><button class="btn small" data-tab-link="deadlines">All deadlines</button></div>
-      ${upcoming.length ? upcoming.map((d) => deadlineCard(d, { compact: true })).join('') : '<p class="empty">Nothing due. Add one from the Add tab.</p>'}</div>`;
-    if (nodate.length) {
-      html += `<div class="section"><div class="section-head"><h2>Needs a date</h2></div><p class="empty">${nodate.length} item${nodate.length === 1 ? '' : 's'} waiting for a date: ${nodate.map((d) => esc(d.title)).join(', ')}. <button class="btn small" data-tab-link="deadlines" style="margin-top:.5rem">Add the dates</button></p></div>`;
+      }).join('')}</div>
+      <p class="small-print">Minutes left each evening${state.weekCap[mon] ? `, up to ${state.weekCap[mon]} this week` : ''}. Round dots are steps, coloured by course. The square is the PebblePad review.</p></section>`;
+  }
+
+  function noticeFor(e) {
+    return `<div class="notice"><span class="ic">${ICON.spark}</span><div><b>${esc(e.what)}</b><p>${esc(e.why || '')}</p><button class="linkish" data-go="log">See every change</button></div></div>`;
+  }
+
+  function renderHome() {
+    const today = todayKey();
+    const list = deadlines();
+    const chunks = allChunks(list);
+    const s = state.settings;
+    let html = '';
+    if (APP && !s.alarmSetupSeen) {
+      html += `<div class="callout"><strong>Check your alarms once.</strong> Open Settings, fix anything marked with a red mark, then tap Test the alarm. It takes two minutes. <div class="btn-row" style="margin-top:.5rem"><button class="btn small primary" data-action="goto-alarms">Check the alarms</button><button class="btn small" data-action="dismiss-alarms">Later</button></div></div>`;
+    } else if (!APP && !s.remindersSeen) {
+      html += `<div class="callout"><strong>Get these on your phone.</strong> Each step has a calendar button, and Settings shows how to put the whole plan into Google Calendar with notifications. <div class="btn-row" style="margin-top:.5rem"><button class="btn small primary" data-action="goto-reminders">Set up reminders</button><button class="btn small" data-action="dismiss-reminders">Later</button></div></div>`;
     }
-    $('#view-today').innerHTML = html;
+    const ns = nextStep();
+    if (ns) html += nextStepCard(ns);
+    const tonightSteps = chunks.filter((c) => c.dateEff === today && !c.done).length;
+    if (s.energyCheck !== false && (isWeekday(today) || tonightSteps)) html += energyCard();
+    html += tonightCard();
+    const healOff = s.heal === false;
+    const stale = chunks.filter((c) => !c.done && c.dateEff < today && (healOff || (lastDayFor(c) && lastDayFor(c) < today)));
+    if (stale.length) html += staleCard(stale, healOff);
+    if (reflectionDue()) {
+      html += `<section class="card prompt"><span class="kicker">Weekly reflection · ${esc(weekLabel(mondayOf(today)))}</span><h3>How did this week go?</h3>
+        <p class="small-print">Two minutes. A few lines and how the week felt. It decides how full next week's evenings are.</p>
+        <div class="btn-row"><button class="btn small primary" data-go="reflect">Write it</button></div></section>`;
+    }
+    html += statsRow();
+    const recent = state.log.find((e) => !e.undone && e.kind !== 'check' && e.at > now().getTime() - 3 * 86400000);
+    if (recent) html += noticeFor(recent);
+    html += weekStrip();
+    const upcoming = list.filter((d) => d.due && d.due >= today && !d.complete && passesFilter(d.course)).sort((a, b) => a.due.localeCompare(b.due)).slice(0, 3);
+    html += `<div class="section"><div class="section-head"><h2>Coming up</h2><button class="btn small" data-go="deadlines">All deadlines</button></div>
+      ${upcoming.length ? upcoming.map((d) => deadlineCard(d, { compact: true })).join('') : '<p class="empty">Nothing due. Add one from More, Add a deadline.</p>'}</div>`;
+    const nodate = list.filter((d) => !d.due);
+    if (nodate.length) {
+      html += `<div class="section"><div class="section-head"><h2>Needs a date</h2></div><p class="empty">${plural(nodate.length, 'item')} waiting for a date: ${nodate.map((d) => esc(d.title)).join(', ')}. <button class="btn small" data-go="deadlines" style="margin-top:.5rem">Add the dates</button></p></div>`;
+    }
+    return html;
   }
 
   function filterChips() {
@@ -1719,8 +2346,10 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
       if (!wk || wk.mon !== w) { wk = { mon: w, days: [] }; weeks.push(wk); }
       wk.days.push(k);
     });
-    let html = `<div class="section-head"><h2>Plan</h2>${filterChips()}</div>
-      <div class="btn-row"><button class="btn small" data-action="toggle-past">${showPast ? 'Hide finished weeks' : 'Show finished weeks'}</button></div>`;
+    const lastPlan = state.log.find((e) => !e.undone && (e.kind === 'replan' || e.kind === 'heal' || e.kind === 'check') && e.at > now().getTime() - 2 * 86400000);
+    let html = weekPicker(planWeek || mondayOf(today))
+      + (lastPlan ? noticeFor(lastPlan) : '')
+      + `<div class="row between">${filterChips()}<button class="btn small" data-action="toggle-past">${showPast ? 'Hide finished weeks' : 'Show finished weeks'}</button></div>`;
     if (!weeks.length) html += '<p class="empty">Nothing in the plan for this filter.</p>';
     weeks.forEach((wk) => {
       const all = wk.days.flatMap((k) => byDate[k].chunks || []);
@@ -1729,7 +2358,7 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
       html += `<section class="week" aria-label="Week commencing ${esc(fmtLong(wk.mon))}">
         <div class="week-head"><h3>${isThis ? 'This week' : 'w/c ' + esc(fmt(wk.mon, { day: 'numeric', month: 'short', year: parseKey(wk.mon).getFullYear() !== parseKey(today).getFullYear() ? 'numeric' : undefined }))}</h3>
         <span class="load">${left.length ? `${left.length} step${left.length === 1 ? '' : 's'} · ${esc(mins(left.reduce((a, c) => a + (c.mins || 0), 0)))}` : (all.length ? 'all done' : '')}</span></div>
-        ${wk.days.map((k) => `<div class="day${k === today ? ' is-today' : ''}">
+        ${wk.days.map((k) => `<div class="day${k === today ? ' is-today' : ''}" id="day-${esc(k)}">
           <div class="day-date"><div class="dow">${esc(fmt(k, { weekday: 'short' }))}</div><div class="num">${parseKey(k).getDate()}</div><div class="dow">${esc(fmt(k, { month: 'short' }))}</div></div>
           <div class="day-items">
             ${byDate[k].marks.map((d) => `<div class="milestone ${esc(d.course)}"><span class="flag" aria-hidden="true">${d.kind === 'event' ? '●' : '⚑'}</span>${tag(d.course)}<span>${d.kind === 'event' ? '' : 'Due: '}${esc(d.title)}</span>${d.status !== 'confirmed' ? statusTag(d.status) : ''}</div>`).join('')}
@@ -1738,7 +2367,28 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
           </div></div>`).join('')}
       </section>`;
     });
-    $('#view-plan').innerHTML = html;
+    html += `<section class="card"><h3>How the planner decides</h3>
+      <p class="small-print">Closest deadline first, inside the minutes you allow each evening. ${state.settings.heal === false ? 'Missed steps stay where they are until you move them (you can change this in Settings).' : 'A step you miss moves to the first weekday evening with room before its deadline.'} Christmas and Easter weeks stay free unless a deadline needs them. Re-plan evens out any evening over your limit, moving the step with the furthest deadline first. Every change is listed under How it adapts, with the reason.</p>
+      <div class="btn-row"><button class="btn small" data-go="settings">Evening limit: ${esc(state.settings.cap)} min</button><button class="btn small" data-go="log">How it adapts</button></div></section>`;
+    return html;
+  }
+
+  let planWeek = null; // the Monday shown in the week picker
+  function weekPicker(mon) {
+    const today = todayKey();
+    const load = loadMap();
+    const days = [0, 1, 2, 3, 4, 5, 6].map((i) => addDays(mon, i));
+    const capWeek = state.weekCap[mon];
+    return `<section class="card">
+      <div class="row between"><button class="iconbtn" data-action="plan-week" data-id="-7" aria-label="Previous week">${ICON.back}</button><b>${mon === mondayOf(today) ? 'This week' : esc(weekLabel(mon))}</b><button class="iconbtn" data-action="plan-week" data-id="7" aria-label="Next week">${ICON.fwd}</button></div>
+      <div class="weekpick">${days.map((d) => {
+        const m = load[d] || 0;
+        const cap = capFor(d);
+        const pct = isWeekday(d) ? Math.min(100, Math.round((m / cap) * 100)) : (m ? 100 : 0);
+        return `<button class="wday${d === today ? ' is-today' : ''}${isWeekday(d) && m > cap ? ' over' : ''}" data-action="plan-day" data-id="${d}" aria-label="${esc(fmtLong(d))}, ${m} minutes to do"><span>${esc(fmt(d, { weekday: 'short' }))}</span><b>${parseKey(d).getDate()}</b><span class="load"><i style="width:${pct}%"></i></span><span class="m">${m || '–'}</span></button>`;
+      }).join('')}</div>
+      <p class="small-print">Minutes still to do each evening, against your limit of ${capWeek || state.settings.cap} minutes${capWeek ? ' this week, set by your reflection' : ''}. Red means over the limit. Tap a day to jump to it.</p>
+    </section>`;
   }
 
   let focusWeek = null;
@@ -1784,14 +2434,12 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
   }
 
   function renderPortfolio() {
-    const el = $('#view-portfolio');
-    if (!REVIEW || !PORT) { el.innerHTML = '<p class="empty">No portfolio data in this version.</p>'; return; }
+    if (!REVIEW || !PORT) return '<p class="empty">No portfolio data in this version.</p>';
     const p = state.portfolio;
     const overdue = overdueReviews();
     const rw = thisWeekReview();
     const upcoming = rw || nextReview();
-    let html = `<div class="section-head"><h2>Portfolio</h2><span class="hint">Weekly PebblePad review</span></div>
-      <p class="small-print">Your Module 3 portfolio needs evidence for every KSB, ten observation forms and reflections, both placement reflections, your Safeguarding and Prevent certificates and 150 hours of lead teaching. A short check each week keeps it from piling up. An unfinished week stays on Today until you finish it.</p>`;
+    let html = `<p class="small-print">Your Module 3 portfolio needs evidence for every KSB, ten observation forms and reflections, both placement reflections, your Safeguarding and Prevent certificates and 150 hours of lead teaching. A short check each week keeps it from piling up. An unfinished week stays on Today until you finish it.</p>`;
     if (overdue.length) html += `<div class="section"><h3>Still to finish</h3>${overdue.map(reviewCard).join('')}</div>`;
     if (upcoming && !overdue.some((w) => w.mon === upcoming.mon)) html += `<div class="section"><h3>${rw && upcoming.mon === rw.mon ? 'This week' : 'Next review'}</h3>${reviewCard(upcoming)}</div>`;
     const shown = overdue.map((w) => w.mon).concat(upcoming ? [upcoming.mon] : []);
@@ -1838,7 +2486,7 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
         ${Object.entries(PORT.los).map(([k, v]) => `<h3 style="margin-top:.7rem">${esc(k)}</h3><ul class="lo-list">${v.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`).join('')}
       </details>
     </div>`;
-    el.innerHTML = html;
+    return html;
   }
 
   function renderDeadlines() {
@@ -1847,7 +2495,7 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
     const nodate = list.filter((d) => !d.due);
     const open = list.filter((d) => d.due && !(d.complete) && !(d.due < today && !d.chunks.length)).sort((a, b) => a.due.localeCompare(b.due));
     const finished = list.filter((d) => d.due && (d.complete || (d.due < today && !d.chunks.length))).sort((a, b) => b.due.localeCompare(a.due));
-    let html = `<div class="section-head"><h2>Deadlines</h2>${filterChips()}</div>`;
+    let html = `<div class="row between">${filterChips()}<button class="btn small" data-go="add">${ICON.plus} Add</button></div>`;
     if (nodate.length) {
       html += `<div class="section"><h3>Needs a date</h3><div class="panel">${nodate.map((d) => `<div style="display:flex;gap:.75rem;align-items:center;justify-content:space-between;flex-wrap:wrap">
         <div style="min-width:0">${tag(d.course)} <strong>${esc(d.title)}</strong><p class="small-print">${esc(d.how || '')}</p></div>
@@ -1857,14 +2505,13 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
     if (finished.length) {
       html += `<details class="section"><summary>Finished and past (${finished.length})</summary><div class="section" style="margin-top:.6rem">${finished.map((d) => deadlineCard(d)).join('')}</div></details>`;
     }
-    $('#view-deadlines').innerHTML = html;
+    return html;
   }
 
   function renderAdd() {
     const p = prefill || {};
     const tpl = p.template || 'assignment';
-    let html = `<div class="section-head"><h2>Add a deadline</h2></div>
-      <p class="small-print">Pick what kind of work it is and the date. The planner splits it into small steps on free weekday evenings, keeping each evening under ${esc(state.settings.cap)} minutes where it can.</p>
+    let html = `<p class="small-print">Pick what kind of work it is and the date. The planner splits it into small steps on free weekday evenings, keeping each evening under ${esc(state.settings.cap)} minutes where it can.</p>
       <form class="panel" data-form="add" id="add-form">
         <div class="two">
           <div class="field"><label for="f-course">Course</label>
@@ -1893,14 +2540,14 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
         <div class="btn-row"><button class="btn primary" type="submit">Plan the steps</button>${prefill ? '<button class="btn" type="button" data-action="clear-prefill">Start again</button>' : ''}</div>
       </form>`;
     if (addDraft) {
-      const heavy = addDraft.steps.filter((s) => (loadMap()[s.date] || 0) + s.mins > (Number(state.settings.cap) || 60));
+      const heavy = addDraft.steps.filter((s) => (loadMap()[s.date] || 0) + s.mins > capFor(s.date));
       html += `<div class="section" id="preview"><div class="section-head"><h2>Your steps</h2><span class="hint">${addDraft.steps.length} steps · ${esc(mins(addDraft.steps.reduce((a, s) => a + s.mins, 0)))}</span></div>
         ${addDraft.steps.length ? '' : '<p class="empty">No steps for this one. It goes in as a date in your plan.</p>'}
         ${heavy.length ? `<p class="callout">${heavy.length} evening${heavy.length === 1 ? ' is' : 's are'} over your limit because the date is close. You can move steps after adding.</p>` : ''}
         <ul class="steps">${addDraft.steps.map((s) => `<li class="step ${esc(addDraft.course)}"><span class="tag ${esc(addDraft.course)}" style="align-self:center">${esc(fmtShort(s.date))}</span><div class="step-body"><span class="step-title">${esc(s.title)}</span><span class="step-meta">${esc(mins(s.mins))}${s.tip ? ' · ' + esc(s.tip) : ''}</span></div><span></span></li>`).join('')}</ul>
         <div class="btn-row"><button class="btn primary" data-action="confirm-add">Add to my plan</button><button class="btn" data-action="discard-add">Change something</button></div></div>`;
     }
-    $('#view-add').innerHTML = html;
+    return html;
   }
 
   function alarmPanel() {
@@ -1941,7 +2588,8 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
     const s = state.settings;
     const t = themeColours();
     const pct = Math.round((Number(s.scale) || 1) * 100);
-    let html = `<div class="section-head"><h2>Settings</h2></div>
+    let html = `${smartPanel()}
+    ${chatPanel()}
     <div class="panel">
       <h3>Colours</h3>
       <div class="swatches" role="group" aria-label="Colour theme">${THEMES.map((th) => {
@@ -1968,7 +2616,7 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
       <h3>Evenings</h3>
       <div class="two">
         <div class="field"><label for="f-evening">Start time</label><input type="time" id="f-evening" value="${esc(s.evening)}" data-action="evening"><span class="help">Used for calendar times</span></div>
-        <div class="field"><label for="f-cap">Most minutes per evening</label><input type="number" id="f-cap" min="15" max="180" step="5" value="${esc(s.cap)}" data-action="cap"><span class="help">The planner tries to stay under this</span></div>
+        <div class="field"><label for="f-cap">Most minutes per evening</label><input type="number" id="f-cap" min="15" max="180" step="5" value="${esc(s.cap)}" data-action="cap"><span class="help">The planner tries to stay under this. A weekly reflection can make one week lighter or fuller.</span></div>
       </div>
     </div>
     <div class="panel">
@@ -2012,53 +2660,290 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
       </div>
       ${confirmReset ? `<div class="confirm-row"><span>Clear every tick, move and added deadline?</span><button class="btn small danger" data-action="reset">Yes, clear it</button><button class="btn small" data-action="cancel-reset">Keep everything</button></div>` : '<div><button class="btn small danger" data-action="ask-reset">Clear my progress</button></div>'}
     </div>
-    <p class="small-print">Deadlines last checked ${esc(fmtYear(DATA.updated || todayKey()))}. Dates marked Check the date or Date to confirm still need confirming with your tutor or assessor.</p>`;
-    $('#view-settings').innerHTML = html;
+    <p class="small-print">Deadlines last checked ${esc(fmtYear(DATA.updated || todayKey()))}. Dates marked Check the date or Date to confirm still need confirming with your tutor or assessor.${APP ? ` App version ${esc(appStatus().version || '')}.` : ''}</p>`;
+    return html;
   }
 
+  function smartPanel() {
+    const s = state.settings;
+    const seg = (action, value, opts, labelId) => `<div class="seg" role="group" aria-labelledby="${labelId}">${opts.map(([id, l]) => `<button data-action="${action}" data-id="${id}" aria-pressed="${value === id}">${esc(l)}</button>`).join('')}</div>`;
+    return `<div class="panel" id="smart">
+      <h3>Smart planner</h3>
+      <div class="field"><span class="label" id="heal-label">Missed steps</span>
+        ${seg('heal', s.heal === false ? 'off' : 'on', [['on', 'Move them for me'], ['off', 'Leave them']], 'heal-label')}
+        <span class="help">A step you miss moves to the first weekday evening with room before its deadline, and the alarm rings for it there. Every move is listed under How it adapts.</span></div>
+      <div class="field"><span class="label" id="en-label">Energy check-in on Home</span>
+        ${seg('energy-check', s.energyCheck === false ? 'off' : 'on', [['on', 'Show'], ['off', 'Hide']], 'en-label')}
+        <span class="help">Low keeps only the most urgent step that evening. Good pulls one step forward.</span></div>
+    </div>`;
+  }
+
+  function chatPanel() {
+    const s = state.settings;
+    return `<div class="panel" id="chat-settings">
+      <h3>Claude chat</h3>
+      <div class="field"><span class="label" id="cs-label">Open the Chat tab at</span>
+        <div class="seg" role="group" aria-labelledby="cs-label">${[['project', 'PGCE project'], ['new', 'New chat']].map(([id, l]) => `<button data-action="chat-start" data-id="${id}" aria-pressed="${(s.chatStart || 'project') === id}">${l}</button>`).join('')}</div></div>
+      <div class="field"><label for="f-project">PGCE project link</label>
+        <input type="url" id="f-project" inputmode="url" autocomplete="off" value="${esc(s.claudeProject || '')}" data-action="claude-project" placeholder="https://claude.ai/project/...">
+        <span class="help">If the project does not open, open it on claude.ai, copy the address and paste it here.</span></div>
+      ${chatReady() ? '<div class="btn-row"><button class="btn small" data-action="chat-help">How to sign in</button><button class="btn small danger" data-action="chat-signout">Sign out of Claude in this app</button></div>' : ''}
+    </div>`;
+  }
+
+  /* ---------- More, reflection and the change log ---------- */
+  function renderMore() {
+    const today = todayKey();
+    const mon = mondayOf(today);
+    const open = deadlines().filter((d) => d.due && !d.complete && d.due >= today).length;
+    const tiles = [
+      ['deadlines', 'Deadlines', `${open} open`],
+      ['add', 'Add a deadline', 'Split into small steps'],
+      ['reflect', 'Weekly reflection', state.reflections[mon] ? 'Done this week' : (reflectionDue() ? 'Due now' : `On ${DAY_NAMES[reviewDayNum() - 1]}s`)],
+      ['log', 'How it adapts', plural(state.log.length, 'change')],
+      ['settings', 'Settings', 'Alarms, evenings, chat, colours']
+    ];
+    return `<div class="tiles">${tiles.map(([k, n, sub]) => `<button class="tile" data-go="${k}"><span class="tile-ic">${ICON[k]}</span><b>${esc(n)}</b><span>${esc(sub)}</span></button>`).join('')}</div>
+      <p class="small-print">Deadlines last checked ${esc(fmtYear(DATA.updated || today))}.</p>`;
+  }
+
+  let reflectDraft = null;
+  let reflectEditing = false;
+  function renderReflect() {
+    const today = todayKey();
+    const mon = mondayOf(today);
+    const next = addDays(mon, 7);
+    const saved = state.reflections[mon];
+    const editing = !saved || reflectEditing;
+    if (!reflectDraft || reflectDraft.mon !== mon) {
+      reflectDraft = { mon, text: saved ? saved.text || '' : '', moods: saved ? [...(saved.moods || [])] : [], plan: saved ? saved.plan : null };
+    }
+    const sug = suggestPlan(reflectDraft.moods);
+    const plan = reflectDraft.plan || sug.plan;
+    let html = '';
+    if (editing) {
+      html += `<section class="card">
+        <span class="kicker">${esc(weekLabel(mon))}</span>
+        <h3>What went well, and what got in the way?</h3>
+        <p class="small-print">A few lines in your own words. You can copy them into PebblePad later.</p>
+        <div class="field"><label class="sr-only" for="f-refl">Your reflection</label><textarea id="f-refl" data-action="refl-text" placeholder="For example: evenings after teaching were hard, but the short steps on Monday worked.">${esc(reflectDraft.text)}</textarea></div>
+        <div class="field"><span class="label" id="mood-label">How did the week feel?</span>
+          <div class="chips" role="group" aria-labelledby="mood-label">${MOODS.map((m) => `<button class="chip" data-action="mood" data-id="${esc(m)}" aria-pressed="${reflectDraft.moods.includes(m)}">${esc(m)}</button>`).join('')}</div></div>
+        <div class="field"><span class="label" id="np-label">Next week, ${esc(weekLabel(next))}</span>
+          <div class="seg" role="group" aria-labelledby="np-label">${[['lighter', `Lighter, ${lighterCap()} min`], ['same', `Usual, ${state.settings.cap} min`], ['push', `Fuller, ${pushCap()} min`]].map(([id, l]) => `<button data-action="reflect-plan" data-id="${id}" aria-pressed="${plan === id}">${esc(l)}</button>`).join('')}</div>
+          <span class="help">${!reflectDraft.plan && sug.why ? `Suggested because ${esc(sug.why)}. ` : ''}Lighter moves the least urgent steps to evenings with room before their deadlines.</span></div>
+        <div class="btn-row"><button class="btn primary" data-action="reflect-save">Save reflection</button>${saved ? '<button class="btn" data-action="reflect-cancel">Cancel</button>' : ''}</div>
+      </section>`;
+    } else {
+      html += `<section class="card">
+        <span class="kicker">${esc(weekLabel(mon))} · saved</span>
+        ${saved.text ? `<p class="quote">${esc(saved.text)}</p>` : '<p class="small-print">No notes this week, just the check-in.</p>'}
+        ${saved.moods && saved.moods.length ? `<div class="chips">${saved.moods.map((m) => `<span class="pill info">${esc(m)}</span>`).join('')}</div>` : ''}
+        <p class="small-print">Next week: ${esc(planLabel(saved.plan))}.</p>
+        <div class="btn-row"><button class="btn small" data-action="reflect-edit">Change it</button>${saved.text ? `<button class="btn small" data-action="copy-refl" data-id="${esc(mon)}">Copy the text</button>` : ''}</div>
+      </section>`;
+    }
+    const pats = patterns();
+    html += `<div class="notice"><span class="ic">${ICON.spark}</span><div><b>What the app sees in your weeks</b><p>${pats.length ? pats.map(esc).join(' ') : 'After a few weeks of ticks and reflections, this shows which evenings work best for you and what keeps coming up.'}</p></div></div>`;
+    const past = Object.entries(state.reflections).filter(([k]) => k !== mon).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 8);
+    if (past.length) {
+      html += `<section class="card"><h3>Earlier weeks</h3><div class="list">${past.map(([k, r]) => `<div class="li"><div class="grow"><b>${esc(weekLabel(k))}</b>${r.moods && r.moods.length ? ` <span class="small-print">${esc(r.moods.join(', '))}</span>` : ''}${r.text ? `<p class="small-print">${esc(r.text)}</p>` : ''}</div>${r.text ? `<button class="btn small" data-action="copy-refl" data-id="${esc(k)}">Copy</button>` : ''}</div>`).join('')}</div></section>`;
+    }
+    return html;
+  }
+
+  const fmtStamp = (ms) => { const d = new Date(ms); return `${fmt(keyOf(d), { weekday: 'short', day: 'numeric', month: 'short' })}, ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  function renderLog() {
+    const intro = '<p class="small-print">Every change the planner makes to your evenings, and why. Changes from the energy check-in, Re-plan and reflections can be undone for a week.</p>';
+    if (!state.log.length) return intro + '<div class="empty">Nothing has changed yet. When the planner moves a step, or you use the energy check-in or a weekly reflection, it shows here with the reason.</div>';
+    const cutoff = now().getTime() - 7 * 86400000;
+    return intro + `<section class="card"><div class="list">${state.log.map((e) => `<div class="logi${e.undone ? ' is-undone' : ''}">
+      <time>${esc(fmtStamp(e.at))}</time>
+      <div><b>${esc(e.what)}</b>${e.undone ? '<span class="pill">Undone</span>' : ''}
+        <p class="small-print">${esc(e.why || '')}</p>
+        ${e.lines && e.lines.length ? `<ul class="loglines">${e.lines.slice(0, 8).map((l) => `<li>${esc(l)}</li>`).join('')}${e.lines.length > 8 ? `<li>and ${e.lines.length - 8} more</li>` : ''}</ul>` : ''}
+        ${e.undo && !e.undone && e.at > cutoff ? `<button class="btn small" data-action="undo" data-id="${esc(e.id)}">Undo</button>` : ''}
+      </div></div>`).join('')}</div></section>`;
+  }
+
+  /* ---------- Chat: claude.ai inside the Android app ----------
+     The app lays a second web view over the empty screen area, between the top bar and the
+     tab bar, signed in to your own Claude account. This page only says where it should sit. */
+  const CHAT = { type: '', url: '' };
+  const chatReady = () => !!(APP && typeof APP.chatShow === 'function');
+  const isClaudeUrl = (u) => /^https:\/\/([a-z0-9-]+\.)*claude\.ai(\/|$)/i.test(String(u || ''));
+  function chatUrl(where) {
+    const s = state.settings;
+    if (where === 'new') return 'https://claude.ai/new';
+    if (where === 'recents') return 'https://claude.ai/recents';
+    if (where === 'project') return isClaudeUrl(s.claudeProject) ? s.claudeProject : 'https://claude.ai/projects';
+    return s.chatStart === 'new' ? 'https://claude.ai/new' : chatUrl('project');
+  }
+  function chatSubText() {
+    if (!chatReady()) return 'Opens in your browser';
+    const u = CHAT.url;
+    if (/\/login|magic-link|\/verify/i.test(u)) return 'Sign in: tap Continue with email';
+    if (CHAT.type === 'start') return 'Loading…';
+    if (/\/project\//.test(u)) return 'PGCE project';
+    return 'Your Claude account';
+  }
+  let sheetOpen = false;
+  function positionChat() {
+    if (!chatReady()) return;
+    try {
+      if (route !== 'chat' || sheetOpen) { APP.chatHide(); return; }
+      const top = $('#appbar').getBoundingClientRect().bottom;
+      const nr = $('#nav').getBoundingClientRect();
+      const bottom = nr.height ? Math.max(0, window.innerHeight - nr.top) : 0;
+      APP.chatShow(Math.round(top), Math.round(bottom), Math.round(window.innerWidth), chatUrl());
+    } catch (e) { /* the chat shows next time the tab opens */ }
+  }
+  let chatTipShown = false;
+  function renderChat() {
+    if (chatReady()) {
+      return `<div class="chat-hole"><div>${capSvg('')}<p><strong>Opening Claude…</strong></p><p class="small-print">If this stays, check your internet connection, then tap the three dots and Reload.</p></div></div>`;
+    }
+    return `<section class="card"><h3>Chat with Claude</h3>
+      <p>In the Android app this tab opens your own Claude account inside the app, with your chats and your PGCE project. Here it opens in a new tab.</p>
+      <div class="btn-row"><a class="btn primary" href="${esc(chatUrl())}" target="_blank" rel="noopener">Open Claude</a><button class="btn" data-action="copy-week">Copy my week</button></div>
+      <p class="small-print">Copy my week puts tonight's steps, the next seven days and your deadlines on the clipboard, ready to paste into a chat.</p></section>`;
+  }
+  function signInHelp(first) {
+    sheet(`<h3>Signing in to Claude here</h3>
+      <ol class="signin">
+        <li>Tap <strong>Continue with email</strong> and type the email you use for Claude. Google sign-in does not work inside apps, but your Gmail address works fine here.</li>
+        <li>Open the email called <strong>Secure link to log in to Claude.ai</strong>.</li>
+        <li><strong>Either</strong> hold the link, tap Copy link address, come back and tap <strong>Paste sign-in link</strong> below. <strong>Or</strong> tap the link: it opens in your browser and shows a six-digit code. Come back here and type the code.</li>
+      </ol>
+      <p class="small-print">You stay signed in after that. Your chats and the PGCE project are the same ones you see on the Claude app and website.</p>
+      <button class="btn primary block" data-action="chat-paste">${ICON.link} Paste sign-in link</button>
+      <button class="btn block" data-action="${first ? 'chat-tip-done' : 'close-sheet'}">Got it</button>`);
+  }
+  function chatMenu() {
+    sheet(`<h3>Claude</h3>
+      <div class="menu">
+        <button data-action="chat-go" data-id="new">${ICON.plus} New chat</button>
+        <button data-action="chat-go" data-id="project">${ICON.folder} PGCE project</button>
+        <button data-action="chat-go" data-id="recents">${ICON.chats} Your chats</button>
+        <button data-action="chat-week">${ICON.week} Put my week in the message box</button>
+        <button data-action="chat-paste">${ICON.link} Paste sign-in link</button>
+        <button data-action="chat-help">${ICON.help} How to sign in</button>
+        <button data-action="chat-reload">${ICON.reload} Reload</button>
+        <button data-action="chat-browser">${ICON.out} Open in your browser</button>
+      </div>
+      <button class="btn block" data-action="close-sheet">Close</button>`);
+  }
+  function copyText(text, okMsg) {
+    let ok = false;
+    if (APP && typeof APP.copyText === 'function') { try { ok = APP.copyText(text); } catch (e) { ok = false; } }
+    if (ok) { toast(okMsg); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast(okMsg), () => toast('Copy did not work here.'));
+    else toast('Copy did not work here.');
+  }
+  function insertWeek() {
+    if (chatReady()) { try { APP.chatInsert(weekText()); return; } catch (e) { /* fall back to copying */ } }
+    copyText(weekText(), 'Your week is copied. Paste it into a Claude chat and add your question.');
+  }
+
+  /* ---------- the shell: top bar, screens, tabs, sheets ---------- */
+  const TITLES = { plan: 'Plan', chat: 'Claude', portfolio: 'Portfolio', more: 'More', deadlines: 'Deadlines', add: 'Add a deadline', reflect: 'Weekly reflection', log: 'How it adapts', settings: 'Settings' };
+  const SUBS = { portfolio: 'Weekly PebblePad review and Module 3', plan: 'Weekday evenings', deadlines: 'PGCE and Assessor Awards' };
+  function appbarHtml() {
+    if (route === 'home') return heroBar();
+    const backBtn = TABS.includes(route) ? '' : `<button class="iconbtn" data-action="back" aria-label="Back">${ICON.back}</button>`;
+    let right = '';
+    if (route === 'plan') right = '<button class="btn small" data-action="replan">Re-plan</button>';
+    if (route === 'chat') right = `<button class="iconbtn" data-action="chat-week" aria-label="Put my week in the message box">${ICON.week}</button><button class="iconbtn" data-action="chat-menu" aria-label="Chat options">${ICON.dots}</button>`;
+    const sub = route === 'chat' ? `<span class="sub" id="chat-sub">${esc(chatSubText())}</span>` : (SUBS[route] ? `<span class="sub">${esc(SUBS[route])}</span>` : '');
+    return `${backBtn}${capSvg('cap')}<h2>${esc(TITLES[route] || '')}${sub}</h2>${right}`;
+  }
+  const VIEWS = { home: renderHome, plan: renderPlan, chat: renderChat, portfolio: renderPortfolio, more: renderMore, deadlines: renderDeadlines, add: renderAdd, reflect: renderReflect, log: renderLog, settings: renderSettings };
+  function renderNav() {
+    const top = TABS.includes(route) ? route : (stack.length && TABS.includes(stack[0]) ? stack[0] : 'more');
+    document.querySelectorAll('.tab').forEach((t) => { if (t.dataset.tab === top) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
+  }
   function renderView() {
-    document.querySelectorAll('.view').forEach((v) => { v.hidden = v.dataset.view !== view; });
-    document.querySelectorAll('.tab').forEach((t) => { if (t.dataset.tab === view) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
-    if (view === 'today') renderToday();
-    if (view === 'plan') renderPlan();
-    if (view === 'portfolio') renderPortfolio();
-    if (view === 'deadlines') renderDeadlines();
-    if (view === 'add') renderAdd();
-    if (view === 'settings') renderSettings();
+    if (route === 'log' && state.log.some((e) => e.at > (state.logSeen || 0))) { state.logSeen = now().getTime(); commit(); }
+    document.body.dataset.route = route;
+    const bar = $('#appbar');
+    bar.className = 'appbar' + (route === 'home' ? ' hero' : '');
+    bar.innerHTML = appbarHtml();
+    $('#screen').innerHTML = `<div class="inner">${(VIEWS[route] || renderHome)()}</div>`;
+    renderNav();
+    Remote.setStatus(Remote.status);
+    // First visit to Chat: show how to sign in before the chat appears.
+    if (route === 'chat' && chatReady() && !state.settings.chatTipSeen && !chatTipShown) { chatTipShown = true; signInHelp(true); }
+    positionChat();
   }
-  function renderAll() { renderTonight(); renderView(); }
+  function renderAll() { renderView(); }
 
-  function go(v, anchor) {
-    view = v;
-    try { localStorage.setItem(VIEW_KEY, v); } catch (e) { /* ignore */ }
+  function go(r, opt) {
+    const o = typeof opt === 'string' ? { anchor: opt } : (opt || {});
+    r = routeOf(r);
+    if (TABS.includes(r)) stack = [];
+    else if (r !== route) stack.push(route);
+    route = r;
+    if (TABS.includes(r) && r !== 'chat') { try { localStorage.setItem(VIEW_KEY, r); } catch (e) { /* ignore */ } }
+    if (sheetOpen) { sheetOpen = false; $('#layer').innerHTML = ''; }
+    const t = $('#toast');
+    if (t) t.hidden = true;
     renderView();
-    if (anchor) { const el = document.getElementById(anchor); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-    else window.scrollTo({ top: $('#main').offsetTop - 8, behavior: 'smooth' });
+    const scr = $('#screen');
+    const el = o.anchor ? document.getElementById(o.anchor) : null;
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); else scr.scrollTop = 0;
+  }
+  function back() {
+    route = stack.pop() || 'home';
+    renderView();
+    $('#screen').scrollTop = 0;
+  }
+
+  function sheet(html) {
+    sheetOpen = true;
+    $('#layer').innerHTML = `<div class="scrim" data-action="close-sheet"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div>`;
+    positionChat();
+    const first = $('#layer .sheet button');
+    if (first) first.focus({ preventScroll: true });
+  }
+  function closeSheet() {
+    if (!sheetOpen) return;
+    sheetOpen = false;
+    $('#layer').innerHTML = '';
+    positionChat();
+  }
+  function whyNextSheet() {
+    sheet(`<h3>How the next step is chosen</h3>
+      <p>The planner looks at everything planned for tonight and anything that slipped, then picks the step with the closest deadline.</p>
+      <p class="small-print">An open PebblePad review always comes first, because it stays open until you finish it. On review night, the review comes first unless a step is due within three days. If nothing is left tonight, you see the next step in your plan and can do it tonight instead.</p>
+      <p class="small-print">${state.energy[todayKey()] === 'low' ? 'You said your energy is low, so the evening can stop after this one.' : 'If your energy is low, say so on Home: tonight keeps only the most urgent step.'}</p>
+      <button class="btn block" data-action="close-sheet">Got it</button>`);
   }
 
   let toastTimer = null;
   function toast(msg) {
+    if (route === 'chat' && chatReady() && !sheetOpen && typeof APP.toast === 'function') { try { APP.toast(msg); return; } catch (e) { /* show it on the page */ } }
     const t = $('#toast');
     t.textContent = msg;
     t.hidden = false;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { t.hidden = true; }, 3800);
   }
-  function reviewDone(mon) {
-    const w = reviewWeek(mon);
-    if (!w.complete || w.skipped) return;
+  function tossCap() {
     const cap = $('#cap');
+    if (!cap) return;
     cap.classList.remove('toss');
     void cap.getBoundingClientRect();
     cap.classList.add('toss');
+  }
+  function reviewDone(mon) {
+    const w = reviewWeek(mon);
+    if (!w.complete || w.skipped) return;
+    tossCap();
     const left = overdueReviews().length;
     toast(left ? `PebblePad review for ${weekLabel(mon)} done. ${left} more week${left === 1 ? '' : 's'} to catch up.` : `PebblePad review for ${weekLabel(mon)} done.`);
   }
   function celebrate(d) {
-    const cap = $('#cap');
-    cap.classList.remove('toss');
-    void cap.getBoundingClientRect();
-    cap.classList.add('toss');
+    tossCap();
     toast(`Every step done for "${d.title}". Cap in the air.`);
   }
 
@@ -2066,22 +2951,38 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
   function tick(id, on) {
     if (on) state.done[id] = Date.now(); else delete state.done[id];
     commit();
+    renderAll();
     if (on) {
       const d = deadlines().find((x) => x.chunks.some((c) => c.id === id));
       if (d && d.complete) celebrate(d);
     }
-    renderAll();
   }
+  // The arrow on a step: the next evening with room, before the deadline where possible.
   function moveChunk(id) {
     const c = allChunks(deadlines()).find((x) => x.id === id);
     if (!c) return;
     const today = todayKey();
     const from = c.dateEff < today ? today : addDays(c.dateEff, 1);
-    const to = nextFreeEvening(from, c.mins || 30, id);
+    const slot = findSlot(c, from, loadMap(id));
+    const to = slot ? slot.day : nextFreeEvening(from, c.mins || 30, id);
     state.moved[id] = to;
     commit();
     renderAll();
-    toast(`Moved to ${fmtLong(to)}${c.deadline.due && to > c.deadline.due ? '. That is after the deadline, so check it still works.' : '.'}`);
+    const note = c.deadline.due && to > c.deadline.due ? '. That is after the deadline, so check it still works.'
+      : (slot && !slot.fits ? '. That evening is over your limit, because the deadline is close.' : '.');
+    toast(`Moved to ${fmtLong(to)}${note}`);
+  }
+  // "Do it tonight" on the next step.
+  function pullToTonight(id) {
+    const c = allChunks(deadlines()).find((x) => x.id === id);
+    if (!c) return;
+    const today = todayKey();
+    const undo = { [id]: state.moved[id] || null };
+    state.moved[id] = today;
+    addLog({ kind: 'pull', what: `Brought forward: ${c.title}`, why: `You chose to do it tonight instead of ${fmtLong(c.dateEff)}.`, lines: [], undo: { moved: undo } });
+    commit();
+    renderAll();
+    toast('On tonight. Tick it off when it is done.');
   }
   function moveAllBehind() {
     const today = todayKey();
@@ -2094,15 +2995,121 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
   document.addEventListener('click', (e) => {
     const tabBtn = e.target.closest('[data-tab]');
     if (tabBtn) { go(tabBtn.dataset.tab); return; }
-    const link = e.target.closest('[data-tab-link]');
-    if (link) { go(link.dataset.tabLink); return; }
+    const link = e.target.closest('[data-tab-link], [data-go]');
+    if (link) { go(link.dataset.go || link.dataset.tabLink); return; }
     const el = e.target.closest('[data-action]');
     if (!el) return;
     const a = el.dataset.action;
     const id = el.dataset.id;
     const s = state.settings;
     switch (a) {
+      case 'back': back(); break;
+      case 'close-sheet': closeSheet(); break;
       case 'move': moveChunk(id); break;
+      case 'tick-now': tick(id, true); toast('Done. Nice one.'); break;
+      case 'pull': pullToTonight(id); break;
+      case 'why-next': whyNextSheet(); break;
+      case 'tick-group': {
+        const today = todayKey();
+        const items = allChunks(deadlines()).filter((c) => c.deadline.id === id && !c.done && c.dateEff < today);
+        items.forEach((c) => { state.done[c.id] = Date.now(); });
+        commit();
+        renderAll();
+        const d = deadlines().find((x) => x.id === id);
+        if (d && d.complete) celebrate(d); else toast(`${plural(items.length, 'step')} ticked off.`);
+        break;
+      }
+      case 'energy': {
+        const r = setEnergy(id);
+        renderAll();
+        if (id === 'low') toast(r.moved ? `Lighter evening. ${plural(r.moved, 'step')} moved to later evenings.` : 'Lighter evening. Nothing needed to move.');
+        else if (id === 'high') toast(r.bonus ? `Bonus step tonight: ${r.bonus.title}.` : 'Nothing from later in the week fits tonight.');
+        else toast('Tonight is back to the plan.');
+        break;
+      }
+      case 'replan': {
+        const r = replan();
+        renderAll();
+        toast(r.healed || r.moved ? `Plan updated: ${[r.healed ? plural(r.healed, 'missed step') + ' moved' : '', r.moved ? plural(r.moved, 'step') + ' evened out' : ''].filter(Boolean).join(', ')}.` : 'Checked. Nothing needed to move.');
+        break;
+      }
+      case 'plan-week': planWeek = addDays(planWeek || mondayOf(todayKey()), Number(id) || 0); renderView(); break;
+      case 'plan-day': {
+        const el2 = document.getElementById('day-' + id);
+        if (el2) { el2.scrollIntoView({ behavior: 'smooth', block: 'start' }); el2.classList.remove('flash'); void el2.offsetWidth; el2.classList.add('flash'); }
+        else toast(id < mondayOf(todayKey()) && !s.showPast ? 'That day is in a finished week. Tap Show finished weeks.' : `Nothing planned on ${fmtLong(id)}.`);
+        break;
+      }
+      case 'undo': {
+        const entry = state.log.find((x) => x.id === id);
+        if (undoEntry(entry)) {
+          if (entry.kind === 'energy' && entry.day) state.energy[entry.day] = 'okay';
+          if (entry.kind === 'reflect' && state.reflections[entry.week]) state.reflections[entry.week].plan = 'same';
+          commit();
+          renderAll();
+          toast('Undone. Those steps are back where they were.');
+        }
+        break;
+      }
+      case 'mood': {
+        if (!reflectDraft) break;
+        const i = reflectDraft.moods.indexOf(id);
+        if (i >= 0) reflectDraft.moods.splice(i, 1); else reflectDraft.moods.push(id);
+        renderView();
+        break;
+      }
+      case 'reflect-plan': if (reflectDraft) { reflectDraft.plan = id; renderView(); } break;
+      case 'reflect-edit': reflectEditing = true; reflectDraft = null; renderView(); break;
+      case 'reflect-cancel': reflectEditing = false; reflectDraft = null; renderView(); break;
+      case 'reflect-save': {
+        if (!reflectDraft) break;
+        const plan = reflectDraft.plan || suggestPlan(reflectDraft.moods).plan;
+        const moved = saveReflection(reflectDraft.mon, reflectDraft.text.trim(), reflectDraft.moods.slice(), plan);
+        reflectEditing = false;
+        reflectDraft = null;
+        renderView();
+        $('#screen').scrollTop = 0;
+        toast(plan === 'lighter' ? `Saved. Next week is lighter${moved ? `, and ${plural(moved, 'step')} moved` : ''}.` : plan === 'push' ? 'Saved. Next week can be fuller.' : 'Saved. Next week keeps the usual limit.');
+        break;
+      }
+      case 'copy-refl': { const r = state.reflections[id]; if (r && r.text) copyText(r.text, 'Reflection copied. Paste it into PebblePad.'); break; }
+      case 'copy-week': copyText(weekText(), 'Your week is copied. Paste it into a Claude chat and add your question.'); break;
+      case 'heal': {
+        s.heal = id === 'on';
+        commit();
+        const n = s.heal ? heal() : 0;
+        renderAll();
+        toast(s.heal ? (n ? `On. ${plural(n, 'missed step')} moved.` : 'On. Missed steps will move to evenings with room.') : 'Off. Missed steps stay where they are.');
+        break;
+      }
+      case 'energy-check': s.energyCheck = id === 'on'; commit(); renderView(); break;
+      case 'chat-start': s.chatStart = id; commit(); renderView(); break;
+      case 'chat-menu': chatMenu(); break;
+      case 'chat-help': signInHelp(false); break;
+      case 'chat-tip-done': s.chatTipSeen = true; commit(); closeSheet(); break;
+      case 'chat-week': closeSheet(); insertWeek(); break;
+      case 'chat-go': closeSheet(); if (chatReady()) { try { APP.chatGo(chatUrl(id)); } catch (err) { /* ignore */ } } break;
+      case 'chat-reload': closeSheet(); if (chatReady()) { try { APP.chatReload(); } catch (err) { /* ignore */ } } break;
+      case 'chat-browser': closeSheet(); if (chatReady()) { try { APP.chatOpenBrowser(); } catch (err) { /* ignore */ } } break;
+      case 'chat-paste': {
+        if (!chatReady()) break;
+        let r = '';
+        try { r = APP.chatPasteLink(); } catch (err) { r = ''; }
+        if (r === 'ok') {
+          s.chatTipSeen = true;
+          commit();
+          if (route !== 'chat') go('chat'); else closeSheet();
+          toast('Opening your sign-in link…');
+        } else {
+          toast(r === 'nolink' ? 'What you copied is not a link. In the email, hold the sign-in link and tap Copy link address.' : 'Nothing copied yet. In the email, hold the sign-in link and tap Copy link address.');
+        }
+        break;
+      }
+      case 'chat-signout':
+        sheet(`<h3>Sign out of Claude in this app?</h3><p class="small-print">This only signs out the Chat tab. Your Claude account, chats and projects are not touched.</p>
+          <button class="btn danger block" data-action="chat-signout-yes">Sign out</button><button class="btn block" data-action="close-sheet">Cancel</button>`);
+        break;
+      case 'chat-signout-yes': closeSheet(); if (chatReady()) { try { APP.chatSignOut(); toast('Signed out of Claude in this app.'); } catch (err) { /* ignore */ } } break;
       case 'open-review': focusWeek = id; go('portfolio', 'rv-' + id); break;
       case 'review-all': {
         const w = reviewWeek(id);
@@ -2178,7 +3185,6 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
         addDraft = null;
         prefill = null;
         commit();
-        renderTonight();
         go('deadlines');
         setTimeout(() => { const el = document.getElementById('dl-' + dl.id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 60);
         toast(`Added with ${dl.chunks.length} step${dl.chunks.length === 1 ? '' : 's'}.`);
@@ -2219,6 +3225,15 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
     if (a === 'custom-colour') { s.custom = el.value; s.theme = 'custom'; commit(); applyLook(); renderView(); return; }
     if (a === 'evening' && /^\d\d:\d\d$/.test(el.value)) { s.evening = el.value; commit(); renderAll(); return; }
     if (a === 'cap') { s.cap = clamp(Number(el.value) || 60, 15, 180); commit(); return; }
+    if (a === 'claude-project') {
+      const v = el.value.trim();
+      if (!v) { s.claudeProject = DEFAULT_SETTINGS.claudeProject; commit(); renderView(); toast('Back to the original project link.'); return; }
+      if (!isClaudeUrl(v)) { toast('That is not a claude.ai link. Copy the address from the project page on claude.ai.'); el.value = s.claudeProject || ''; return; }
+      s.claudeProject = v;
+      commit();
+      toast('Project link saved.');
+      return;
+    }
     if (a === 'alarm-lead') { s.alarmLead = clamp(Number(el.value) || 0, 0, 60); commit(); renderView(); return; }
     if (a === 'scale') { s.scale = clamp(Number(el.value) / 100, 0.85, 1.5); commit(); applyLook(); renderView(); return; }
     if (a === 'restore' && el.files && el.files[0]) {
@@ -2244,6 +3259,7 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
 
   document.addEventListener('input', (e) => {
     const el = e.target;
+    if (el.dataset && el.dataset.action === 'refl-text') { if (reflectDraft) reflectDraft.text = el.value; return; }
     if (el.dataset && el.dataset.action === 'scale') {
       const out = $('#scale-out');
       if (out) out.textContent = `${el.value}%`;
@@ -2252,7 +3268,7 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
   });
 
   document.addEventListener('paste', (e) => {
-    if (view !== 'settings') return;
+    if (route !== 'settings') return;
     const text = e.clipboardData && e.clipboardData.getData('text');
     if (!text || text.trim()[0] !== '{') return;
     try {
@@ -2315,7 +3331,9 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
   });
 
   /* ---------- start ---------- */
+  let lastDay = todayKey();
   applyLook();
+  heal();
   renderAll();
   Remote.setStatus(Remote.status);
   Remote.connect();
@@ -2323,21 +3341,45 @@ ol.howto { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-si
   if (APP) {
     syncAlarms();
     if (!loadLocal()) saveLocal();
-    window.__capgownGo = (v) => { if (/^(today|plan|portfolio|deadlines|add|settings)$/.test(v)) go(v); };
-    window.__capgownResume = () => { lastDay = todayKey(); syncAlarms(); renderAll(); };
+    // Called by the Android side: alarm screen buttons, coming back to the app, the back button and the chat.
+    window.__capgownGo = (v) => { if (ROUTE_NAMES.concat('today').includes(v)) go(v); };
+    window.__capgownResume = () => { lastDay = todayKey(); heal(); syncAlarms(); renderAll(); };
+    window.__capgownBack = () => {
+      if (sheetOpen) { closeSheet(); return true; }
+      if (stack.length) { back(); return true; }
+      if (route !== 'home') { go('home'); return true; }
+      return false;
+    };
+    window.__capgownChatEvent = (type, url) => {
+      CHAT.type = type || '';
+      CHAT.url = url || '';
+      const sub = $('#chat-sub');
+      if (sub) sub.textContent = chatSubText();
+    };
+    window.__capgownChatInserted = (ok) => toast(ok ? 'Your week is in the message box. Add your question and send.' : 'Your week is copied. Tap the message box, hold, then tap Paste.');
   }
 
-  // Re-render when the day changes while the app is open (e.g. left open overnight)
-  let lastDay = todayKey();
-  setInterval(() => { if (todayKey() !== lastDay) { lastDay = todayKey(); renderAll(); } }, 60000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) { lastDay = todayKey(); renderAll(); } });
+  // The keyboard: hide the tab bar while typing, and keep the chat lined up with the bars.
+  let fullH = window.innerHeight;
+  let fullW = window.innerWidth;
+  window.addEventListener('resize', () => {
+    if (window.innerWidth !== fullW) { fullW = window.innerWidth; fullH = window.innerHeight; }
+    if (window.innerHeight > fullH) fullH = window.innerHeight;
+    document.body.classList.toggle('kb', window.innerHeight < fullH - 150);
+    positionChat();
+  });
+
+  // A new day while the app is open (e.g. left open overnight): move missed steps and redraw.
+  function newDay() { lastDay = todayKey(); heal(); renderAll(); }
+  setInterval(() => { if (todayKey() !== lastDay) newDay(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); });
 
   if (!IS_ARTIFACT && !APP && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
     window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* offline support is optional */ }); });
   }
 
   // Exposed for testing only
-  window.__planner = { buildIcs, deadlines, spread, TEMPLATES, reviewWeeksSoFar, overdueReviews, alarmPlan, get state() { return state; } };
+  window.__planner = { buildIcs, deadlines, spread, TEMPLATES, reviewWeeksSoFar, overdueReviews, alarmPlan, heal, replan, balance, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, go, get route() { return route; }, get state() { return state; } };
 })();
 
 </script>
