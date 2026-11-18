@@ -21,9 +21,13 @@ import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Shows the planner (bundled in the app) and links it to the alarms through the AndroidApp bridge.
@@ -74,6 +78,37 @@ public class MainActivity extends Activity {
         handleIntent(getIntent());
         askForNotificationsOnce();
         Alarms.scheduleNext(this);
+        checkForUpdate(false);
+    }
+
+    /** Looks for a newer planner page on GitHub (see LiveUpdate) and tells the page what it found. */
+    void checkForUpdate(boolean asked) {
+        LiveUpdate.check(this, asked, (state, page) -> {
+            if (!loaded) return;
+            if (asked) js("window.__capgownUpdateResult && window.__capgownUpdateResult('" + state + "'," + page + ")");
+            else if ("ready".equals(state)) js("window.__capgownUpdateReady && window.__capgownUpdateReady(" + page + ")");
+        });
+    }
+
+    /** Loads the planner page again, so a newer page (or the built-in one, after going back) shows. */
+    void reloadPage() {
+        runOnUiThread(() -> {
+            if (web == null) return;
+            if (chat != null) chat.hide();
+            loaded = false;
+            web.loadUrl(START);
+        });
+    }
+
+    /** Opens a web page in the in-app reader. */
+    void openReader(String url, String title) {
+        try {
+            startActivity(new Intent(this, ReaderActivity.class)
+                    .putExtra(ReaderActivity.EXTRA_URL, url)
+                    .putExtra(ReaderActivity.EXTRA_TITLE, title == null ? "" : title));
+        } catch (Exception e) {
+            openOutside(Uri.parse(url));
+        }
     }
 
     @Override
@@ -89,7 +124,10 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         if (chat != null) chat.resume();
-        if (loaded) js("window.__capgownResume && window.__capgownResume()");
+        if (loaded) {
+            js("window.__capgownResume && window.__capgownResume()");
+            checkForUpdate(false);
+        }
     }
 
     @Override
@@ -280,8 +318,24 @@ public class MainActivity extends Activity {
             if (path == null || path.isEmpty() || path.equals("/")) path = "/index.html";
             String name = path.substring(1);
             try {
-                InputStream in = getAssets().open(name);
-                return new WebResourceResponse(mime(name), "utf-8", in);
+                InputStream in = null;
+                if (name.equals("index.html")) {
+                    // A newer planner page kept on the phone wins over the built-in copy (see LiveUpdate).
+                    File live = LiveUpdate.current(MainActivity.this);
+                    if (live != null) {
+                        try {
+                            in = new FileInputStream(live);
+                        } catch (IOException e) {
+                            in = null;
+                        }
+                    }
+                }
+                if (in == null) in = getAssets().open(name);
+                WebResourceResponse res = new WebResourceResponse(mime(name), "utf-8", in);
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Cache-Control", "no-store");
+                res.setResponseHeaders(headers);
+                return res;
             } catch (IOException e) {
                 return new WebResourceResponse("text/plain", "utf-8", 404, "Not found", null, new ByteArrayInputStream(new byte[0]));
             }

@@ -201,4 +201,54 @@ public class Bridge {
     public void toast(String message) {
         if (message != null && !message.isEmpty()) activity.toastNative(message);
     }
+
+    /** Opens a web page inside the app (the online library, a reading, a video or a podcast). False if it cannot. */
+    @JavascriptInterface
+    public boolean openReader(String url, String title) {
+        if (!ReaderActivity.canOpen(url)) return false;
+        activity.runOnUiThread(() -> activity.openReader(url, title));
+        return true;
+    }
+
+    /** The pages saved with the reader's Save button since the last call, as a JSON list of {url, title}. */
+    @JavascriptInterface
+    public String takeSavedLinks() {
+        return ReaderActivity.takeSaved(activity);
+    }
+
+    /** Live updates: which page is showing, whether a newer one is waiting, and when the app last looked. */
+    @JavascriptInterface
+    public String liveStatus() {
+        return LiveUpdate.status(activity);
+    }
+
+    /** Looks for a newer page now. The answer arrives as window.__capgownUpdateResult(state, page). */
+    @JavascriptInterface
+    public void checkUpdate() {
+        activity.checkForUpdate(true);
+    }
+
+    /** Shows the newer page that is waiting. */
+    @JavascriptInterface
+    public void applyUpdate() {
+        activity.reloadPage();
+    }
+
+    /** The page says it has drawn, so the app knows this page works. */
+    @JavascriptInterface
+    public void pageReady(int page) {
+        LiveUpdate.confirm(activity, page);
+    }
+
+    @JavascriptInterface
+    public void setAutoUpdate(boolean on) {
+        LiveUpdate.setAuto(activity, on);
+    }
+
+    /** Drops the downloaded page and shows the one built into the app again. */
+    @JavascriptInterface
+    public void revertUpdate() {
+        LiveUpdate.revert(activity);
+        activity.reloadPage();
+    }
 }
