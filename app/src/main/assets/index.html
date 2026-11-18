@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Cap and Gown</title>
-<meta name="capgown-page" content="42">
+<meta name="capgown-page" content="43">
 <meta name="capgown-min-app" content="0">
 <meta name="theme-color" content="#3454D9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -216,6 +216,12 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
 .player .pbtns button{min-height:40px;border-radius:10px;background:rgba(127,127,127,.25);color:inherit;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;min-width:0;padding:4px 2px;white-space:nowrap}
 .player .pbtns svg{width:17px;height:17px;flex:0 0 auto}
 body.kb .player{display:none}
+.player button.ptitle{background:none;color:inherit;text-align:left;padding:0;min-height:0;display:block;border:0}
+.player .ptitle svg{width:13px;height:13px;vertical-align:-2px}
+.player .pseek{accent-color:var(--gold);height:20px;margin:0}
+.player .pbtns .num{font-size:11.5px}
+.podcard{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;margin:2px 0}
+.podcard b{line-height:1.3}
 body.listening .fab{bottom:calc(84px + var(--player-h,96px))}
 .vbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
 .vbtn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;font-size:13px;font-weight:700;background:var(--surface);border:1px solid var(--line);color:var(--ink);min-height:36px}
@@ -468,7 +474,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     Object.values(out.cards).forEach((c) => { if (!isNum(c.iv)) c.iv = 0; if (!isNum(c.ease)) c.ease = 2.5; if (!isNum(c.at)) c.at = 0; });
     Object.values(out.papers).forEach((p) => { if (!isObj(p.answers)) p.answers = {}; });
     Object.values(out.reflections).forEach((r) => { r.text = str(r.text); r.moods = Array.isArray(r.moods) ? r.moods.filter((x) => typeof x === 'string') : []; if (!isNum(r.at)) r.at = 0; });
-    Object.values(out.formats).forEach((f) => { f.n = Number(f.n) || 0; });
+    Object.values(out.formats).forEach((f) => { f.n = Number(f.n) || 0; ['yes', 'partly', 'no'].forEach((k) => { if (k in f) f[k] = Math.max(0, Number(f[k]) || 0); }); });
     if (out.fy && (typeof out.fy.k !== 'string' || (out.fy.quiz != null && !isObj(out.fy.quiz)) || (out.fy.lesson != null && !isObj(out.fy.lesson)))) out.fy = null;
 
     out.custom = rows(out.custom).map((d) => {
@@ -1678,6 +1684,8 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
      ONLINE: single readings, videos and podcasts, each opened and checked on 18 November 2026.
        kind: Read, Watch or Listen. t: the topics it helps with, best match first.
        m: minutes. x: true when the source states the length; otherwise m is an estimate for planning.
+     pod: the show a podcast comes from (see SHOWS), so it plays inside the app. ep: words from the episode's title,
+       for when the link is not the episode's own page.
      To add one, copy a line, give it a new id and bump the page number in the head of this file. */
   const HUBS = [
     { id: 'hub-padlet', main: true, title: 'ITE reading, website and resources list', by: 'LTE Group · Padlet', url: 'https://padlet.com/ltegroup/ite-reading-website-and-resources-list-tagxk7ayowk78d6l', note: 'Your course library: reading, websites and resources, kept up to date by the ITE team.' },
@@ -1689,36 +1697,36 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     // PGCE: retrieval, memory and cognitive load
     { id: 'on01', kind: 'Read', title: 'Six strategies for effective learning: a summary for teachers', by: 'The Learning Scientists', url: 'https://www.learningscientists.org/blog/2019/11/28-1', t: ['retrieval', 'memory'], m: 6, note: 'Spacing, interleaving, retrieval, concrete examples, elaboration and dual coding on one page.' },
     { id: 'on02', kind: 'Watch', title: 'Six strategies: short classroom videos', by: 'The Learning Scientists', url: 'https://www.learningscientists.org/videos', t: ['retrieval', 'memory'], m: 6, note: 'Pick the retrieval practice or spaced practice video first.' },
-    { id: 'on03', kind: 'Listen', title: 'Episode 2: Retrieval practice', by: 'The Learning Scientists Podcast', url: 'https://www.learningscientists.org/learning-scientists-podcast/2017/9/6/episode-2-retrieval-practice', t: ['retrieval'], m: 20, note: 'What retrieval practice is, why learners avoid it and how to use it. The page links to the audio.' },
+    { id: 'on03', kind: 'Listen', pod: 'ls', title: 'Episode 2: Retrieval practice', by: 'The Learning Scientists Podcast', url: 'https://www.learningscientists.org/learning-scientists-podcast/2017/9/6/episode-2-retrieval-practice', t: ['retrieval'], m: 20, note: 'What retrieval practice is, why learners avoid it and how to use it. The page links to the audio.' },
     { id: 'on04', kind: 'Read', title: 'Revision and study skills: retrieval practice', by: 'SecEd · Helen Webb', url: 'https://www.sec-ed.co.uk/best-practice/revision-and-study-skills-retrieval-practice', t: ['retrieval'], m: 8, note: 'A teacher’s account of using retrieval practice with classes: useful for your Change Template evidence.' },
-    { id: 'on05', kind: 'Listen', title: 'Cognitive science in the classroom', by: 'EEF · Evidence into Action', url: 'https://educationendowmentfoundation.org.uk/news/new-episode-of-evidence-into-action-cognitive-science-in-the-classroom', t: ['memory', 'retrieval'], m: 28, note: 'The authors of the EEF evidence review talk through what holds up in real classrooms. The page says where to listen.' },
+    { id: 'on05', kind: 'Listen', pod: 'eef', ep: 'cognitive science in the classroom', title: 'Cognitive science in the classroom', by: 'EEF · Evidence into Action', url: 'https://educationendowmentfoundation.org.uk/news/new-episode-of-evidence-into-action-cognitive-science-in-the-classroom', t: ['memory', 'retrieval'], m: 28, note: 'The authors of the EEF evidence review talk through what holds up in real classrooms. The page says where to listen.' },
     { id: 'on06', kind: 'Read', title: 'An introduction to cognitive load theory', by: 'The Education Hub', url: 'https://theeducationhub.org.nz/an-introduction-to-cognitive-load-theory-2', t: ['memory'], m: 15, note: 'Working memory, long-term memory and how worked examples cut needless load.' },
     { id: 'on07', kind: 'Watch', title: 'Clips from the classroom: worked examples to reduce cognitive load', by: 'Durrington Research School', url: 'https://researchschool.org.uk/durrington/news/clips-from-the-classroom-using-worked-examples-to-help-reduce-cognitive-load-in-maths', t: ['memory', 'adaptive'], m: 6, note: 'A teacher models step-by-step worked examples: close to how you would teach an engineering calculation.' },
     { id: 'on08', kind: 'Read', title: 'Ten principles of instruction (Rosenshine)', by: 'RE:ONLINE research summary', url: 'https://www.reonline.org.uk/research/10-principles-of-instruction', t: ['memory', 'retrieval', 'afl'], m: 6, note: 'A short summary of Rosenshine’s principles, with a link to the full paper.' },
     // PGCE: leading change
     { id: 'on09', kind: 'Read', title: 'Change theories', by: 'Structural Learning · Paul Main', url: 'https://www.structural-learning.com/post/change-theories', t: ['change'], m: 15, note: 'Lewin, Kotter, ADKAR, Bridges and more side by side: good for justifying your choice of model.' },
     { id: 'on10', kind: 'Watch', title: 'Lewin’s change management model', by: 'Mind Tools', url: 'https://prime.mindtools.com/pages/videos/lewins-change-model-transcript.htm', t: ['change'], m: 4, note: 'Unfreeze, change, refreeze, with the transcript underneath.' },
-    { id: 'on11', kind: 'Listen', title: 'Effective professional development in 16-19 settings', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/effective-professional-development-in-16-19-settings/', t: ['change', 'standards'], m: 33, x: true, note: 'How colleges make a change stick with staff: speaks directly to a small change project in FE.' },
+    { id: 'on11', kind: 'Listen', pod: 'eef', title: 'Effective professional development in 16-19 settings', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/effective-professional-development-in-16-19-settings/', t: ['change', 'standards'], m: 33, x: true, note: 'How colleges make a change stick with staff: speaks directly to a small change project in FE.' },
     // PGCE: adaptive teaching and SEND
     { id: 'on12', kind: 'Read', title: 'Five-a-day for pupils with SEND: a cluster of adaptive approaches', by: 'Education Endowment Foundation', url: 'https://educationendowmentfoundation.org.uk/news/eef-blog-five-a-day-for-pupils-with-send-a-cluster-of-adaptive-approaches', t: ['adaptive'], m: 4, x: true, note: 'Adaptive teaching as a four-step cycle, and where the five approaches fit.' },
     { id: 'on13', kind: 'Watch', title: 'Voices from the classroom: the Five-a-day approach in practice', by: 'Education Endowment Foundation', url: 'https://educationendowmentfoundation.org.uk/news/eef-blog-new-voices-from-the-classroom-the-five-a-day-approach-in-practice', t: ['adaptive'], m: 5, note: 'A teacher shows small chunks, visual scaffolds and revisiting prior learning.' },
-    { id: 'on14', kind: 'Listen', title: 'SEN in mainstream and adaptive teaching', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/ep-18-special-educational-needs-and-disabilities', t: ['adaptive'], m: 68, x: true, note: 'A long listen: good for a drive. Supporting learners with SEND without separate lessons.' },
+    { id: 'on14', kind: 'Listen', pod: 'eef', title: 'SEN in mainstream and adaptive teaching', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/ep-18-special-educational-needs-and-disabilities', t: ['adaptive'], m: 68, x: true, note: 'A long listen: good for a drive. Supporting learners with SEND without separate lessons.' },
     { id: 'on15', kind: 'Read', title: 'SEND code of practice: 0 to 25 years', by: 'Department for Education', url: 'https://www.gov.uk/government/publications/send-code-of-practice-0-to-25', t: ['adaptive', 'law'], m: 20, p: 1, note: 'Statutory guidance. Read the further education chapter, which sets out what colleges must do.' },
-    { id: 'on16', kind: 'Listen', title: 'Exploring disadvantage in 16-19 settings', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/exploring-disadvantage-in-16%e2%80%9319-settings/', t: ['adaptive', 'agency'], m: 39, x: true, note: 'What disadvantage looks like in colleges and what teachers can do about it.' },
+    { id: 'on16', kind: 'Listen', pod: 'eef', title: 'Exploring disadvantage in 16-19 settings', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/exploring-disadvantage-in-16%e2%80%9319-settings/', t: ['adaptive', 'agency'], m: 39, x: true, note: 'What disadvantage looks like in colleges and what teachers can do about it.' },
     // PGCE: assessment for learning and feedback
     { id: 'on17', kind: 'Watch', title: 'Dylan Wiliam: formative assessment', by: 'Education Scotland', url: 'https://education.gov.scot/resources/dylan-wiliam-formative-assessment', t: ['afl'], m: 5, note: 'How formative assessment and good feedback move learning on.' },
     { id: 'on18', kind: 'Watch', title: 'Dylan Wiliam: assessment strategies', by: 'Education Scotland', url: 'https://education.gov.scot/resources/dylan-wiliam-assessment-strategies', t: ['afl'], m: 5, note: 'The five key strategies and who does what: teacher, peers and the learner.' },
     { id: 'on19', kind: 'Watch', title: 'Dylan Wiliam: self and peer assessment', by: 'Education Scotland', url: 'https://education.gov.scot/resources/dylan-wiliam-self-and-peer-assessment', t: ['afl', 'agency', 'involve'], m: 5, note: 'Getting learners to assess themselves and each other, with questions to reflect on.' },
     { id: 'on20', kind: 'Read', title: 'Summary of the EEF guidance report: teacher feedback to improve pupil learning', by: 'Durrington Research School', url: 'https://researchschool.org.uk/durrington/news/summary-of-the-eefs-new-guidance-report-teacher-feedback-to-improve-pupil-learning', t: ['afl'], m: 6, note: 'The six recommendations on timing, written and verbal feedback, in plain words.' },
     // PGCE: learner agency
-    { id: 'on21', kind: 'Listen', title: 'Metacognition: moving forward with new evidence', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/metacognition-moving-forward-with-new-evidence', t: ['agency'], m: 34, x: true, note: 'Putting metacognition and self-regulation into lessons, and what it means for learners.' },
+    { id: 'on21', kind: 'Listen', pod: 'eef', title: 'Metacognition: moving forward with new evidence', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/metacognition-moving-forward-with-new-evidence', t: ['agency'], m: 34, x: true, note: 'Putting metacognition and self-regulation into lessons, and what it means for learners.' },
     { id: 'on22', kind: 'Read', title: 'Metacognition and self-regulated learning: guidance report', by: 'Education Endowment Foundation', url: 'https://educationendowmentfoundation.org.uk/education-evidence/guidance-reports/metacognition', t: ['agency'], m: 15, p: 1, note: 'The guidance report page, with a short explainer animation and the evidence review.' },
     // PGCE: Ofsted, standards, reflection
     { id: 'on23', kind: 'Read', title: 'Further education and skills inspection: toolkit, operating guides and information', by: 'Ofsted', url: 'https://www.gov.uk/government/publications/further-education-and-skills-inspection-toolkit-operating-guide-and-information', t: ['ofsted'], m: 20, p: 1, note: 'The current inspection toolkit for FE and skills. Start with the inspection information for providers.' },
     { id: 'on24', kind: 'Read', title: 'Ofsted confirms changes to education inspection and unveils new-look report cards', by: 'Ofsted · press release, 9 September 2025', url: 'https://www.gov.uk/government/news/ofsted-confirms-changes-to-education-inspection-and-unveils-new-look-report-cards', t: ['ofsted'], m: 5, note: 'What changed: report cards, the new grading scale and the focus on inclusion.' },
     { id: 'on25', kind: 'Read', title: 'Professional Standards for Teachers and Trainers in FE', by: 'Education and Training Foundation', url: 'https://etfoundation.co.uk/professional-standards/teachers/', t: ['standards', 'reflect'], m: 10, note: 'The 20 standards in three groups: values and attributes, knowledge and understanding, skills.' },
     { id: 'on26', kind: 'Read', title: 'Learning and skills teacher: Level 5 occupational standard', by: 'Skills England', url: 'https://skillsengland.education.gov.uk/apprenticeships/st0149-v1-4', t: ['standards'], m: 10, p: 1, note: 'The duties and the knowledge, skills and behaviours your Module 3 portfolio is mapped to.' },
-    { id: 'on27', kind: 'Listen', title: 'Teaching: an art or science, part 3', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/teaching-an-art-or-science-part-3/', t: ['reflect', 'standards'], m: 26, x: true, note: 'Evidence and professional judgement: useful thinking for a reflective account.' },
+    { id: 'on27', kind: 'Listen', pod: 'eef', title: 'Teaching: an art or science, part 3', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/teaching-an-art-or-science-part-3/', t: ['reflect', 'standards'], m: 26, x: true, note: 'Evidence and professional judgement: useful thinking for a reflective account.' },
     { id: 'on28', kind: 'Read', title: 'Gibbs’ reflective cycle', by: 'University of Edinburgh · Reflection Toolkit', url: 'https://reflection.ed.ac.uk/reflectors-toolkit/reflecting-on-experience/gibbs-reflective-cycle', t: ['reflect'], m: 8, note: 'The six stages with prompt questions and a worked example. Use the questions for an observation reflection.' },
     { id: 'on29', kind: 'Read', title: 'Reflective practice examples for teachers: Gibbs and Kolb', by: 'Structural Learning', url: 'https://www.structural-learning.com/post/reflective-practice-for-teachers', t: ['reflect'], m: 12, note: 'Gibbs, Kolb, Schön, Brookfield and Driscoll compared, with teaching examples.' },
     { id: 'on30', kind: 'Read', title: 'Academic Phrasebank: being critical', by: 'University of Manchester', url: 'https://www.phrasebank.manchester.ac.uk/being-critical', t: ['reflect', 'change'], m: 5, note: 'Sentence starters for weighing up sources and theories in your written work.' },
@@ -1740,7 +1748,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     { id: 'on45', kind: 'Watch', title: 'Inclusive assessment and reasonable adjustments', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/inclusive-assessment-and-reasonable-adjustments', t: ['law', 'adaptive'], m: 3, x: true, note: 'Removing barriers without changing the criteria: neurodiversity, language, culture and technology. May ask for a free sign-up.' },
     { id: 'on46', kind: 'Watch', title: 'Questioning and professional discussion techniques', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/questioning-and-professional-discussion-techniques', t: ['methods', 'decisions'], m: 2, x: true, note: 'Question types, fair questioning, and how to run and record a professional discussion. May ask for a free sign-up.' },
     { id: 'on47', kind: 'Watch', title: 'How to conduct professional observations', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/how-to-conduct-professional-observations2', t: ['methods', 'records'], m: 3, x: true, note: 'Planning, running and recording an observation, then feedback that leaves a clear audit trail. May ask for a free sign-up.' },
-    { id: 'on48', kind: 'Listen', title: 'Renewed education inspections', by: 'Ofsted Talks podcast', url: 'https://ofstedtalks.podbean.com/e/renewed-education-inspections/', t: ['ofsted'], m: 30, note: 'Ofsted’s own account of the renewed framework, the main changes and the first pilot inspections, including further education and skills.' },
+    { id: 'on48', kind: 'Listen', pod: 'ofsted', title: 'Renewed education inspections', by: 'Ofsted Talks podcast', url: 'https://ofstedtalks.podbean.com/e/renewed-education-inspections/', t: ['ofsted'], m: 30, note: 'Ofsted’s own account of the renewed framework, the main changes and the first pilot inspections, including further education and skills.' },
     // From the course Padlet (ITE reading, website and resources list), read on 18 November 2026.
     // p: on the Padlet. w: a whole website to browse. lib: a book in the college library (sign in). post: opens the Padlet post.
     { id: 'pd01', kind: 'Read', title: 'Rosenshine’s Principles in Action', by: 'Tom Sherrington · book', url: 'https://research.ebsco.com/c/bwbwmc/search/details/jm7hdfxrpb?limiters=FT%3AY%2CFT1%3AY&q=rosenshines&searchMode=all', t: ['memory', 'retrieval', 'afl'], m: 30, p: 1, lib: 1, note: 'A short book on Rosenshine’s ten principles with classroom examples. Read one strand a night.' },
@@ -1754,8 +1762,8 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     { id: 'pd09', kind: 'Read', title: 'Jamie Clark: teaching graphics', by: 'jamieleeclark.com', url: 'https://www.jamieleeclark.com/graphics', t: ['memory', 'retrieval'], m: 10, p: 1, w: 1, note: 'Free one-page graphics summarising research on teaching and learning.' },
     { id: 'pd10', kind: 'Watch', title: 'DistillED videos', by: 'Jamie Clark · YouTube', url: 'https://www.youtube.com/@DistillED_Newsletter', t: ['memory', 'retrieval'], m: 10, p: 1, w: 1, note: 'Short videos that distil an education research idea into a few minutes.' },
     { id: 'pd11', kind: 'Read', title: 'The Learning Scientists: blog', by: 'The Learning Scientists', url: 'https://www.learningscientists.org/blog', t: ['retrieval', 'memory'], m: 10, p: 1, w: 1, note: 'Cognitive psychologists write about study strategies and what the research says.' },
-    { id: 'pd12', kind: 'Listen', title: 'The Learning Scientists: all podcast episodes', by: 'The Learning Scientists Podcast', url: 'https://www.learningscientists.org/podcast-episodes', t: ['retrieval', 'memory'], m: 25, p: 1, w: 1, note: 'Every episode in one list. Pick one on the topic you are working on.' },
-    { id: 'pd13', kind: 'Listen', title: 'The Science of Learning podcast', by: 'InnerDrive · Spotify', url: 'https://open.spotify.com/show/1eIVAh0Mj5tWPjNvRc7ALS', t: ['memory', 'retrieval', 'agency'], m: 25, p: 1, note: 'Interviews with researchers on memory, motivation and study habits. Also on other podcast apps.' },
+    { id: 'pd12', kind: 'Listen', pod: 'ls', title: 'The Learning Scientists: all podcast episodes', by: 'The Learning Scientists Podcast', url: 'https://www.learningscientists.org/podcast-episodes', t: ['retrieval', 'memory'], m: 25, p: 1, w: 1, note: 'Every episode in one list. Pick one on the topic you are working on.' },
+    { id: 'pd13', kind: 'Listen', pod: 'innerdrive', title: 'The Science of Learning podcast', by: 'InnerDrive · Spotify', url: 'https://open.spotify.com/show/1eIVAh0Mj5tWPjNvRc7ALS', t: ['memory', 'retrieval', 'agency'], m: 25, p: 1, note: 'Interviews with researchers on memory, motivation and study habits. Also on other podcast apps.' },
     { id: 'pd14', kind: 'Read', title: 'InnerDrive: guides for teachers', by: 'InnerDrive', url: 'https://www.innerdrive.co.uk/guide-type/education/', t: ['memory', 'retrieval', 'agency'], m: 10, p: 1, w: 1, note: 'Free, readable guides to the science of learning.' },
     { id: 'pd15', kind: 'Read', title: 'Oli Cav: dual coding', by: 'Oliver Caviglioli', url: 'https://www.olicav.com/', t: ['memory'], m: 10, p: 1, w: 1, note: 'Dual coding and visual explanation for teachers, from the author of Dual Coding with Teachers.' },
     { id: 'pd16', kind: 'Read', title: 'Efrat Furst: teaching with learning in mind', by: 'Efrat Furst', url: 'https://sites.google.com/view/efratfurst/teaching-with-learning-in-mind', t: ['memory'], m: 15, p: 1, w: 1, note: 'Visual explanations of how learning happens in the brain, written for teachers.' },
@@ -1777,8 +1785,8 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     { id: 'pd32', kind: 'Read', title: 'Education Endowment Foundation', by: 'EEF', url: 'https://educationendowmentfoundation.org.uk/', t: ['afl', 'agency'], m: 10, p: 1, w: 1, note: 'Guidance reports and evidence summaries, including a 16-19 section.' },
     { id: 'pd33', kind: 'Read', title: 'Tips for Teachers', by: 'Craig Barton', url: 'https://tipsforteachers.co.uk/', t: ['afl', 'retrieval'], m: 10, p: 1, w: 1, note: 'Short, practical teaching tips drawn from Craig Barton’s interviews with teachers and researchers.' },
     { id: 'pd34', kind: 'Watch', title: 'Tips for Teachers: video and audio tips', by: 'Craig Barton', url: 'https://tipsforteachers.co.uk/video-and-audio-tips/', t: ['afl', 'retrieval'], m: 10, p: 1, note: 'Short video and audio clips, one teaching tip each.' },
-    { id: 'pd35', kind: 'Listen', title: 'Mind the Gap podcast', by: 'Tom Sherrington and Emma Turner · Spotify', url: 'https://open.spotify.com/show/4QthkefoaLhKf9jCEM9tF1', t: ['reflect', 'afl'], m: 40, p: 1, note: 'Two teachers talk through research and classroom practice. Good for a drive.' },
-    { id: 'pd36', kind: 'Listen', title: 'Teaching Excellence Podcast', by: 'Apple Podcasts', url: 'https://podcasts.apple.com/gb/podcast/teaching-excellence-podcast/id1437192863', t: ['reflect', 'afl'], m: 30, p: 1, note: 'Conversations about teaching practice and professional development.' },
+    { id: 'pd35', kind: 'Listen', pod: 'mtg', title: 'Mind the Gap podcast', by: 'Tom Sherrington and Emma Turner · Spotify', url: 'https://open.spotify.com/show/4QthkefoaLhKf9jCEM9tF1', t: ['reflect', 'afl'], m: 40, p: 1, note: 'Two teachers talk through research and classroom practice. Good for a drive.' },
+    { id: 'pd36', kind: 'Listen', pod: 'tep', title: 'Teaching Excellence Podcast', by: 'Apple Podcasts', url: 'https://podcasts.apple.com/gb/podcast/teaching-excellence-podcast/id1437192863', t: ['reflect', 'afl'], m: 30, p: 1, note: 'Conversations about teaching practice and professional development.' },
     { id: 'pd37', kind: 'Read', title: 'Phil Race: assessment, learning and teaching', by: 'Phil Race · book', url: 'https://padlet.com/ltegroup/tagxk7ayowk78d6l/wish/3864352280', t: ['afl', 'methods', 'vacsr'], m: 30, p: 1, post: 1, note: 'A practical book on assessment and feedback. The Padlet shows the cover: ask the college library for it.' },
     { id: 'pd38', kind: 'Read', title: 'Mr Metacognition: resources', by: 'mrmetacognition.com', url: 'https://www.mrmetacognition.com/resources', t: ['agency'], m: 10, p: 1, w: 1, note: 'Free classroom resources for teaching learners to plan, monitor and evaluate their own learning.' },
     { id: 'pd39', kind: 'Read', title: 'Developing independent learners (16-19)', by: 'Education Endowment Foundation', url: 'https://educationendowmentfoundation.org.uk/16-19/developing-independent-learners', t: ['agency'], m: 15, p: 1, note: 'EEF guidance on independent study for 16 to 19 learners.' },
@@ -2107,7 +2115,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   // One list of everything: your own saved pages first, then the online library, then your PGCE project files.
   function catalogue() {
     const mine = state.library.map((u) => ({ ...u, kind: kindOfMine(u), ts: [TOPICS[u.t] ? u.t : 'reflect'], t: TOPICS[u.t] ? u.t : 'reflect', src: 'mine', by: u.meta || 'Yours', m: clamp(Number(u.m) || 10, 1, 240) }));
-    const on = ONLINE.map((o) => ({ id: o.id, kind: o.kind, title: o.title, by: o.by, link: o.url, t: o.t[0], ts: o.t, c: TOPICS[o.t[0]].c, m: o.m, x: !!o.x, note: o.note, src: 'online', p: !!o.p, w: !!o.w, lib: !!o.lib, post: !!o.post }));
+    const on = ONLINE.map((o) => ({ id: o.id, kind: o.kind, title: o.title, by: o.by, link: o.url, t: o.t[0], ts: o.t, c: TOPICS[o.t[0]].c, m: o.m, x: !!o.x, note: o.note, src: 'online', p: !!o.p, w: !!o.w, lib: !!o.lib, post: !!o.post, pod: o.pod || '', ep: o.ep || '' }));
     const files = LIBRARY.map((f) => ({ ...f, kind: 'File', ts: [f.t], src: 'project', by: f.meta, m: 15 }));
     return mine.concat(on, files);
   }
@@ -2484,10 +2492,13 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     {
       const R = recommend();
       const p = R.picks.find((x) => !x.extra) || R.picks[0];
+      // today's podcast plays from here, even when it is not the first pick
+      const pc = R.picks.find((x) => podOf(x.it));
       if (p) {
         html += `<div class="card"><div class="row between"><div class="label">For you ${isWeekday(today) ? 'tonight' : 'today'}</div><button class="small" data-act="fy-open" style="color:var(--accent);font-weight:700">See all</button></div>
-          <div class="list">${resRow(p.it, `<span class="pill kpill k-${esc(p.it.kind)}">${esc(KIND_VERB[p.it.kind])}</span>`)}</div>
-          <div class="small muted">${esc(p.why[0] || '')}</div></div>`;
+          <div class="list">${resRow(p.it, `<span class="pill kpill k-${esc(p.it.kind)}">${esc(KIND_VERB[p.it.kind])}</span>`)}${pc && pc !== p ? resRow(pc.it, `<span class="pill kpill k-${esc(pc.it.kind)}">${esc(KIND_VERB[pc.it.kind])}</span>`) : ''}</div>
+          <div class="small muted">${esc(p.why[0] || '')}</div>
+          ${pc && podReady() ? `<div class="btnrow"><button class="btn sm" data-act="pod-go" data-id="${esc(pc.it.id)}">${ic(POD.id === pc.it.id && POD.state === 'playing' ? 'pause' : 'play', 14)} ${POD.id === pc.it.id && POD.state !== 'idle' ? (POD.state === 'paused' ? 'Carry on with today’s podcast' : 'Playing today’s podcast') : 'Play today’s podcast here'}</button></div>` : ''}</div>`;
       }
     }
     const mon = mondayOf(today);
@@ -2599,7 +2610,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       <h3>${esc(it.title)}</h3><div class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(TOPICS[s.t].name)}</div>
       <div class="why">${s.why.map((w) => esc(w)).join(' ')}</div>
       ${openedToday && !r.done ? '<div class="small muted">Opened today. Tap Done when you finish, and the app learns what works for you.</div>' : ''}
-      <div class="btnrow"><button class="btn sm" data-act="res-open" data-id="${esc(it.id)}">${ic(KIND_ICON[it.kind] || 'link', 14)} ${!it.link ? 'Review with tutor' : openedToday ? 'Open again' : 'Open'}</button><button class="btn sm ghost" data-act="res-done" data-id="${esc(it.id)}">${ic('check', 14)} Done</button><button class="btn sm ghost" data-act="res-skip" data-id="${esc(it.id)}">Not for me</button><button class="btn sm ghost" data-act="fav" data-id="${esc(it.id)}" aria-label="${state.favs[it.id] ? 'Remove from favourites' : 'Add to favourites'}" aria-pressed="${!!state.favs[it.id]}"${state.favs[it.id] ? ' style="color:var(--gold)"' : ''}>${ic('star', 14)}</button></div></div>`;
+      <div class="btnrow">${podOf(it) && podReady() ? `<button class="btn sm" data-act="pod-go" data-id="${esc(it.id)}">${ic(POD.id === it.id && POD.state === 'playing' ? 'pause' : 'play', 14)} ${POD.id === it.id && POD.state !== 'idle' ? (POD.state === 'paused' ? 'Carry on' : 'Playing') : 'Play here'}</button>` : `<button class="btn sm" data-act="res-open" data-id="${esc(it.id)}">${ic(KIND_ICON[it.kind] || 'link', 14)} ${!it.link ? 'Review with tutor' : openedToday ? 'Open again' : 'Open'}</button>`}<button class="btn sm ghost" data-act="res-done" data-id="${esc(it.id)}">${ic('check', 14)} Done</button><button class="btn sm ghost" data-act="res-skip" data-id="${esc(it.id)}">Not for me</button><button class="btn sm ghost" data-act="fav" data-id="${esc(it.id)}" aria-label="${state.favs[it.id] ? 'Remove from favourites' : 'Add to favourites'}" aria-pressed="${!!state.favs[it.id]}"${state.favs[it.id] ? ' style="color:var(--gold)"' : ''}>${ic('star', 14)}</button></div></div>`;
   }
   const resRow = (it, right) => `<button class="res li tap" data-act="res" data-id="${esc(it.id)}"><span class="ftype k-${esc(it.kind)}">${ic(KIND_ICON[it.kind] || 'link', 18)}</span><span class="restext"><b>${esc(it.title)}</b><span class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(TOPICS[it.t] ? TOPICS[it.t].name : '')}${it.link ? ' · ' + esc(minsLabel(it)) : ''}</span></span>${right != null ? right : resOf(it.id).done ? `<span class="pill good">${ic('check', 12)} Done</span>` : state.favs[it.id] ? `<span style="color:var(--gold)">${ic('star', 16)}</span>` : `<span class="muted">${ic('fwd', 16)}</span>`}</button>`;
   function forYouView() {
@@ -3168,9 +3179,11 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       ? `I have just ${verb} "${it.title}"${it.by && !mine ? ' (' + it.by + ')' : ''}, ${it.link}. Ask me three questions, one at a time, to check what I took from it. Then show me how it links to ${TOPICS[it.t].name} in my ${courseName(TOPICS[it.t].c)} work.`
       : `In my PGCE project there is a file called "${it.title}". Summarise its key points in five bullet points, then ask me two questions to check I understand it.`;
     const canCheck = QBANK.filter((q) => it.ts.includes(q.t)).length >= 2;
+    const pod = podOf(it);
     sheet(`<div class="row wrap">${kindPill(it)}${r.done ? `<span class="pill good">${ic('check', 12)} Done${r.stick ? ' · stuck: ' + esc(String(r.stick).toLowerCase()) : ''}</span>` : ''}</div>
       <h3>${esc(it.title)}</h3><div class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(names)}</div>${it.note ? `<div class="step">${esc(it.note)}</div>` : ''}${it.p ? `<div class="small muted">${ic('list', 12)} On your course Padlet.${it.lib ? ' A book in the college library: sign in with your college account to read it.' : it.post ? ' Opens the post on the Padlet.' : it.w ? ' A whole website: browse for what fits your topic.' : ''}</div>` : ''}
-      ${online ? `<button class="btn block" data-act="res-open" data-id="${esc(id)}">${ic(KIND_ICON[it.kind] || 'link', 16)} ${esc(KIND_VERB[it.kind] || 'Open')} it now</button>` : ''}
+      ${pod ? `<div data-podpanel="${esc(id)}">${podPanel(it)}</div>` : ''}
+      ${online ? `<button class="btn ${pod && podReady() && !pod.direct ? 'ghost ' : ''}block" data-act="res-open" data-id="${esc(id)}">${ic(pod ? 'out' : KIND_ICON[it.kind] || 'link', 16)} ${pod ? (pod.whole ? 'Open the show’s page' : 'Open the episode’s page') : esc(KIND_VERB[it.kind] || 'Open') + ' it now'}</button>` : ''}
       ${canHear(it) ? `<button class="btn ghost block" data-act="res-listen" data-id="${esc(id)}">${ic('speaker', 16)} ${online ? 'Listen to it instead' : 'Listen to my note'}</button>` : ''}
       <button class="btn ${online ? 'ghost ' : ''}block" data-act="ask" data-q="${esc(tutorQ)}">${ic('spark', 16)} ${online ? 'Ask the tutor to test me on it' : 'Ask the tutor about it'}</button>
       ${canCheck ? `<button class="btn ghost block" data-act="res-check" data-id="${esc(id)}">${ic('study', 16)} 3-question check on ${esc(TOPICS[it.t].name)}</button>` : ''}
@@ -3359,7 +3372,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 
   /* ---------- What makes it smart ---------- */
   V.about = () => `<div class="notice"><div><b>Can it be smarter than Claude?</b><p>No app can out-think the model it runs on, and the tutor here is Claude, your own account. What the app adds is memory: your deadlines, missed evenings, portfolio gaps, quiz mistakes and what works for you. So it can put the right thing in front of you, and hand Claude your week when you ask.</p></div></div>
-    ${[['Listen and speak', 'The phone reads lessons, readings and your own writing to you, even with the screen off. Tap Speak under any writing box to turn what you say into text, and keep spoken notes with each observation.'], ['Online library, inside the app', 'Your course reading list on Padlet and the Ann Gravells list open in the app. Save any page and it is filed by topic.'], ['A Study tab that picks for you', 'What to study, read, watch and listen to, chosen from your weak topics, what is due, your energy and the time you have. Every pick says why.'], ['Learns what works', 'Tap Done and say if it stuck. Readings, videos and podcasts are ranked by what has worked for you.'], ['Updates by itself', 'New library items, deadlines and fixes arrive without a new install.'], ['Tutor that knows your week', 'Ask tutor opens your Claude account in the app, with your plan ready to go in the message box.'], ['One next step', 'The single best thing to do now: an open review first, then the closest deadline.'], ['Portfolio readiness', 'Eight parts of the Module 3 portfolio, measured from your own records.'], ['Self-healing planner', 'Missed steps move to the next evening with room before their deadline.'], ['Energy check-in', 'Low evenings keep only the most urgent step.'], ['Mistake notebook', 'Wrong answers become review cards.'], ['Spaced repetition', 'Cards come back just before you forget them.'], ['Format that fits', 'Leads with the format that sticks for you.'], ['Real alarms', 'Rings like an alarm clock until the work is ticked off.'], ['Decision log', 'Every change explained, most can be undone.']].map(([a, b]) => `<div class="card"><b>${esc(a)}</b><div class="small muted">${esc(b)}</div></div>`).join('')}`;
+    ${[['Listen and speak', 'The phone reads lessons, readings and your own writing to you, even with the screen off. Tap Speak under any writing box to turn what you say into text, and keep spoken notes with each observation.'], ['Podcasts inside the app', 'Tap Play on the day’s podcast and it plays here, with the screen off and on the lock screen. It carries on from where you stopped, and every episode of the show is a tap away.'], ['Online library, inside the app', 'Your course reading list on Padlet and the Ann Gravells list open in the app. Save any page and it is filed by topic.'], ['A Study tab that picks for you', 'What to study, read, watch and listen to, chosen from your weak topics, what is due, your energy and the time you have. Every pick says why.'], ['Learns what works', 'Tap Done and say if it stuck. Readings, videos and podcasts are ranked by what has worked for you.'], ['Updates by itself', 'New library items, deadlines and fixes arrive without a new install.'], ['Tutor that knows your week', 'Ask tutor opens your Claude account in the app, with your plan ready to go in the message box.'], ['One next step', 'The single best thing to do now: an open review first, then the closest deadline.'], ['Portfolio readiness', 'Eight parts of the Module 3 portfolio, measured from your own records.'], ['Self-healing planner', 'Missed steps move to the next evening with room before their deadline.'], ['Energy check-in', 'Low evenings keep only the most urgent step.'], ['Mistake notebook', 'Wrong answers become review cards.'], ['Spaced repetition', 'Cards come back just before you forget them.'], ['Format that fits', 'Leads with the format that sticks for you.'], ['Real alarms', 'Rings like an alarm clock until the work is ticked off.'], ['Decision log', 'Every change explained, most can be undone.']].map(([a, b]) => `<div class="card"><b>${esc(a)}</b><div class="small muted">${esc(b)}</div></div>`).join('')}`;
 
   /* ---------- Deadlines and Add ---------- */
   function filterChips() {
@@ -3556,6 +3569,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     if (!listenOn()) { toast('Listen is switched off. Turn it on in Settings, under Display and audio.'); return false; }
     if (!hasWords(t)) { toast('There are no words here to read yet.'); return false; }
     if (DICT.on) dictStop();
+    if (POD.state !== 'idle' && !canPod()) podCmd('stop');
     if (canListen()) {
       let ok = false;
       try { ok = !!APP.listenStart(name, t.slice(0, 590000)); } catch (e) { ok = false; }
@@ -3659,6 +3673,8 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   function renderPlayer() {
     const el = $('#player');
     if (!el) return;
+    if (POD.state !== 'idle' || PODQ.id) { renderPodBar(el); return; }
+    el.dataset.sig = '';
     const on = LS.state !== 'idle';
     document.body.classList.toggle('listening', on);
     if (!on) { el.hidden = true; el.innerHTML = ''; return; }
@@ -3670,6 +3686,391 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       <div class="pbtns">${pb('pl-back', 'Back a little', ic('prev', 17))}${pb('pl-toggle', playing ? 'Pause' : 'Play', ic(playing ? 'pause' : 'play', 17))}${pb('pl-next', 'Forward a little', ic('next', 17))}${pb('pl-rate', `Reading speed, now ${rateLabel(LS.rate)}. Tap to change`, `<span class="num">${rateLabel(LS.rate)}</span>`)}${pb('pl-stop', 'Stop reading', ic('stop', 17))}</div>`;
     document.body.style.setProperty('--player-h', `${el.offsetHeight}px`);
   }
+
+  /* ---------- Podcasts: episodes play inside the app ----------
+     In the app (the build that came with page 43, or later) the phone finds a show's episodes from its feed (PodFeed.java)
+     and plays them itself (Podcast.java): with the screen off, from the lock screen, and from where you stopped last time.
+     It reports through window.__capgownPod, and episode lists arrive through window.__capgownPodFeed. An older app opens
+     the episode's page instead and offers the newest app. In a browser the page tries the feed itself.
+     SHOWS: feeds are tried in order, then Apple's directory by apple (an Apple Podcasts id), then by term (the name). */
+  const SHOWS = {
+    eef: { name: 'Evidence into Action', by: 'Education Endowment Foundation', feeds: ['https://feed.podbean.com/evidenceintoaction/feed.xml', 'https://evidenceintoaction.podbean.com/feed.xml'], site: 'https://evidenceintoaction.podbean.com/' },
+    ofsted: { name: 'Ofsted Talks', by: 'Ofsted', feeds: ['https://feed.podbean.com/ofstedtalks/feed.xml', 'https://ofstedtalks.podbean.com/feed.xml'], apple: '1583208709', site: 'https://ofstedtalks.podbean.com/' },
+    ls: { name: 'The Learning Scientists Podcast', by: 'The Learning Scientists', feeds: ['https://www.learningscientists.org/learning-scientists-podcast/?format=rss'], apple: '1279414575', site: 'https://www.learningscientists.org/podcast-episodes' },
+    // two different shows are called The Science of Learning, so this one is found by its Apple id only
+    innerdrive: { name: 'The Science of Learning', by: 'InnerDrive', apple: '1875223587', term: '', site: 'https://open.spotify.com/show/1eIVAh0Mj5tWPjNvRc7ALS' },
+    mtg: { name: 'Mind the Gap', by: 'Tom Sherrington and Emma Turner', apple: '1516532537', term: 'Mind the Gap: Making Education Work Across the Globe', site: 'https://open.spotify.com/show/4QthkefoaLhKf9jCEM9tF1' },
+    tep: { name: 'Teaching Excellence Podcast', by: 'Stef Tinsley', apple: '1437192863', site: 'https://podcasts.apple.com/gb/podcast/teaching-excellence-podcast/id1437192863' }
+  };
+  const PODF = { cache: {}, wait: {}, cb: {}, err: {}, extra: {}, n: 0 };
+  const POD = { state: 'idle', id: '', url: '', title: '', show: '', page: '', pos: 0, dur: 0, rate: 1, wait: false, resumed: false, drag: false };
+  const PODQ = { id: '', title: '', run: 0 }; // finding an episode, before it plays
+  let podAudio = null; // the browser's own player, when there is no app
+  const canPod = () => !!(APP && typeof APP.podPlay === 'function' && typeof APP.podFeed === 'function');
+  const podReady = () => canPod() || !APP; // an older app cannot play podcasts itself
+  const AUDIO_RE = /\.(mp3|m4a|aac|ogg|opus|wav)($|[?#])/i;
+  const showOf = (key) => SHOWS[key] || PODF.extra[key] || null;
+  function podClock(ms) {
+    const s = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const x = String(s % 60).padStart(2, '0');
+    return h ? `${h}:${String(m).padStart(2, '0')}:${x}` : `${m}:${x}`;
+  }
+  // Which library items play here, and from which show. Null for anything else.
+  function podOf(it) {
+    if (!it || !it.link) return null;
+    if (it.pod && SHOWS[it.pod]) return { key: it.pod, whole: !!it.w || /open\.spotify\.com\/show|podcasts\.apple\.com\//i.test(it.link) };
+    if (AUDIO_RE.test(it.link) && /^https?:\/\//i.test(it.link)) return { key: '', direct: true, whole: false };
+    const m = /^https:\/\/([a-z0-9-]+)\.podbean\.com\/(e\/)?/i.exec(it.link);
+    if (m && it.kind === 'Listen') {
+      // a Podbean page you saved yourself: its feed is at a known address
+      const sub = m[1].toLowerCase();
+      const key = 'pb-' + sub;
+      if (!PODF.extra[key]) PODF.extra[key] = { name: sub, feeds: [`https://feed.podbean.com/${sub}/feed.xml`, `https://${sub}.podbean.com/feed.xml`], term: '', site: `https://${sub}.podbean.com/` };
+      return { key, whole: !m[2] };
+    }
+    return null;
+  }
+  const normLink = (u) => {
+    let s = String(u || '');
+    try { s = decodeURIComponent(s); } catch (e) { /* keep it as it is */ }
+    return s.toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/[?#].*$/, '').replace(/\/+$/, '');
+  };
+  const STOPW = new Set(['the', 'and', 'for', 'with', 'from', 'your', 'you', 'this', 'that', 'episode', 'podcast']);
+  const podWords = (s) => (String(s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').match(/[a-z0-9]+/g) || []).filter((w) => (w.length > 2 || /^\d+$/.test(w)) && !STOPW.has(w));
+  // The episode an item stands for, by its page's address or else the words of its title. -1 when not in the list.
+  function findEp(d, it) {
+    if (!d || !Array.isArray(d.eps) || !d.eps.length) return -1;
+    const L = normLink(it.link);
+    const i = d.eps.findIndex((e) => e.l && normLink(e.l) === L);
+    if (i >= 0) return i;
+    const want = podWords(it.ep || it.title);
+    if (!want.length) return -1;
+    let best = -1;
+    let bestV = 0;
+    d.eps.forEach((e, j) => {
+      const have = new Set(podWords(e.t));
+      const v = want.filter((w) => have.has(w)).length / want.length;
+      if (v > bestV) { bestV = v; best = j; }
+    });
+    return bestV >= 0.75 ? best : -1;
+  }
+  // For a whole show: the episode you were part way through, else the newest one you have not finished.
+  function epFor(d, it, p) {
+    if (!d || !Array.isArray(d.eps) || !d.eps.length) return -1;
+    if (!p.whole) return findEp(d, it);
+    const r = resOf(it.id);
+    const heard = Array.isArray(r.heard) ? r.heard : [];
+    const last = r.ep ? d.eps.findIndex((e) => e.u === r.ep) : -1;
+    if (last >= 0 && !heard.includes(r.ep)) return last;
+    const fresh = d.eps.findIndex((e) => !heard.includes(e.u));
+    return fresh >= 0 ? fresh : 0;
+  }
+  // A show's episodes, newest first. Kept for six hours; the app also keeps them for when you are offline.
+  function podFeed(key, fresh) {
+    const sh = showOf(key);
+    if (!sh) return Promise.reject(new Error('unknown show'));
+    const c = PODF.cache[key];
+    if (c && !fresh && Date.now() - c.at < 6 * 3600000) return Promise.resolve(c.data);
+    if (PODF.wait[key]) return PODF.wait[key];
+    const ask = new Promise((resolve, reject) => {
+      if (!canPod()) { webFeed(sh).then(resolve, reject); return; }
+      const req = 'f' + (++PODF.n);
+      const timer = setTimeout(() => { delete PODF.cb[req]; reject(new Error('timeout')); }, 45000);
+      PODF.cb[req] = (d) => {
+        clearTimeout(timer);
+        delete PODF.cb[req];
+        if (d && d.ok && Array.isArray(d.eps) && d.eps.length) resolve(d);
+        else reject(new Error((d && d.error) || 'no episodes'));
+      };
+      try { APP.podFeed(req, JSON.stringify({ feeds: sh.feeds || [], apple: sh.apple || '', term: sh.term == null ? sh.name : sh.term })); } catch (e) { clearTimeout(timer); delete PODF.cb[req]; reject(e); }
+    });
+    const p = ask.then((d) => {
+      // "Episode title | Show name" reads better without the show's name, which the sheet already gives
+      const show = String(d.title || '').trim().toLowerCase();
+      const tidy = (t) => { const m = /^(.+?)\s+[|–-]\s+([^|–-]+)$/.exec(t); return m && show && m[2].trim().toLowerCase() === show ? m[1] : t; };
+      const eps = d.eps.filter((e) => e && /^https?:\/\//i.test(String(e.u || ''))).map((e) => ({ t: tidy(String(e.t || 'Episode').trim()), u: String(e.u), l: String(e.l || ''), i: String(e.i || ''), n: String(e.n || ''), d: Number(e.d) || 0, s: Number(e.s) || 0 }));
+      eps.sort((a, b) => b.d - a.d);
+      const out = { title: String(d.title || ''), image: String(d.image || ''), stale: !!d.stale, eps };
+      PODF.cache[key] = { at: Date.now(), data: out };
+      delete PODF.err[key];
+      return out;
+    });
+    PODF.wait[key] = p;
+    const clear = () => { delete PODF.wait[key]; };
+    p.then(clear, clear);
+    return p;
+  }
+  // Without the app: most podcast sites do not let a web page read their feed, but some do.
+  function webFeed(sh) {
+    const urls = (sh.feeds || []).slice();
+    if (!urls.length || typeof fetch !== 'function' || typeof DOMParser !== 'function') return Promise.reject(new Error('no feed'));
+    const one = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }).then((t) => {
+      const x = new DOMParser().parseFromString(t, 'application/xml');
+      const tx = (el, n) => { const c = el.getElementsByTagName(n)[0]; return c ? c.textContent.trim() : ''; };
+      const secs = (v) => String(v || '').split(':').reduce((a, b) => a * 60 + (Number(b) || 0), 0);
+      const eps = Array.from(x.getElementsByTagName('item')).map((el) => {
+        const enc = el.getElementsByTagName('enclosure')[0];
+        return { t: tx(el, 'title'), u: enc ? enc.getAttribute('url') || '' : '', l: tx(el, 'link'), d: Date.parse(tx(el, 'pubDate')) || 0, s: secs(tx(el, 'itunes:duration')) };
+      }).filter((e) => /^https?:\/\//.test(e.u));
+      if (!eps.length) throw new Error('no episodes');
+      const ch = x.getElementsByTagName('channel')[0];
+      return { ok: true, title: ch ? tx(ch, 'title') : '', image: '', eps };
+    });
+    return urls.reduce((p, u) => p.catch(() => one(u)), Promise.reject(new Error('start')));
+  }
+  const podErrText = (e) => (/timeout/.test(String(e && e.message)) ? 'It took too long to answer.' : 'Check your connection and try again.');
+  function podPlaces() {
+    if (!canPod() || typeof APP.podPlaces !== 'function') return {};
+    try { const o = JSON.parse(APP.podPlaces() || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; }
+  }
+  // Plays episode i of a show's list for a library item. at: seconds from the start; left out, it carries on from last time.
+  function podStart(it, d, i, at) {
+    const e = d && d.eps && d.eps[i];
+    if (!it || !e) return false;
+    const p = podOf(it) || {};
+    const sh = showOf(p.key) || {};
+    const go = { id: it.id, url: e.u, title: e.t || it.title, show: d.title || sh.name || it.by || '', image: e.i || d.image || '', page: e.l || it.link || '', dur: e.s || 0 };
+    if (at != null) go.at = at;
+    return podGo(it, go);
+  }
+  function podGo(it, go) {
+    if (LS.state !== 'idle') listenCmd('stop');
+    if (DICT.on) dictStop();
+    let ok = false;
+    if (canPod()) { try { ok = !!APP.podPlay(JSON.stringify(go)); } catch (e) { ok = false; } }
+    else if (!APP) ok = webPlay(go);
+    if (!ok) { toast('The episode could not be started. Try again.'); return false; }
+    const r = resRec(it.id);
+    r.open = now().getTime();
+    r.n = (r.n || 0) + 1;
+    r.ep = go.url;
+    commit();
+    return true;
+  }
+  // Play: find the episode, then play it. A whole show plays where you got to, or its newest episode.
+  function podQuick(id) {
+    const it = findRes(id);
+    const p = podOf(it);
+    if (!it || !p) return;
+    if (APP && !canPod()) {
+      toast(`Playing podcasts inside the app needs the newest app. ${GET_APP}`, 8000);
+      resOpen(id);
+      return;
+    }
+    if (POD.id === id && POD.state !== 'idle') { if (POD.state === 'paused') podCmd('toggle'); return; }
+    if (p.direct) { podGo(it, { id, url: it.link, title: it.title, show: it.by || '', image: '', page: it.link, dur: 0 }); render(); return; }
+    const run = ++PODQ.run;
+    PODQ.id = id;
+    PODQ.title = it.title;
+    renderPlayer();
+    podFeed(p.key).then((d) => {
+      if (run !== PODQ.run) return; // cancelled, or another one asked for since
+      PODQ.id = '';
+      const i = epFor(d, it, p);
+      if (i < 0) { renderPlayer(); resSheet(id); toast('Pick the episode to play from the list.'); return; }
+      podStart(it, d, i);
+      renderPlayer();
+      render();
+    }, (e) => {
+      if (run !== PODQ.run) return;
+      PODQ.id = '';
+      PODF.err[p.key] = podErrText(e);
+      renderPlayer();
+      toast(`Could not reach ${esc((showOf(p.key) || {}).name || 'the podcast')}. ${esc(podErrText(e))} <button class="linkish" data-act="res-open" data-id="${esc(id)}">Open the episode page</button>`, 9000);
+    });
+  }
+  // The player's buttons. In the app the phone does the work and answers with its new state.
+  function podCmd(cmd, arg) {
+    if (canPod()) {
+      try {
+        if (cmd === 'toggle') { if (POD.state === 'playing' || POD.state === 'loading') APP.podPause(); else APP.podResume(); }
+        else if (cmd === 'skip') APP.podSkip(arg);
+        else if (cmd === 'seek') APP.podSeek(arg);
+        else if (cmd === 'rate') APP.podRate(arg);
+        else if (cmd === 'stop') APP.podStop();
+      } catch (e) { /* the phone's next state puts the bar right */ }
+      if (cmd === 'rate') { POD.rate = arg; renderPlayer(); }
+      return;
+    }
+    const a = podAudio;
+    if (!a) { if (cmd === 'stop' && POD.state !== 'idle') podState({ state: 'idle' }); return; }
+    try {
+      if (cmd === 'toggle') { if (a.paused) { const pr = a.play(); if (pr && pr.catch) pr.catch(() => {}); } else a.pause(); }
+      else if (cmd === 'skip') a.currentTime = Math.max(0, (a.currentTime || 0) + arg);
+      else if (cmd === 'seek') a.currentTime = Math.max(0, arg / 1000);
+      else if (cmd === 'rate') { a.playbackRate = arg; POD.rate = arg; }
+      else if (cmd === 'stop') { podAudio = null; a.pause(); a.removeAttribute('src'); podState({ state: 'idle', pos: POD.pos, dur: POD.dur }); return; }
+    } catch (e) { /* the browser said no */ }
+    webTell(true);
+  }
+  // The browser's own player, for the page outside the app.
+  function webPlay(go) {
+    if (typeof window.Audio !== 'function') return false;
+    if (podAudio) { try { podAudio.pause(); } catch (e) { /* already stopped */ } }
+    const a = new window.Audio();
+    podAudio = a;
+    const at = go.at != null ? Number(go.at) : 0;
+    Object.assign(POD, { id: go.id, url: go.url, title: go.title, show: go.show, page: go.page, pos: at * 1000, dur: (go.dur || 0) * 1000, resumed: false, wait: true });
+    const tell = () => { if (podAudio === a) webTell(); };
+    a.addEventListener('loadedmetadata', () => { if (podAudio !== a) return; if (at > 0) { try { a.currentTime = at; } catch (e) { /* not seekable */ } } tell(); });
+    ['play', 'pause', 'playing', 'waiting', 'ratechange', 'seeked'].forEach((ev) => a.addEventListener(ev, tell));
+    a.addEventListener('timeupdate', () => { if (podAudio === a && !POD.drag) webTell(true); });
+    a.addEventListener('ended', () => { if (podAudio !== a) return; podAudio = null; podState({ state: 'idle', done: true, pos: POD.dur, dur: POD.dur }); });
+    a.addEventListener('error', () => { if (podAudio !== a) return; podAudio = null; podState({ state: 'idle', error: 'The episode could not be played here.', pos: POD.pos, dur: POD.dur }); });
+    a.preload = 'auto';
+    a.src = go.url;
+    a.playbackRate = POD.rate || 1;
+    podState({ state: 'loading', id: go.id, url: go.url, title: go.title, show: go.show, page: go.page, pos: at * 1000, dur: (go.dur || 0) * 1000, rate: POD.rate, wait: true }, true);
+    const pr = a.play();
+    if (pr && pr.catch) pr.catch(() => { if (podAudio === a && a.paused) webTell(); });
+    return true;
+  }
+  function webTell(quiet) {
+    const a = podAudio;
+    if (!a) return;
+    const dur = isFinite(a.duration) && a.duration > 0 ? a.duration * 1000 : POD.dur;
+    podState({ state: a.paused ? (a.readyState < 2 && !a.played.length ? 'loading' : 'paused') : 'playing', id: POD.id, url: POD.url, title: POD.title, show: POD.show, page: POD.page, pos: (a.currentTime || 0) * 1000, dur, rate: a.playbackRate || 1, wait: !a.paused && a.readyState < 3 }, quiet);
+  }
+  // What is playing now: from the phone on every change (and once a second while it plays), or from the browser above.
+  function podState(st, quiet) {
+    if (!st || typeof st !== 'object') return;
+    const was = POD.state;
+    const wasUrl = POD.url;
+    POD.state = ['playing', 'paused', 'loading'].includes(st.state) ? st.state : 'idle';
+    ['id', 'url', 'title', 'show', 'page'].forEach((k) => { if (typeof st[k] === 'string') POD[k] = st[k]; });
+    POD.pos = Math.max(0, Number(st.pos) || 0);
+    POD.dur = Math.max(0, Number(st.dur) || 0);
+    if (Number(st.rate) > 0) POD.rate = clamp(Number(st.rate), 0.5, 2.5);
+    POD.wait = !!st.wait;
+    POD.resumed = !!st.resumed && POD.state !== 'idle';
+    if (POD.state !== 'idle' && PODQ.id === POD.id) PODQ.id = '';
+    renderPlayer();
+    if (was !== POD.state || wasUrl !== POD.url) podPanelRefresh();
+    if (quiet) return;
+    if (was !== 'idle' && POD.state === 'idle') {
+      if (st.error) toast(`${esc(st.error)}${/^https:\/\//i.test(POD.page) ? ` <button class="linkish" data-act="open-url" data-url="${esc(POD.page)}" data-title="${esc(POD.title)}">Open the episode page</button>` : ''}`, 9000);
+      else if (st.done) podFinished();
+    } else if (was === 'idle' && POD.state !== 'idle' && POD.resumed && POD.pos > 0) {
+      toast(`Carrying on from ${podClock(POD.pos)}. <button class="linkish" data-act="pod-restart">Start again</button>`, 6000);
+    }
+  }
+  function podFinished() {
+    const it = findRes(POD.id);
+    if (it) {
+      const r = resRec(it.id);
+      const heard = (Array.isArray(r.heard) ? r.heard : []).filter((u) => u !== POD.url);
+      heard.push(POD.url);
+      r.heard = heard.slice(-40);
+      commit();
+      render();
+    }
+    toast(`<b>Finished.</b> That was the end of “${esc(POD.title)}”.${it && !resOf(it.id).done ? ` <button class="linkish" data-act="res-done" data-id="${esc(it.id)}">Did it stick?</button>` : ''}`, 9000);
+  }
+  function podSync() {
+    if (!canPod() || typeof APP.podStatus !== 'function') return;
+    try { podState(JSON.parse(APP.podStatus()), true); } catch (e) { /* the bar stays as it is */ }
+  }
+  // The bar above the tabs while an episode plays. Rebuilt when what it shows changes; the time is painted every second.
+  function renderPodBar(el) {
+    document.body.classList.add('listening');
+    el.hidden = false;
+    const finding = POD.state === 'idle';
+    const sig = finding ? `q|${PODQ.id}` : [POD.state, POD.id, POD.url, POD.title, POD.wait, POD.rate, POD.resumed, POD.dur > 0].join('|');
+    if (el.dataset.sig === sig) { paintPod(); return; }
+    el.dataset.sig = sig;
+    if (finding) {
+      el.innerHTML = `<div class="row" style="gap:8px"><span class="ptitle grow">${ic('head', 13)} Finding “${esc(PODQ.title)}”…</span><button class="linkish" type="button" data-act="pod-cancel">Cancel</button></div>`;
+    } else {
+      const playing = POD.state === 'playing' || POD.state === 'loading';
+      const pb = (act, label, inner) => `<button type="button" data-act="${act}" aria-label="${label}" title="${label}">${inner}</button>`;
+      el.innerHTML = `<div class="row" style="gap:8px"><button type="button" class="ptitle grow" data-act="pod-sheet" aria-label="${esc(POD.title)}: show the episode">${ic('head', 13)} ${esc(POD.title)}</button>${POD.resumed ? '<button class="linkish" type="button" data-act="pod-restart">Start again</button>' : ''}<span class="pcount num" id="pod-time"></span></div>
+        <input type="range" class="pseek" id="pod-seek" min="0" max="1" step="1" value="0" aria-label="Where you are in the episode"${POD.dur ? '' : ' disabled'}>
+        <div class="pbtns">${pb('pod-back', 'Back 15 seconds', `${ic('prev', 15)}<span class="num">15</span>`)}${pb('pod-toggle', playing ? 'Pause' : 'Play', ic(playing ? 'pause' : 'play', 17))}${pb('pod-fwd', 'Forward 30 seconds', `<span class="num">30</span>${ic('next', 15)}`)}${pb('pod-rate', `Speed, now ${rateLabel(POD.rate)}. Tap to change`, `<span class="num">${rateLabel(POD.rate)}</span>`)}${pb('pod-stop', 'Stop the episode', ic('stop', 17))}</div>`;
+      paintPod();
+    }
+    document.body.style.setProperty('--player-h', `${el.offsetHeight}px`);
+  }
+  function paintPod() {
+    const t = $('#pod-time');
+    if (t) t.textContent = POD.wait && POD.state !== 'paused' && !POD.pos ? 'Loading…' : `${podClock(POD.pos)}${POD.dur ? ' / ' + podClock(POD.dur) : ''}`;
+    const r = $('#pod-seek');
+    if (r && !POD.drag) { r.max = String(Math.max(1, Math.round(POD.dur / 1000))); r.value = String(Math.round(POD.pos / 1000)); }
+  }
+  // The episode, its place and the show's other episodes, inside a podcast's sheet.
+  function podMeta(e, at, heard) {
+    const bits = [];
+    if (e.d) bits.push(new Date(e.d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }));
+    if (e.s) bits.push(`${Math.max(1, Math.round(e.s / 60))} min`);
+    if (at) bits.push(`stopped at ${podClock(at)}`);
+    else if (heard) bits.push('heard');
+    return esc(bits.join(' · '));
+  }
+  function podPanel(it) {
+    const p = podOf(it);
+    if (!p) return '';
+    if (!podReady()) return `<div class="podcard"><div class="small">${ic('head', 14)} Playing podcasts inside the app, with the screen off, needs the newest app. ${GET_APP}</div></div>`;
+    if (p.direct) return `<button class="btn block" data-act="pod-go" data-id="${esc(it.id)}">${ic('play', 16)} Play it here</button>`;
+    const sh = showOf(p.key);
+    const c = PODF.cache[p.key];
+    if (!c) {
+      if (PODF.err[p.key]) return `<div class="podcard"><div class="small">Could not reach ${esc(sh.name)}. ${esc(PODF.err[p.key])}</div><div class="btnrow"><button class="btn sm" data-act="pod-retry" data-id="${esc(it.id)}">${ic('reload', 14)} Try again</button></div></div>`;
+      podLoadFor(it.id, p.key);
+      return `<div class="podcard"><div class="small muted">${ic('head', 14)} Finding the episodes of ${esc(sh.name)}…</div></div>`;
+    }
+    const d = c.data;
+    const i = epFor(d, it, p);
+    const places = podPlaces();
+    const heard = Array.isArray(resOf(it.id).heard) ? resOf(it.id).heard : [];
+    let html = '';
+    if (i >= 0) {
+      const e = d.eps[i];
+      const at = Number(places[e.u]) || 0;
+      const on = POD.url === e.u && POD.state !== 'idle';
+      const r = resOf(it.id);
+      const label = !p.whole ? 'This episode' : r.ep === e.u && !heard.includes(e.u) ? 'Where you got to' : 'Newest for you';
+      html += `<div class="podcard"><div class="label">${label}</div><b>${esc(e.t)}</b><div class="small muted">${podMeta(e, on ? 0 : at, heard.includes(e.u))}</div>${e.n ? `<div class="small">${esc(e.n)}</div>` : ''}
+        <div class="btnrow">${on ? `<button class="btn sm" data-act="pod-toggle">${ic(POD.state === 'paused' ? 'play' : 'pause', 14)} ${POD.state === 'paused' ? 'Carry on' : 'Pause'}</button><button class="btn sm ghost" data-act="pod-stop">Stop</button>`
+          : `<button class="btn sm" data-act="pod-ep" data-id="${esc(it.id)}" data-v="${i}">${ic('play', 14)} ${at ? `Carry on from ${podClock(at)}` : 'Play it here'}</button>${at ? `<button class="btn sm ghost" data-act="pod-ep" data-id="${esc(it.id)}" data-v="${i}" data-t="start">From the start</button>` : ''}`}</div></div>`;
+    } else if (!p.whole) {
+      html += `<div class="small muted">This exact episode is not in the list from ${esc(d.title || sh.name)} right now. Pick one below, or open the episode's page.</div>`;
+    }
+    const n = sub.podMore === it.id ? 40 : 6;
+    const list = d.eps.slice(0, n + (i >= 0 && i < n ? 1 : 0)).map((e, j) => ({ e, j })).filter((x) => x.j !== i);
+    if (list.length) html += `<div class="label">${p.whole ? 'Other episodes' : `More from ${esc(d.title || sh.name)}`}</div><div class="list">${list.map(({ e, j }) => `<button class="res li tap" data-act="pod-ep" data-id="${esc(it.id)}" data-v="${j}"><span class="ftype k-Listen">${ic(POD.url === e.u && POD.state === 'playing' ? 'pause' : 'play', 16)}</span><span class="restext"><b>${esc(e.t)}</b><span class="small muted">${podMeta(e, Number(places[e.u]) || 0, heard.includes(e.u))}</span></span></button>`).join('')}</div>${d.eps.length > list.length + (i >= 0 ? 1 : 0) && sub.podMore !== it.id ? `<button class="linkish" data-act="pod-more" data-id="${esc(it.id)}">Show more episodes</button>` : ''}`;
+    if (d.stale) html += '<div class="small muted">This is the list from last time: the show could not be reached just now.</div>';
+    return html;
+  }
+  function podLoadFor(id, key) {
+    podFeed(key).then(() => { delete PODF.err[key]; }, (e) => { PODF.err[key] = podErrText(e); }).then(() => podPanelRefresh(id));
+  }
+  // Fills in an open podcast sheet again (when the list arrives, or something starts or stops).
+  function podPanelRefresh(id) {
+    document.querySelectorAll('#layer [data-podpanel]').forEach((box) => {
+      if (id && box.dataset.podpanel !== id) return;
+      const it = findRes(box.dataset.podpanel);
+      box.innerHTML = it ? podPanel(it) : '';
+    });
+  }
+  setInterval(() => {
+    if (POD.state !== 'playing' || document.hidden) return;
+    if (canPod()) podSync();
+    else if (podAudio) webTell(true);
+  }, 1000);
+  document.addEventListener('input', (e) => {
+    if (e.target.id !== 'pod-seek') return;
+    POD.drag = true;
+    const t = $('#pod-time');
+    if (t) t.textContent = `${podClock(Number(e.target.value) * 1000)}${POD.dur ? ' / ' + podClock(POD.dur) : ''}`;
+  });
+  document.addEventListener('change', (e) => {
+    if (e.target.id !== 'pod-seek') return;
+    POD.drag = false;
+    POD.pos = Number(e.target.value) * 1000;
+    podCmd('seek', POD.pos);
+    paintPod();
+  });
 
   /* ---------- Speak: speech to text in any writing box ----------
      Every writing box gets a Speak and a Listen button under it. In the app the phone's own speech
@@ -4242,6 +4643,28 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
         commit(); closeSheet(true); render();
         break;
       }
+      // Podcasts
+      case 'pod-go': podQuick(id); break;
+      case 'pod-ep': {
+        const it = findRes(id);
+        const p = podOf(it);
+        const c = p && PODF.cache[p.key];
+        if (!it || !c) break;
+        if (APP && !canPod()) { toast(`Playing podcasts inside the app needs the newest app. ${GET_APP}`, 8000); break; }
+        PODQ.run++; PODQ.id = '';
+        if (podStart(it, c.data, Number(el.dataset.v) || 0, el.dataset.t === 'start' ? 0 : undefined)) { podPanelRefresh(id); render(); }
+        break;
+      }
+      case 'pod-retry': { const p = podOf(findRes(id)); if (!p) break; delete PODF.err[p.key]; delete PODF.cache[p.key]; podPanelRefresh(id); break; }
+      case 'pod-more': sub.podMore = id; podPanelRefresh(id); break;
+      case 'pod-toggle': podCmd('toggle'); break;
+      case 'pod-back': podCmd('skip', -15); break;
+      case 'pod-fwd': podCmd('skip', 30); break;
+      case 'pod-stop': podCmd('stop'); break;
+      case 'pod-restart': podCmd('seek', 0); break;
+      case 'pod-rate': { const at = RATES.reduce((b, r, i) => (Math.abs(r - POD.rate) < Math.abs(RATES[b] - POD.rate) ? i : b), 0); podCmd('rate', RATES[(at + 1) % RATES.length]); break; }
+      case 'pod-cancel': PODQ.run++; PODQ.id = ''; renderPlayer(); break;
+      case 'pod-sheet': if (findRes(POD.id)) resSheet(POD.id); else toast(esc(POD.title)); break;
       // Listen and Speak
       case 'pl-toggle': listenCmd('toggle'); break;
       case 'pl-back': listenCmd('skip', -1); break;
@@ -4508,8 +4931,11 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     syncAlarms();
     if (!loadLocal()) saveLocal();
     window.__capgownGo = (v) => { if (ROUTE_NAMES.includes(routeOf(v))) go(v); };
-    window.__capgownResume = () => { lastDay = todayKey(); heal(); syncAlarms(); render(); takeSavedLinks(); listenSync(); setTimeout(liveWaiting, 1500); };
+    window.__capgownResume = () => { lastDay = todayKey(); heal(); syncAlarms(); render(); takeSavedLinks(); listenSync(); podSync(); setTimeout(liveWaiting, 1500); };
     window.__capgownListen = (st) => listenState(st);
+    window.__capgownPod = (st) => podState(st);
+    window.__capgownPodFeed = (req, d) => { const f = PODF.cb[String(req)]; if (f) f(d); };
+    podSync();
     window.__capgownDictate = (kind, text) => dictEvent(String(kind || ''), String(text || ''));
     listenSync();
     window.__capgownBack = () => {
@@ -4551,7 +4977,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); });
 
   // Exposed for testing only
-  window.__planner = { deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
+  window.__planner = { deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
 })();
 
 </script>

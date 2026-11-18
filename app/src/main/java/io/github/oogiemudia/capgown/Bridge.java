@@ -251,6 +251,88 @@ public class Bridge {
         ReadAloud.stop();
     }
 
+    /* ---------- Podcasts: episodes play inside the app (see Podcast, PodcastService and PodFeed) ---------- */
+
+    /**
+     * Finds a show's episodes. req names the answer; json is {feeds: [feed addresses], apple: Apple Podcasts id,
+     * term: the show's name}. The answer arrives as window.__capgownPodFeed(req, {ok, title, image, feed, at, stale, error, eps}).
+     */
+    @JavascriptInterface
+    public void podFeed(String req, String json) {
+        final String name = req == null ? "" : req;
+        final java.util.List<String> feeds = new java.util.ArrayList<>();
+        String apple = "";
+        String term = "";
+        try {
+            JSONObject o = new JSONObject(json == null ? "{}" : json);
+            org.json.JSONArray a = o.optJSONArray("feeds");
+            if (a != null) for (int i = 0; i < a.length() && i < 6; i++) {
+                String f = a.optString(i, "").trim();
+                if (f.matches("(?i)https?://[^\\s]+")) feeds.add(f);
+            }
+            apple = o.optString("apple", "").replaceAll("[^0-9]", "");
+            term = o.optString("term", "").trim();
+        } catch (JSONException e) {
+            activity.podFeedResult(name, "{\"ok\":false,\"error\":\"bad request\"}");
+            return;
+        }
+        final String ap = apple;
+        final String tm = term.length() > 120 ? term.substring(0, 120) : term;
+        final java.io.File cache = activity.getCacheDir();
+        new Thread(() -> activity.podFeedResult(name, PodFeed.load(cache, feeds, ap, tm)), "podcast-feed").start();
+    }
+
+    /** Plays an episode: {id, url, title, show, image, page, at, dur}. at (seconds) is where to start; left out, it carries on from last time. */
+    @JavascriptInterface
+    public boolean podPlay(String json) {
+        return json != null && json.length() < 20_000 && Podcast.play(activity, json);
+    }
+
+    @JavascriptInterface
+    public void podPause() {
+        Podcast.pause();
+    }
+
+    @JavascriptInterface
+    public void podResume() {
+        Podcast.resume();
+    }
+
+    @JavascriptInterface
+    public void podStop() {
+        Podcast.stop();
+    }
+
+    /** Back or forward by seconds. */
+    @JavascriptInterface
+    public void podSkip(int seconds) {
+        Podcast.skip(seconds);
+    }
+
+    /** Goes to a place, in milliseconds from the start. */
+    @JavascriptInterface
+    public void podSeek(double ms) {
+        Podcast.seek((long) ms);
+    }
+
+    /** How fast the episode plays: 1 is normal. */
+    @JavascriptInterface
+    public void podRate(double rate) {
+        Podcast.setRate(rate);
+    }
+
+    /** JSON, as sent to window.__capgownPod: state (idle, loading, playing, paused), id, url, title, show, pos, dur, rate, done, resumed, wait, error. */
+    @JavascriptInterface
+    public String podStatus() {
+        return Podcast.status();
+    }
+
+    /** Episodes stopped part way through: {audio address: milliseconds}. */
+    @JavascriptInterface
+    public String podPlaces() {
+        return Podcast.places();
+    }
+
     /* ---------- Speak: speech to text (see Dictation) ---------- */
 
     /** Whether this phone has a speech recogniser. */

@@ -79,6 +79,12 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <!-- Keeps a podcast playing with the screen off, with its controls on the notification and lock screen -->
+        <service
+            android:name=".PodcastService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <receiver
             android:name=".AlarmReceiver"
             android:exported="false" />

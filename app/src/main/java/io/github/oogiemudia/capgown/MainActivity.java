@@ -34,7 +34,7 @@ import java.util.Map;
  * Shows the planner (bundled in the app) and links it to the alarms through the AndroidApp bridge.
  * The Chat tab's claude.ai view (ChatPane) sits in the same frame, on top of the planner.
  */
-public class MainActivity extends Activity implements ReadAloud.Listener {
+public class MainActivity extends Activity implements ReadAloud.Listener, Podcast.Listener {
 
     static final String HOST = "appassets.androidplatform.net";
     static final String START = "https://" + HOST + "/index.html";
@@ -77,6 +77,8 @@ public class MainActivity extends Activity implements ReadAloud.Listener {
         web.loadUrl(START + (view != null ? "#" + view : ""));
         ReadAloud.init(this);
         ReadAloud.addListener(this);
+        Podcast.init(this);
+        Podcast.addListener(this);
         handleIntent(getIntent());
         askForNotificationsOnce();
         Alarms.scheduleNext(this);
@@ -149,6 +151,18 @@ public class MainActivity extends Activity implements ReadAloud.Listener {
         if (loaded) js("window.__capgownListen && window.__capgownListen(" + json + ")");
     }
 
+    /* ---------- Podcasts: the page's player follows what Podcast is doing ---------- */
+
+    @Override
+    public void onPodState(String json) {
+        if (loaded) js("window.__capgownPod && window.__capgownPod(" + json + ")");
+    }
+
+    /** Episode lists come back here from PodFeed, off the main thread. */
+    void podFeedResult(String req, String json) {
+        if (loaded) js("window.__capgownPodFeed && window.__capgownPodFeed(" + JSONObject.quote(req) + "," + json + ")");
+    }
+
     /* ---------- Speak: speech to text for the page's writing boxes ---------- */
 
     void startDictation() {
@@ -164,6 +178,7 @@ public class MainActivity extends Activity implements ReadAloud.Listener {
     private void beginDictation() {
         if (dictation == null) dictation = new Dictation(this, this::tellDictation);
         ReadAloud.pause(); // so the phone does not write down its own voice
+        Podcast.pause(); // or the podcast
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         dictation.start();
     }
@@ -184,6 +199,7 @@ public class MainActivity extends Activity implements ReadAloud.Listener {
     @Override
     protected void onDestroy() {
         ReadAloud.removeListener(this);
+        Podcast.removeListener(this);
         if (dictation != null) dictation.cancel();
         if (chat != null) chat.destroy();
         if (web != null) {
