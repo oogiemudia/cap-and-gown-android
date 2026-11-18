@@ -2,7 +2,7 @@
 // dyslexia-friendly font: nothing may run off the edge of the screen.
 const { chromium, open, overflow } = require('./lib');
 const { rich } = require('./seed');
-const ROUTES = ['home', 'plan', 'study', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice'];
+const ROUTES = ['home', 'plan', 'study', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice', 'coach'];
 const STABS = ['foryou', 'quiz', 'cards', 'mistakes', 'papers'];
 const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placements', 'records', 'pd'];
 (async () => {
@@ -20,6 +20,17 @@ const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placem
     for (const r of ROUTES) { await page.evaluate((x) => window.__planner.go(x), r); await check(r); }
     for (const t of STABS) { await page.evaluate((x) => { window.__planner.go('home'); window.__planner.sub.stab = x; window.__planner.go('study'); }, t); await check('study/' + t); }
     for (const p of PPAGES) { await page.evaluate((x) => { window.__planner.go('home'); window.__planner.sub.ppage = x; window.__planner.go('portfolio'); }, p); await check('portfolio/' + p); }
+    // the coach: its three tabs, a workbook question at each step (the longest wording, the ones with headings), and its help sheet
+    for (const p of ['aw', 'ksb', 'cp']) { await page.evaluate((x) => { const P = window.__planner; P.go('home'); P.sub.cq = null; P.sub.cpath = x; P.go('coach'); }, p); await check('coach/' + p); }
+    for (const [q, stp] of [['4.3', 'learn'], ['2.1', 'check'], ['2.1', 'plan'], ['8.1', 'plan'], ['5.2', 'write']]) {
+      await page.evaluate(([id, s]) => {
+        const P = window.__planner; P.go('home'); P.sub.cpath = 'aw'; P.sub.cq = id; P.sub.cs = s; P.sub.cn = 9; P.go('coach');
+        if (s === 'check') for (let i = 0; i < 2; i++) { const b = document.querySelector(`#screen [data-act="co-ans"][data-i="${i}"][data-o="0"]`); if (b) b.click(); }
+      }, [q, stp]);
+      await check(`coach ${q} ${stp}`);
+    }
+    await page.evaluate(() => { const P = window.__planner; P.sub.cq = null; P.go('coach'); document.querySelector('#screen [data-act="co-how"]').click(); });
+    await check('coach help sheet');
     // the rows that only show after a tap: change a date, delete, a step's sheet, a library item, the add sheet, updates
     const taps = [['deadlines', '[data-act="edit-due"]'], ['deadlines', '[data-act="ask-delete"]'], ['home', '[data-act="step"]'], ['plan', '[data-act="step"]'], ['library', '[data-act="res"]'], ['library', '[data-act="lib-add"]'], ['study', '[data-act="fy-why"]'], ['settings', '[data-act="live-revert-ask"]'], ['settings', '[data-act="ask-reset"]'], ['goals', '[data-act]'], ['portfolio', '[data-act="ev-new"]']];
     for (const [r, sel] of taps) {
