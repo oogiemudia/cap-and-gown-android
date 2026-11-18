@@ -12,13 +12,16 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <!-- Only asked for when you tap the microphone in the Chat tab -->
+    <!-- Only asked for when you tap the microphone: Speak (speech to text) or the Chat tab -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!-- Lets the app find the phone's text-to-speech engine for read aloud (Android 11 and later) -->
+    <!-- Lets the app find the phone's voice for Listen and its speech recogniser for Speak (Android 11 and later) -->
     <queries>
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
     </queries>
 
@@ -39,6 +42,12 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- "Share" a web page or some words from another app, and Cap and Gown reads it aloud -->
+            <intent-filter android:label="Listen in Cap and Gown">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
 
@@ -61,6 +70,12 @@
 
         <service
             android:name=".AlarmService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <!-- Keeps Listen reading with the screen off, with Pause and Stop on its notification -->
+        <service
+            android:name=".ReadAloudService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 

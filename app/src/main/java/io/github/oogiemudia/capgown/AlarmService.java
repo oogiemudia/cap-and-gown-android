@@ -119,6 +119,7 @@ public class AlarmService extends Service {
 
     private void startRinging() {
         stopRinging();
+        ReadAloud.pause(); // if the app is reading to you, the alarm is heard on its own
         AudioAttributes attrs = new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_ALARM)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)

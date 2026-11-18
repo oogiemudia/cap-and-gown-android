@@ -322,6 +322,272 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     await ctx.close();
   }
 
+  // ---------- I. Listen and Speak ----------
+  const tick = (page) => page.evaluate(() => new Promise((r) => setTimeout(r, 30)));
+  const calls = (page, name) => page.evaluate((n) => window.__calls.filter((c) => c[0] === n).map((c) => c.slice(1)), name);
+  const live = (page, box) => page.evaluate((b) => { const ta = document.querySelector(b); const bar = ta && ta.nextElementSibling; const l = bar && bar.querySelector('.vlive'); return l ? l.textContent : null; }, box);
+  const speakBtn = (box) => `${box} + .vbar [data-act="dictate"]`;
+  const voiceState = () => { const st = JSON.parse(JSON.stringify(rich)); st.library.push({ id: 'u9', type: 'Note', kind: 'Note', title: 'My thoughts on feedback', link: '', c: 'pgce', t: 'afl', meta: 'Yours', note: 'Feedback works when learners act on it.', text: '' }); return st; };
+  {
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-18T19:30:00', state: voiceState(), width: 320 });
+    // the screen and its tile
+    await page.evaluate(() => window.__planner.go('more'));
+    await click(page, '#screen [data-go="voice"]');
+    ok('voice: More has a Listen & speak tile that opens the screen', await page.evaluate(() => window.__planner.route === 'voice' && /Listen/.test(document.querySelector('#appbar h2').textContent) && !!document.querySelector('#v-pad')));
+    ok('voice: no "install the newest app" notice in the new app', await page.evaluate(() => !document.querySelector('#screen [data-act="get-app"]')));
+
+    // Listen to a lesson
+    await page.evaluate(() => { window.__planner.sub.topic = 'afl'; window.__planner.go('learn'); });
+    await click(page, '#screen [data-act="listen-lesson"]');
+    await tick(page);
+    const lesson = await page.evaluate(() => ({ text: window.__lastListen, want: window.__planner.lessonText('afl'), name: window.__planner.TOPICS.afl.name, sum: window.__planner.LESSONS.afl.sum, steps: window.__planner.LESSONS.afl.steps.length }));
+    ok('listen: a lesson is read in full (name, summary and every step)', lesson.text === lesson.want && lesson.text.startsWith(lesson.name) && lesson.text.includes(lesson.sum) && lesson.text.split('\n').length === lesson.steps + 2, lesson);
+    ok('listen: the phone is asked to read it under the topic name', (await calls(page, 'listenStart')).some((c) => c[0] === lesson.name));
+    const bar = () => page.evaluate(() => { const p = document.querySelector('#player'); const fab = document.querySelector('#fab').getBoundingClientRect(); const pr = p.getBoundingClientRect(); return { hidden: p.hidden, on: document.body.classList.contains('listening'), text: p.textContent, toggle: (p.querySelector('[data-act="pl-toggle"]') || { getAttribute: () => '' }).getAttribute('aria-label'), fabClear: fab.bottom <= pr.top + 1, navBelow: document.querySelector('#nav').getBoundingClientRect().top >= pr.bottom - 1 }; });
+    let b = await bar();
+    ok('listen: the player bar shows, with the title and the place', !b.hidden && b.on && b.text.includes(lesson.name) && /1 of \d+/.test(b.text) && b.toggle === 'Pause', b);
+    ok('listen: Ask tutor sits above the bar and the tabs below it', b.fabClear && b.navBelow, b);
+    ok('listen: nothing off the side with the bar showing (320px)', (await overflow(page)).length === 0, await overflow(page));
+    await click(page, '#player [data-act="pl-toggle"]'); await tick(page);
+    b = await bar();
+    ok('listen: Pause pauses and the button becomes Play', (await calls(page, 'listenPause')).length === 1 && b.toggle === 'Play' && !b.hidden, b);
+    await click(page, '#player [data-act="pl-toggle"]'); await tick(page);
+    ok('listen: Play carries on', (await calls(page, 'listenResume')).length === 1 && (await bar()).toggle === 'Pause');
+    await click(page, '#player [data-act="pl-next"]'); await tick(page);
+    ok('listen: Forward moves on a part', /2 of \d+/.test((await bar()).text), (await bar()).text);
+    await click(page, '#player [data-act="pl-back"]'); await tick(page);
+    ok('listen: Back goes back a part', /1 of \d+/.test((await bar()).text));
+    await click(page, '#player [data-act="pl-rate"]'); await tick(page);
+    ok('listen: the speed button steps up and is remembered', (await calls(page, 'listenRate')).some((c) => c[0] === 1.25) && /1\.25×/.test((await bar()).text) && await page.evaluate(() => window.__planner.state.settings.listenRate === 1.25));
+    await page.evaluate(() => window.__listenEnd(true)); await tick(page);
+    ok('listen: at the end the bar goes and it says Finished', (await bar()).hidden && !(await bar()).on && await page.evaluate(() => /Finished/.test(document.querySelector('#toast').textContent)));
+    await click(page, '#screen [data-act="listen-lesson"]'); await tick(page);
+    await page.evaluate(() => window.__listenEnd(false, 'The phone voice stopped.')); await tick(page);
+    ok('listen: a problem with the voice is shown', await page.evaluate(() => /The phone voice stopped/.test(document.querySelector('#toast').textContent)));
+    await click(page, '#screen [data-act="listen-lesson"]'); await tick(page);
+    await click(page, '#player [data-act="pl-stop"]'); await tick(page);
+    ok('listen: Stop stops and hides the bar', (await bar()).hidden && (await calls(page, 'listenStop')).length === 1);
+    // the Audio summary button
+    await page.evaluate(() => { window.__calls.length = 0; window.__planner.sub.topic = 'vacsr'; window.__planner.sub.fmt = 'Audio summary'; window.__planner.go('learn'); });
+    await click(page, '#screen [data-act="speak"]'); await tick(page);
+    ok('listen: Audio summary reads the summary', await page.evaluate(() => window.__lastListen === window.__planner.LESSONS.vacsr.sum));
+    await click(page, '#player [data-act="pl-stop"]'); await tick(page);
+
+    // the Library: web pages to read can be listened to; videos, PDFs and sign-in books cannot
+    const canHear = (id) => page.evaluate((x) => { const P = window.__planner; const c = document.querySelector('[data-act="close-sheet"]'); if (c) c.click(); P.sub.lf = 'All'; P.sub.q = ''; P.sub.lt = ''; P.go('library'); const row = document.querySelector(`#screen [data-act="res"][data-id="${x}"]`); if (!row) return 'no row'; row.click(); return !!document.querySelector('#layer [data-act="res-listen"]'); }, id);
+    const cat2 = await page.evaluate(() => window.__planner.catalogue().map((x) => ({ id: x.id, kind: x.kind, link: x.link || '', lib: x.lib, post: x.post, w: x.w, src: x.src })));
+    const read = cat2.find((x) => x.src === 'online' && x.kind === 'Read' && !/\.pdf/i.test(x.link) && !x.lib && !x.post && !x.w);
+    const watch = cat2.find((x) => x.kind === 'Watch' && x.link);
+    ok('listen: a web page to read has Listen', await canHear(read.id) === true, read);
+    await page.evaluate(() => { window.__calls.length = 0; });
+    await click(page, '#layer [data-act="res-listen"]');
+    ok('listen: it opens in the reader, reading aloud', (await calls(page, 'listenTo')).some((c) => c[0] === read.link) && await page.evaluate((id) => (window.__planner.state.res[id] || {}).n === 1, read.id));
+    ok('listen: a video has no Listen', await canHear(watch.id) === false, watch);
+    ok('listen: a PDF has no Listen', await canHear('on38') === false);
+    ok('listen: a college library book has no Listen', await canHear('pd01') === false);
+    ok('listen: my own note has Listen', await canHear('u9') === true);
+    await click(page, '#layer [data-act="res-listen"]'); await tick(page);
+    ok('listen: my own note is read', await page.evaluate(() => /Feedback works when learners act on it/.test(window.__lastListen)));
+    await page.evaluate(() => window.AndroidApp.listenStop()); await tick(page);
+
+    // Speak: every writing box has the bar
+    await page.evaluate(() => { window.__planner.sub.ppage = 'obs'; window.__planner.go('portfolio'); });
+    ok('speak: the observations page says what to do straight after one', await page.evaluate(() => /Just been observed\?/.test(document.querySelector('#screen').textContent)));
+    await click(page, '#screen [data-act="obs"][data-id="2"]');
+    ok('speak: every box on the observation has Speak and Listen under it', await page.evaluate(() => { const t = Array.from(document.querySelectorAll('#layer textarea')); return t.length === 3 && t[0].id === 'o-spoken' && t.every((x) => x.nextElementSibling && x.nextElementSibling.classList.contains('vbar') && x.nextElementSibling.querySelector('[data-act="dictate"]') && x.nextElementSibling.querySelector('[data-act="hear"]')); }));
+    ok('speak: the observation sheet fits (320px)', (await overflow(page)).length === 0, await overflow(page));
+    await page.evaluate(() => { window.__calls.length = 0; });
+    await click(page, speakBtn('#o-spoken')); await tick(page);
+    ok('speak: tapping Speak starts the microphone and says it is listening', (await calls(page, 'dictateStart')).length === 1 && /Listening/.test(await live(page, '#o-spoken')) && await page.evaluate((s) => { const x = document.querySelector(s); return x.classList.contains('on') && /Stop/.test(x.textContent) && x.getAttribute('aria-pressed') === 'true'; }, speakBtn('#o-spoken')));
+    await page.evaluate(() => window.__say('i thought the starter', 'partial'));
+    ok('speak: words show while they are still being heard', /i thought the starter/.test(await live(page, '#o-spoken')));
+    await page.evaluate(() => window.__say('I thought the starter went well full stop the learners were engaged'));
+    await page.evaluate(() => window.__say('new paragraph'));
+    await page.evaluate(() => window.__say('next time I would shorten the plenary'));
+    const said = await page.evaluate(() => document.querySelector('#o-spoken').value);
+    ok('speak: speech becomes text with the date, sentences and paragraphs', said === '[Wed 18 Nov, 19:30]\nI thought the starter went well. The learners were engaged.\n\nNext time I would shorten the plenary.', said);
+    await click(page, speakBtn('#o-spoken')); await tick(page);
+    ok('speak: Stop stops, and the words are kept with the observation', (await calls(page, 'dictateStop')).length === 1 && /saved/.test(await live(page, '#o-spoken')) && await page.evaluate((v) => { const b = document.querySelector('#o-spoken + .vbar [data-act="dictate"]'); return !b.classList.contains('on') && /Speak/.test(b.textContent) && window.__planner.state.portfolio.obsInfo['2'].spoken === v && JSON.parse(window.AndroidApp.loadState()).portfolio.obsInfo['2'].spoken === v; }, said));
+    // a second go later the same day adds to it under a new time
+    await page.evaluate(() => { window.__NOW = '2026-11-18T21:05:00'; });
+    await click(page, speakBtn('#o-spoken')); await tick(page);
+    await page.evaluate(() => window.__say('one more thought about the questioning'));
+    await page.evaluate(() => window.__dictateEnd('quiet')); await tick(page);
+    const said2 = await page.evaluate(() => document.querySelector('#o-spoken').value);
+    ok('speak: a later go adds under a new time, and a quiet stop says so', said2 === said + '\n\n[Wed 18 Nov, 21:05]\nOne more thought about the questioning.' && /went quiet/.test(await live(page, '#o-spoken')), [said2, await live(page, '#o-spoken')]);
+    await page.evaluate(() => { window.__NOW = '2026-11-18T19:30:00'; });
+
+    // build the reflection from the spoken notes
+    await click(page, '#layer [data-act="obs-use-spoken"]');
+    const refl = await page.evaluate(() => ({ v: document.querySelector('#o-refl').value, saved: window.__planner.state.portfolio.obsInfo['2'].refl, wc: document.querySelector('#o-wc').textContent }));
+    ok('reflection: spoken notes become the first draft, without the times', refl.v === 'I thought the starter went well. The learners were engaged.\n\nNext time I would shorten the plenary.\n\nOne more thought about the questioning.' && refl.saved === refl.v && /^23 words/.test(refl.wc), refl);
+    await click(page, '#layer [data-act="obs-use-spoken"]');
+    ok('reflection: tapping again does not add them twice', await page.evaluate((v) => document.querySelector('#o-refl').value === v && /already in the reflection/.test(document.querySelector('#toast').textContent), refl.v));
+    await page.evaluate(() => { const t = document.querySelector('#o-targets'); t.value = 'Stretch the higher learners'; t.dispatchEvent(new Event('input', { bubbles: true })); window.__calls.length = 0; });
+    await click(page, '#layer [data-act="ask-shape"]');
+    await page.waitForTimeout(400);
+    const prompt = await page.evaluate(() => window.__lastInsert || '');
+    ok('reflection: the tutor is given my spoken words and the targets, and told not to write it for me', /What I said straight after the observation/.test(prompt) && !/\[Wed 18 Nov/.test(prompt) && /I thought the starter went well\. The learners were engaged\./.test(prompt) && /Stretch the higher learners/.test(prompt) && /My reflection so far:/.test(prompt) && /Do not write the reflection for me\.$/.test(prompt), prompt);
+    const whole = await page.evaluate(() => window.__planner.state.portfolio.obsInfo['2']);
+    await page.evaluate(() => { const c = document.querySelector('[data-act="close-tutor"]'); if (c) c.click(); window.__planner.sub.ppage = 'obs'; window.__planner.go('portfolio'); });
+    ok('reflection: the feedback targets are saved beside the spoken notes', whole.targets === 'Stretch the higher learners' && whole.spoken === said2, whole);
+
+    // hear it back; listening pauses while speaking; switching box; a box that closes
+    await click(page, '#screen [data-act="obs"][data-id="2"]');
+    await page.evaluate(() => { window.__calls.length = 0; });
+    await click(page, '#o-refl + .vbar [data-act="hear"]'); await tick(page);
+    ok('listen: Listen under a box reads that box back', (await calls(page, 'listenStart')).some((c) => c[0] === 'Your reflection' && c[1] === refl.v));
+    await click(page, speakBtn('#o-spoken')); await tick(page);
+    ok('speak: reading pauses while the microphone is on', (await calls(page, 'listenPause')).length === 1 && await page.evaluate(() => window.__planner.DICT.on && window.__planner.LS.state === 'paused'));
+    await click(page, speakBtn('#o-targets')); await tick(page); await tick(page);
+    ok('speak: tapping Speak on another box moves the microphone there', await page.evaluate(() => window.__planner.DICT.on && window.__planner.DICT.sel === '#o-targets' && document.querySelector('#o-targets + .vbar [data-act="dictate"]').classList.contains('on') && !document.querySelector('#o-spoken + .vbar [data-act="dictate"]').classList.contains('on')) && (await calls(page, 'dictateStart')).length === 2);
+    await page.evaluate(() => window.__say('and use more open questions'));
+    ok('speak: words go into the box the microphone moved to', await page.evaluate(() => document.querySelector('#o-targets').value === 'Stretch the higher learners And use more open questions.' && window.__planner.state.portfolio.obsInfo['2'].targets === 'Stretch the higher learners And use more open questions.'), await page.evaluate(() => document.querySelector('#o-targets').value));
+    await click(page, '#layer [data-act="close-sheet"]'); await tick(page);
+    ok('speak: closing the sheet turns the microphone off', (await calls(page, 'dictateStop')).length === 2 && await page.evaluate(() => !window.__planner.DICT.on));
+    await page.evaluate(() => window.__say('some late words'));
+    ok('speak: words that arrive after the box has closed go to the notepad', await page.evaluate(() => window.__planner.state.voicePad === 'Some late words.'));
+    await page.evaluate(() => window.AndroidApp.listenStop()); await tick(page);
+
+    // the Listen & speak screen
+    await page.evaluate(() => { window.__calls.length = 0; window.__planner.go('voice'); });
+    ok('voice: the notepad shows what was kept', await page.evaluate(() => document.querySelector('#v-pad').value === 'Some late words.'));
+    ok('voice: the screen fits (320px)', (await overflow(page)).length === 0, await overflow(page));
+    await click(page, '#screen [data-act="v-rate"][data-id="1.5"]'); await tick(page);
+    ok('voice: reading speed is set and shown', (await calls(page, 'listenRate')).some((c) => c[0] === 1.5) && await page.evaluate(() => document.querySelector('[data-act="v-rate"][data-id="1.5"]').getAttribute('aria-pressed') === 'true' && document.querySelector('[data-act="v-rate"][data-id="1"]').getAttribute('aria-pressed') === 'false' && window.__planner.state.settings.listenRate === 1.5));
+    await page.evaluate(() => { const t = document.querySelector('#v-pad'); t.value = 'Typed by hand'; t.dispatchEvent(new Event('input', { bubbles: true })); });
+    ok('voice: typing in the notepad is saved', await page.evaluate(() => window.__planner.state.voicePad === 'Typed by hand'));
+    await click(page, '#screen [data-act="pad-ask"]'); await page.waitForTimeout(400);
+    ok('voice: the tutor is asked to tidy the notepad', await page.evaluate(() => /Typed by hand/.test((window.__calls.find((c) => c[0] === 'chatInsert') || [])[1] || '')));
+    await page.evaluate(() => { const c = document.querySelector('[data-act="close-tutor"]'); if (c) c.click(); });
+    await click(page, '#screen [data-act="pad-clear-ask"]');
+    await click(page, '#screen [data-act="pad-clear"]');
+    ok('voice: Clear asks first, then clears', await page.evaluate(() => window.__planner.state.voicePad === '' && document.querySelector('#v-pad').value === ''));
+    ok('voice: "Just been observed" offers the next observation without notes', await page.evaluate(() => document.querySelector('#v-obs').value === '1' && /has spoken notes/.test(document.querySelector('#v-obs option[value="2"]').textContent)));
+    await page.evaluate(() => { window.__calls.length = 0; document.querySelector('#v-obs').value = '3'; });
+    await click(page, '#screen [data-act="obs-speak"]'); await tick(page);
+    ok('voice: "Speak my reflection now" opens that observation with the microphone on', (await calls(page, 'dictateStart')).length === 1 && await page.evaluate(() => window.__planner.DICT.sel === '#o-spoken' && document.querySelector('#o-spoken').dataset.obs === '3'));
+    await page.evaluate(() => window.__say('observation three went fine'));
+    await page.evaluate(() => window.__capgownBack()); await tick(page);
+    ok('voice: the back button stops the microphone and keeps the words', await page.evaluate(() => !window.__planner.DICT.on && /Observation three went fine\.$/.test(window.__planner.state.portfolio.obsInfo['3'].spoken)));
+
+    // switching Listen or Speak off in Settings
+    await page.evaluate(() => { window.__planner.go('settings'); });
+    await click(page, '#screen [data-act="set-toggle"][data-id="dictate"]');
+    await page.evaluate(() => { window.__planner.sub.ppage = 'obs'; window.__planner.go('portfolio'); document.querySelector('#screen [data-act="obs"][data-id="2"]').click(); });
+    ok('settings: Speak off removes the microphones, Listen stays', await page.evaluate(() => !document.querySelector('#layer [data-act="dictate"]') && document.querySelectorAll('#layer [data-act="hear"]').length === 3));
+    await page.evaluate(() => { document.querySelector('[data-act="close-sheet"]').click(); window.__planner.go('settings'); });
+    await click(page, '#screen [data-act="set-toggle"][data-id="readAloud"]');
+    await page.evaluate(() => { window.__planner.sub.topic = 'afl'; window.__planner.sub.fmt = 'Worked example'; window.__planner.go('learn'); });
+    ok('settings: Listen off removes the Listen buttons', await page.evaluate(() => !document.querySelector('#screen [data-act="listen-lesson"]') && window.__planner.listen('x', 'Some words') === false));
+    ok('voice: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  {
+    // it carries on from the place it stopped; a refused microphone; a phone with no speech recogniser
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-18T19:30:00', state: voiceState(), listenResumed: true, micDenied: true });
+    await page.evaluate(() => { window.__planner.sub.topic = 'afl'; window.__planner.go('learn'); });
+    await click(page, '#screen [data-act="listen-lesson"]'); await tick(page);
+    ok('listen: it carries on from where it stopped, and says so', await page.evaluate(() => /Carrying on from where you stopped/.test(document.querySelector('#toast').textContent) && /4 of 9/.test(document.querySelector('#player').textContent) && !!document.querySelector('#player [data-act="pl-restart"]')));
+    await click(page, '#player [data-act="pl-restart"]'); await tick(page);
+    ok('listen: Start again goes back to the beginning', (await calls(page, 'listenRestart')).length === 1 && await page.evaluate(() => /1 of 9/.test(document.querySelector('#player').textContent) && !document.querySelector('#player [data-act="pl-restart"]')));
+    await page.evaluate(() => window.AndroidApp.listenStop()); await tick(page);
+    await page.evaluate(() => window.__planner.go('voice'));
+    await click(page, speakBtn('#v-pad')); await tick(page);
+    ok('speak: a refused microphone is explained, with a way to allow it', /not allowed to use the microphone/.test(await live(page, '#v-pad')) && await page.evaluate(() => !window.__planner.DICT.on && !!document.querySelector('#v-pad + .vbar [data-act="mic-fix"]')));
+    await click(page, '#v-pad + .vbar [data-act="mic-fix"]');
+    ok('speak: "Open the app’s settings" opens them', (await calls(page, 'fix')).some((c) => c[0] === 'app'));
+    ok('voice (refused): no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  {
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-18T19:30:00', state: null, noRecogniser: true });
+    await page.evaluate(() => window.__planner.go('voice'));
+    ok('speak: a phone with no speech recogniser is told what to install', await page.evaluate(() => /no speech recogniser turned on/.test(document.querySelector('#screen').textContent)));
+    await click(page, speakBtn('#v-pad')); await tick(page);
+    ok('speak: and Speak says the same', /no speech recogniser turned on/.test(await live(page, '#v-pad')));
+    ok('voice (no recogniser): no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  {
+    // the app as it was before Listen and Speak, showing this newer page
+    const { ctx, page, errors } = await open(browser, { app: true, app4: true, now: '2026-11-18T19:30:00', state: voiceState() });
+    await page.evaluate(() => window.__planner.go('voice'));
+    ok('older app: the screen says one more install is needed', await page.evaluate(() => /One more install/.test(document.querySelector('#screen').textContent) && !!document.querySelector('#screen [data-act="get-app"]')));
+    await click(page, '#screen [data-act="get-app"]');
+    ok('older app: "Get the newest app" opens the download', await page.evaluate(() => window.__opened.length === 1 && window.__opened[0] === 'https://github.com/oogiemudia/cap-and-gown-android/releases/download/latest/CapAndGown.apk'), await page.evaluate(() => window.__opened));
+    await click(page, speakBtn('#v-pad')); await tick(page);
+    ok('older app: Speak says it needs the newest app', /Speak needs the newest app/.test(await live(page, '#v-pad')) && await page.evaluate(() => !window.__planner.DICT.on));
+    await page.evaluate(() => { window.__planner.sub.topic = 'afl'; window.__planner.go('learn'); });
+    await click(page, '#screen [data-act="listen-lesson"]');
+    ok('older app: a lesson is still read, the short way', await page.evaluate(() => { const c = window.__calls.find((x) => x[0] === 'speak'); return !!c && c[1].length > 20 && document.querySelector('#player').hidden && /newest app/.test(document.querySelector('#toast').textContent); }));
+    ok('older app: a long text is cut to what that app can read', await page.evaluate(() => { window.__calls.length = 0; const long = Array.from({ length: 200 }, (x, i) => `Sentence number ${i} is here.`).join(' '); window.__planner.listen('Long', long); const c = window.__calls.find((x) => x[0] === 'speak'); window.__spoken = c ? c[1] : ''; return !!c; }) && await page.evaluate(() => window.__calls.length === 1));
+    await page.evaluate(() => { const P = window.__planner; P.sub.lf = 'All'; P.sub.q = ''; P.go('library'); const it = P.catalogue().find((x) => x.src === 'online' && x.kind === 'Read' && !/\.pdf/i.test(x.link) && !x.lib && !x.post && !x.w); document.querySelector(`#screen [data-act="res"][data-id="${it.id}"]`).click(); });
+    await click(page, '#layer [data-act="res-listen"]');
+    ok('older app: Listen on a web page says it needs the newest app', await page.evaluate(() => /needs the newest app/.test(document.querySelector('#toast').textContent)));
+    ok('older app (listen and speak): no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  {
+    // a plain browser, with stand-ins for its voice and its speech recognition
+    const init = `window.__utter = [];
+      window.SpeechSynthesisUtterance = function (t) { this.text = t; };
+      Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { cancel() { window.__cancelled = (window.__cancelled || 0) + 1; }, speak(u) { window.__utter.push(u); } } });
+      window.SpeechRecognition = window.webkitSpeechRecognition = function () { window.__sr = this; this.start = () => setTimeout(() => this.onstart && this.onstart(), 0); this.stop = () => setTimeout(() => this.onend && this.onend(), 0); };`;
+    const { ctx, page, errors } = await open(browser, { app: false, now: '2026-11-18T19:30:00', state: voiceState(), init });
+    await page.evaluate(() => { window.__planner.sub.topic = 'afl'; window.__planner.go('learn'); });
+    await click(page, '#screen [data-act="listen-lesson"]');
+    const parts = await page.evaluate(() => window.__planner.splitParts(window.__planner.lessonText('afl')));
+    ok('browser: the lesson is read a part at a time', await page.evaluate((p) => window.__utter.length === 1 && window.__utter[0].text === p[0] && window.__utter[0].lang === 'en-GB' && new RegExp(`1 of ${p.length}`).test(document.querySelector('#player').textContent), parts), parts.length);
+    await page.evaluate(() => window.__utter[0].onend());
+    ok('browser: when a part ends the next one starts', await page.evaluate((p) => window.__utter.length === 2 && window.__utter[1].text === p[1] && new RegExp(`2 of ${p.length}`).test(document.querySelector('#player').textContent), parts));
+    await click(page, '#player [data-act="pl-toggle"]');
+    ok('browser: Pause stops the voice', await page.evaluate(() => window.__planner.LS.state === 'paused' && window.__utter.length === 2));
+    await page.evaluate(() => window.__utter[1].onend());
+    ok('browser: a part cut off by Pause does not move the place on', await page.evaluate(() => window.__utter.length === 2 && window.__planner.LS.i === 2));
+    await click(page, '#player [data-act="pl-rate"]');
+    await click(page, '#player [data-act="pl-toggle"]');
+    ok('browser: Play reads that part again, at the new speed', await page.evaluate((p) => window.__utter.length === 3 && window.__utter[2].text === p[1] && window.__utter[2].rate === 1.25, parts));
+    await page.evaluate((n) => { for (let i = 2; i <= n; i++) { const u = window.__utter[window.__utter.length - 1]; u.onend(); } }, parts.length);
+    ok('browser: after the last part it says Finished and the bar goes', await page.evaluate(() => document.querySelector('#player').hidden && /Finished/.test(document.querySelector('#toast').textContent) && window.__planner.LS.state === 'idle'), await page.evaluate(() => [window.__utter.length, window.__planner.LS]));
+    await page.evaluate(() => window.__planner.go('voice'));
+    await click(page, speakBtn('#v-pad')); await tick(page);
+    ok('browser: Speak uses the browser’s speech recognition', await page.evaluate(() => !!window.__sr && window.__sr.lang === 'en-GB' && window.__sr.continuous === true && window.__planner.DICT.on) && /Listening/.test(await live(page, '#v-pad')));
+    await page.evaluate(() => { const r = [Object.assign([{ transcript: 'hello from the browser' }], { isFinal: true }), Object.assign([{ transcript: ' still talking' }], { isFinal: false })]; window.__sr.onresult({ resultIndex: 0, results: r }); });
+    ok('browser: finished words go in the box, unfinished ones show underneath', await page.evaluate(() => document.querySelector('#v-pad').value === 'Hello from the browser.' && window.__planner.state.voicePad === 'Hello from the browser.') && /still talking/.test(await live(page, '#v-pad')));
+    await click(page, speakBtn('#v-pad')); await tick(page);
+    ok('browser: Stop ends it', await page.evaluate(() => !window.__planner.DICT.on));
+    await click(page, speakBtn('#v-pad')); await tick(page);
+    await page.evaluate(() => { window.__sr.onerror({ error: 'not-allowed' }); window.__sr.onend(); });
+    ok('browser: a blocked microphone is explained', /not allowed to use the microphone/.test(await live(page, '#v-pad')));
+    ok('browser (listen and speak): no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  {
+    // the pieces on their own, and damaged saved data
+    const st = JSON.parse(JSON.stringify(rich));
+    st.voicePad = 123; st.settings.listenRate = 'fast'; st.settings.dictate = 'yes';
+    st.portfolio.obsInfo = { 1: { spoken: 5, refl: null, targets: ['x'] }, 2: 'nonsense', 3: { spoken: 'Kept words', date: '2026-11-12' } };
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-18T19:30:00', state: st });
+    const got = await page.evaluate(() => { const s = window.__planner.state; return { pad: s.voicePad, rate: s.settings.listenRate, o1: s.portfolio.obsInfo['1'], o2: s.portfolio.obsInfo['2'], o3: s.portfolio.obsInfo['3'] }; });
+    ok('damaged data: spoken notes, the notepad and the speed are put right, sound notes are kept', got.pad === '123' && got.rate === 1 && got.o1.spoken === '5' && typeof got.o1.targets === 'string' && got.o2 === undefined && got.o3.spoken === 'Kept words' && got.o3.date === '2026-11-12', got);
+    await page.evaluate(() => { window.__planner.sub.ppage = 'obs'; window.__planner.go('portfolio'); document.querySelector('#screen [data-act="obs"][data-id="1"]').click(); });
+    ok('damaged data: that observation still opens', await page.evaluate(() => document.querySelector('#o-spoken').value === '5'));
+    const U = await page.evaluate(() => { const P = window.__planner; const long = 'word '.repeat(400).trim(); return {
+      split: P.splitParts('One. Two! Three?\n\nA new paragraph that is here.'),
+      splitLong: P.splitParts(long).map((x) => x.length),
+      splitJoin: P.splitParts(long).join(' ') === long,
+      splitNone: P.splitParts(' \n ... \n'),
+      a: P.spokenText('  hello   world  '), b: P.spokenText('is this right question mark yes comma it is'), c: P.spokenText('new line'), d: P.spokenText('first point new paragraph second point'), e: P.spokenText('full stop'), f: P.spokenText(''), g: P.spokenText('Already ends well!'),
+      plain: P.spokenPlain('[Wed 18 Nov, 19:30]\nOne.\n\n[Thu 19 Nov, 08:05]\nTwo.\n[not a stamp because it is far too long to be one, it goes on]')
+    }; });
+    ok('pieces: text is cut into parts at sentence ends, short enough to pause between', JSON.stringify(U.split) === JSON.stringify(['One. Two! Three?', 'A new paragraph that is here.']) && U.splitLong.every((n) => n <= 900) && U.splitLong.length >= 3 && U.splitJoin && U.splitNone.length === 0, U);
+    ok('pieces: spoken punctuation becomes punctuation', U.a === 'Hello world.' && U.b === 'Is this right? Yes, it is.' && U.c === '\n' && U.d === 'First point\n\nSecond point.' && U.e === '' && U.f === '' && U.g === 'Already ends well!', U);
+    ok('pieces: date stamps are taken out for the draft, other brackets are kept', U.plain === 'One.\n\nTwo.\n[not a stamp because it is far too long to be one, it goes on]', U.plain);
+    ok('pieces: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+
   // ---------- H. looks: dark, dyslexia display, small and large phones ----------
   for (const look of [{ name: 'dark', dark: true, width: 360 }, { name: 'dys', width: 360, dys: true }, { name: 'wide', width: 430 }, { name: 'narrow', width: 320 }]) {
     const state = JSON.parse(JSON.stringify(rich));

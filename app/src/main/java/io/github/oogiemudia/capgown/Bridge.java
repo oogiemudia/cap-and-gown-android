@@ -185,15 +185,92 @@ public class Bridge {
         return text != null && text.length() <= 200_000 && ChatPane.copy(activity, text);
     }
 
-    /** Read aloud (Learn, Audio summary). */
+    /* ---------- Listen: the phone reads to you (see ReadAloud) ---------- */
+
+    /** Reads text of any length aloud, and carries on with the screen off. False if there is nothing to read. */
+    @JavascriptInterface
+    public boolean listenStart(String title, String text) {
+        if (text == null || text.length() > 600_000) return false;
+        return ReadAloud.play(activity, title, text);
+    }
+
+    @JavascriptInterface
+    public void listenPause() {
+        ReadAloud.pause();
+    }
+
+    @JavascriptInterface
+    public void listenResume() {
+        ReadAloud.resume();
+    }
+
+    @JavascriptInterface
+    public void listenStop() {
+        ReadAloud.stop();
+    }
+
+    /** Back or forward by whole parts (a sentence or two each). */
+    @JavascriptInterface
+    public void listenSkip(int by) {
+        ReadAloud.skip(by);
+    }
+
+    /** How fast the voice reads: 1 is normal. */
+    @JavascriptInterface
+    public void listenRate(double rate) {
+        ReadAloud.setRate(rate);
+    }
+
+    @JavascriptInterface
+    public void listenRestart() {
+        ReadAloud.restart();
+    }
+
+    /** JSON: state (idle, playing, paused), title, i, n, rate, done, resumed, error. Changes arrive as window.__capgownListen(status). */
+    @JavascriptInterface
+    public String listenStatus() {
+        return ReadAloud.status();
+    }
+
+    /** Opens a web page in the reader and reads it aloud once it has loaded. False if it cannot be opened. */
+    @JavascriptInterface
+    public boolean listenTo(String url, String title) {
+        if (!ReaderActivity.canOpen(url)) return false;
+        activity.runOnUiThread(() -> activity.openReader(url, title, true));
+        return true;
+    }
+
+    /** The older read aloud, kept so an older page still works. */
     @JavascriptInterface
     public void speak(String text) {
-        if (text != null && !text.isEmpty() && text.length() <= 4000) activity.speak(text);
+        if (text != null && !text.isEmpty()) listenStart("Audio summary", text);
     }
 
     @JavascriptInterface
     public void stopSpeaking() {
-        activity.stopSpeaking();
+        ReadAloud.stop();
+    }
+
+    /* ---------- Speak: speech to text (see Dictation) ---------- */
+
+    /** Whether this phone has a speech recogniser. */
+    @JavascriptInterface
+    public boolean dictateAvailable() {
+        return Dictation.available(activity);
+    }
+
+    /**
+     * Starts listening, asking for the microphone the first time. What it hears arrives as
+     * window.__capgownDictate(kind, text): ready, partial, final, then end with the reason.
+     */
+    @JavascriptInterface
+    public void dictateStart() {
+        activity.startDictation();
+    }
+
+    @JavascriptInterface
+    public void dictateStop() {
+        activity.stopDictation();
     }
 
     /** A phone toast, used while the chat covers the page. */
@@ -206,7 +283,7 @@ public class Bridge {
     @JavascriptInterface
     public boolean openReader(String url, String title) {
         if (!ReaderActivity.canOpen(url)) return false;
-        activity.runOnUiThread(() -> activity.openReader(url, title));
+        activity.runOnUiThread(() -> activity.openReader(url, title, false));
         return true;
     }
 
