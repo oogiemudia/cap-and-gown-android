@@ -4,7 +4,8 @@ const { chromium, open, overflow } = require('./lib');
 const { rich } = require('./seed');
 
 const SCREENS = [];
-['home', 'plan', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice'].forEach((r) => SCREENS.push({ name: r, route: r, sub: {} }));
+['home', 'plan', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice', 'coach'].forEach((r) => SCREENS.push({ name: r, route: r, sub: {} }));
+[['coach/ksb', { cpath: 'ksb' }], ['coach/cp', { cpath: 'cp' }], ['coach/learn', { cq: '2.1', cs: 'learn', cn: 4 }], ['coach/check', { cq: '2.1', cs: 'check' }], ['coach/plan', { cq: '5.2', cs: 'plan' }], ['coach/write', { cq: '5.2', cs: 'write' }]].forEach(([n, s]) => SCREENS.push({ name: n, route: 'coach', sub: s }));
 ['foryou', 'quiz', 'cards', 'mistakes', 'papers'].forEach((t) => SCREENS.push({ name: 'study/' + t, route: 'study', sub: { stab: t } }));
 ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placements', 'records', 'pd'].forEach((p) => SCREENS.push({ name: 'portfolio/' + p, route: 'portfolio', sub: { ppage: p } }));
 [['learn/video', { topic: 'afl', fmt: 'Short video' }], ['learn/video-none', { topic: 'ofsted', fmt: 'Short video' }], ['learn/audio', { topic: 'vacsr', fmt: 'Audio summary' }], ['learn/cards', { topic: 'qa', fmt: 'Flashcards' }]].forEach(([n, s]) => SCREENS.push({ name: n, route: 'learn', sub: s }));

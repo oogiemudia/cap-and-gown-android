@@ -752,6 +752,297 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     await ctx.close();
   }
 
+  // ---------- J. the coach: a small step every day ----------
+  {
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-18T19:30:00', state: null });
+    const P = (fn, arg) => page.evaluate(fn, arg);
+    const type = (sel, text) => P(([s, t]) => { const el = document.querySelector(s); if (!el) return false; el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); return true; }, [sel, text]);
+    const toastText = () => P(() => document.querySelector('#toast').textContent);
+    const words = (t) => t.trim().split(/\s+/).length;
+    await P(() => { window.__planner.state.settings.chatTipSeen = true; });
+    // the lessons themselves
+    const data = await P(() => { const p = window.__planner; return { aw: p.AW, refs: Object.keys(p.REFS), verbs: Object.keys(p.VERBS), topics: Object.keys(p.TOPICS), cp: p.CP_DAILY }; });
+    const ids = data.aw.map((q) => q.id);
+    ok('coach: all 25 workbook questions, in workbook order, each under its outcome', ids.join(' ') === '1.1 1.2 1.3 1.4 2.1 3.1 3.2 3.3 3.4 3.5 4.1 4.2 4.3 4.4 5.1 5.2 6.1 6.2 6.3 7.1 7.2 8.1 8.2 8.3 8.4' && data.aw.every((q) => q.lo === Number(q.id[0])), ids);
+    const thin = data.aw.filter((q) => !(q.q.length > 20 && q.learn.length >= 3 && q.learn.every((l) => l.length === 2 && l[0].length >= 3 && l[1].length > 60) && q.check.length === 2 && q.check.every((c) => c[0].length > 15 && c[1].length === 3 && new Set(c[1]).size === 3 && [0, 1, 2].includes(c[2]) && c[3].length > 20) && q.cover.length >= 3 && q.trap.length > 20 && q.own.length > 20 && q.start.length >= 1 && q.src.length >= 1)).map((q) => q.id);
+    ok('coach: every question has a lesson in parts, two checks, a checklist, a slip to avoid, an own-example prompt and starters', thin.length === 0, thin);
+    ok('coach: every lesson is short enough for one sitting', data.aw.every((q) => { const w = q.learn.reduce((n, l) => n + l[1].split(/\s+/).length, 0); return w >= 90 && w <= 260; }), data.aw.map((q) => [q.id, q.learn.reduce((n, l) => n + l[1].split(/\s+/).length, 0)]));
+    ok('coach: every source is in the reference list, every topic and question word is real', data.aw.every((q) => q.src.every((k) => data.refs.includes(k)) && data.topics.includes(q.t) && data.verbs.includes(q.verb)), data.aw.filter((q) => !(q.src.every((k) => data.refs.includes(k)) && data.topics.includes(q.t) && data.verbs.includes(q.verb))).map((q) => q.id));
+    const pos = [0, 1, 2].map((k) => data.aw.reduce((n, q) => n + q.check.filter((c) => c[2] === k).length, 0));
+    ok('coach: the right answer is not always in the same place', pos.every((n) => n >= 12), pos);
+    ok('coach: the questions with headings in the workbook keep them', data.aw.filter((q) => q.parts).map((q) => q.id).join() === '2.1,5.1,5.2' && data.aw.find((q) => q.id === '2.1').parts.length === 6);
+    ok('coach: the lessons speak of the assessor and the candidate, not of teaching a class', data.aw.every((q) => !/\b(my|your) (class|lesson|pupils|students)\b/i.test(JSON.stringify(q.learn))));
+
+    // the plan: what is left, the days to go, so how much today
+    const plan = () => P(() => { const p = window.__planner; const A = p.awToday(); return { order: p.awOrder().map((q) => q.id), sit: A.sit.length, end: A.P.end, days: A.P.days, per: A.P.per, quota: A.quota, done: A.done, todo: A.todo.map((x) => x.q.id + ' ' + x.s), today: p.coachToday().map((x) => x.path + ':' + x.id) }; });
+    let pl = await plan();
+    ok('coach plan: the outcomes whose hand-in is still ahead come first', pl.order.slice(0, 7).join(' ') === '7.1 7.2 8.1 8.2 8.3 8.4 1.1', pl.order);
+    ok('coach plan: 50 short sittings spread to the planner’s own aim for the workbook', pl.sit === 50 && pl.end === '2026-12-18' && pl.days === 31 && pl.per === 2 && pl.quota === 2, pl);
+    ok('coach plan: today is learn 7.1, write 7.1, one KSB and five minutes on the change project', pl.todo.join() === '7.1 learn,7.1 write' && pl.today.join() === 'aw:7.1,aw:7.1,ksb:K5,cp:', pl);
+    await P(() => { window.__planner.state.energy['2026-11-18'] = 'low'; });
+    pl = await plan();
+    ok('coach plan: low energy keeps one light step', pl.quota === 1 && pl.todo.join() === '7.1 learn', pl);
+    await P(() => { window.__planner.state.coach.aw['7.1'] = { k: '2026-11-17' }; });
+    pl = await plan();
+    ok('coach plan: low energy never asks for writing while a lesson is waiting', pl.todo.join() === '7.2 learn', pl);
+    await P(() => { delete window.__planner.state.coach.aw['7.1']; window.__planner.state.energy['2026-11-18'] = 'high'; });
+    pl = await plan();
+    ok('coach plan: good energy adds one more', pl.quota === 3 && pl.todo.length === 3, pl);
+    await P(() => { delete window.__planner.state.energy['2026-11-18']; });
+
+    // Home and More lead to it
+    await P(() => window.__planner.go('home'));
+    const card = await P(() => (document.querySelector('#coach-card') || { textContent: '' }).textContent);
+    ok('coach on Home: tonight’s first step, and how many more', /7\.1 Learn it · 10 min/.test(card) && /All 4 for today/.test(card) && /Explain the importance of following procedures/.test(card), card);
+    await P(() => window.__planner.go('more'));
+    ok('coach on More: a tile that says how many steps today', await P(() => /Coach\s*4 small steps today/.test(document.querySelector('#screen').textContent)));
+    await P(() => window.__planner.go('home'));
+    await click(page, '#coach-card [data-act="co-go"][data-path="aw"]');
+    ok('coach: Start opens the question at its lesson', await P(() => { const p = window.__planner; return p.route === 'coach' && p.sub.cq === '7.1' && document.querySelector('.costeps [aria-pressed="true"]').textContent.trim() === '1 Learn' && document.querySelectorAll('#screen .step').length === 1; }));
+
+    // 1. learn: a part at a time, read or listened to
+    await click(page, '#screen [data-act="co-listen"]');
+    ok('coach learn: the lesson can be listened to', await P(() => /^Question 7 point 1\. Explain the importance/.test(window.__lastListen || '') && window.__listen.title === 'Workbook question 7.1'));
+    await P(() => window.AndroidApp.listenStop());
+    for (let i = 0; i < 5 && await click(page, '#screen [data-act="co-more"]'); i++);
+    ok('coach learn: the parts open one at a time, then it offers the check', await P(() => document.querySelectorAll('#screen .step').length === window.__planner.AW_BY['7.1'].learn.length && !!document.querySelector('#screen [data-act="co-read"]')));
+    await P(() => { window.__calls.length = 0; window.__lastInsert = ''; });
+    await click(page, '#screen [data-act="co-live"][data-k="aw"]');
+    await page.waitForTimeout(400);
+    const teach = await P(() => window.__lastInsert || '');
+    const q71 = data.aw.find((q) => q.id === '7.1');
+    ok('coach live: Claude is given the question, the checklist and where I am, and told to teach in small steps', teach.includes(`"7.1 ${q71.q}"`) && q71.cover.every((c) => teach.includes('- ' + c)) && /one at a time, and wait for my reply/.test(teach) && /from the assessor's role/.test(teach) && /I have not read the lesson yet/.test(teach) && teach.includes(q71.trap), teach);
+    ok('coach live: Claude is told not to write my answer', /Do not write my answer for me, not even a model paragraph/.test(teach) && /declare any AI tool/.test(teach));
+    await click(page, '[data-act="close-tutor"]');
+    await click(page, '#screen [data-act="co-read"]');
+    ok('coach learn: reading it is remembered and moves on to the check', await P(() => { const p = window.__planner; return p.state.coach.aw['7.1'].r === '2026-11-18' && document.querySelector('.costeps [aria-pressed="true"]').textContent.trim() === '2 Check' && document.querySelectorAll('#screen [data-act="co-ans"]').length === 6; }));
+
+    // 2. check: two questions, feedback straight away, then how sure you feel
+    const right = q71.check.map((c) => c[2]);
+    await click(page, `#screen [data-act="co-ans"][data-i="0"][data-o="${(right[0] + 1) % 3}"]`);
+    ok('coach check: a wrong pick is shown, with the reason', await P((r) => { const c = document.querySelectorAll('#screen .card')[1]; return /Not quite/.test(c.textContent) && c.querySelector(`[data-o="${r}"]`).classList.contains('right') && c.querySelectorAll('.wrong').length === 1 && c.querySelectorAll('[disabled]').length === 3 && !document.querySelector('#screen [data-act="co-conf"]'); }, right[0]));
+    await click(page, `#screen [data-act="co-ans"][data-i="1"][data-o="${right[1]}"]`);
+    ok('coach check: after both, the score and a way to try again', await P(() => /1 of 2 right/.test(document.querySelector('#screen').textContent) && !!document.querySelector('#screen [data-act="co-retry"]') && !window.__planner.state.coach.aw['7.1'].k));
+    await click(page, '#screen [data-act="co-retry"]');
+    for (const i of [0, 1]) await click(page, `#screen [data-act="co-ans"][data-i="${i}"][data-o="${right[i]}"]`);
+    await click(page, '#screen [data-act="co-conf"][data-n="3"]');
+    const learned = await P(() => { const p = window.__planner; return { u: p.state.coach.aw['7.1'], days: p.state.coach.days, study: p.state.study['2026-11-18'], toast: document.querySelector('#toast').textContent, text: document.querySelector('#screen').textContent, streak: p.coachStreak() }; });
+    ok('coach check: saying how sure I am finishes the learning sitting and counts the day', learned.u.k === '2026-11-18' && learned.u.f === 3 && learned.days['2026-11-18'] === 1 && learned.study === 10 && /7\.1 learned/.test(learned.toast) && /2 of 2 right/.test(learned.text) && /Learned/.test(learned.text) && learned.streak === 1, learned);
+    await click(page, '#screen [data-act="co-conf"][data-n="1"]');
+    ok('coach check: changing my mind does not count the sitting twice, and "Not yet" offers the lesson again', await P(() => { const p = window.__planner; return p.state.coach.days['2026-11-18'] === 1 && p.state.study['2026-11-18'] === 10 && p.state.coach.aw['7.1'].f === 1 && !!document.querySelector('#screen [data-act="co-step"][data-id="learn"].btn'); }));
+    pl = await plan();
+    ok('coach plan: one sitting done today, the writing is what is left', pl.done === 1 && pl.todo.join() === '7.1 write' && pl.sit === 49, pl);
+
+    // 3. plan: what the question word asks, the checklist, sources, my notes
+    await click(page, '#screen [data-act="co-step"][data-id="plan"]');
+    ok('coach plan step: the question word, the checklist, the slip, my own example and the sources', await P((q) => { const t = document.querySelector('#screen').textContent; const p = window.__planner; return t.includes(p.VERBS[q.verb]) && q.cover.every((c) => t.includes(c)) && t.includes(q.trap) && t.includes(q.own) && q.src.every((k) => t.includes(p.REFS[k])) && /Cite only what you have read/.test(t) && /The sentences have to be yours/.test(t); }, q71));
+    await click(page, '#screen [data-act="co-tick"][data-i="0"]');
+    await click(page, '#screen [data-act="co-tick"][data-i="2"]');
+    await click(page, '#screen [data-act="co-tick"][data-i="2"]');
+    ok('coach plan step: ticks go on and come off', await P(() => JSON.stringify(window.__planner.state.coach.aw['7.1'].t) === '{"0":1}' && document.querySelector('#screen [data-act="co-tick"][data-i="0"]').getAttribute('aria-checked') === 'true' && document.querySelector('#screen [data-act="co-tick"][data-i="2"]').getAttribute('aria-checked') === 'false'));
+    ok('coach plan step: the notes box can be spoken into', await P(() => !!document.querySelector('#co-n-7-1 + .vbar [data-act="dictate"]')));
+    await type('#co-n-7-1', 'audit trail; my example: the lathe observation record');
+    await P(() => { window.__lastInsert = ''; });
+    await click(page, '#screen [data-act="co-live"][data-k="aw"]');
+    await page.waitForTimeout(400);
+    ok('coach live: the brief carries what I typed a moment ago, and how the check went', await P(() => /My notes so far: audit trail; my example: the lathe observation record$/.test(window.__lastInsert || '') && /I have read the short lesson in my app; I got 2 of 2 check questions right; my confidence is low/.test(window.__lastInsert)));
+    await click(page, '[data-act="close-tutor"]');
+    await click(page, '#screen [data-act="lib-topic"]');
+    ok('coach plan step: the Library opens on the topic', await P(() => window.__planner.route === 'library'));
+    await P(() => window.__capgownBack());
+    ok('coach: coming back from the Library lands on the same question, with the notes kept', await P(() => { const p = window.__planner; return p.route === 'coach' && p.sub.cq === '7.1' && document.querySelector('#co-n-7-1').value === 'audit trail; my example: the lathe observation record' && p.state.coach.aw['7.1'].n === 'audit trail; my example: the lathe observation record'; }));
+
+    // 4. write: my own words; nothing counts until there are some
+    await click(page, '#screen [data-act="co-step"][data-id="write"]');
+    await click(page, '#screen [data-act="co-written"]');
+    ok('coach write: an empty answer cannot be marked as written', await P(() => !window.__planner.state.coach.aw['7.1'].w) && /Write your answer first/.test(await toastText()));
+    await click(page, '#screen [data-act="co-check"]');
+    ok('coach write: Claude is not asked to check an empty answer', /Write your answer first, then Claude can check it/.test(await toastText()) && await P(() => document.querySelector('#tutor').hidden));
+    const mine = 'Following the procedures matters because every decision I make as an assessor has to be traceable. When I observed a candidate turning a shaft on the lathe, I recorded the criteria, the evidence and my decision on the centre form the same day.';
+    await type('#co-a-7-1', mine);
+    ok('coach write: the words are counted as I type, and the box can be spoken into', await P((n) => document.querySelector('#co-wc').textContent === n + ' words' && !!document.querySelector('#co-a-7-1 + .vbar [data-act="dictate"]'), words(mine)));
+    await page.waitForTimeout(750);
+    ok('coach write: the answer is saved on the phone as I type', await P((m) => window.__planner.state.coach.aw['7.1'].a === m && JSON.parse(window.AndroidApp.loadState()).coach.aw['7.1'].a === m, mine));
+    await P(() => { window.__calls.length = 0; window.__lastInsert = ''; });
+    await click(page, '#screen [data-act="co-check"]');
+    await page.waitForTimeout(400);
+    const fb = await P(() => window.__lastInsert || '');
+    ok('coach write: Claude checks my answer against the checklist without rewriting it', fb.includes(`Question: "7.1 ${q71.q}"`) && q71.cover.every((c) => fb.includes('- ' + c)) && fb.endsWith('My answer:\n' + mine) && /Do not write my answer for me/.test(fb) && /as pointers or questions, not as rewritten text/.test(fb) && /teacher's role instead of an assessor's/.test(fb), fb);
+    await click(page, '[data-act="close-tutor"]');
+    await click(page, '#screen [data-act="co-copy"]');
+    ok('coach write: one answer can be copied with its question', await P(([q, m]) => window.__lastCopy === `7.1 ${q}\n\n${m}`, [q71.q, mine]));
+    await click(page, '#screen [data-act="co-written"]');
+    const wr = await P(() => { const p = window.__planner; return { u: p.state.coach.aw['7.1'], days: p.state.coach.days['2026-11-18'], study: p.state.study['2026-11-18'], text: document.querySelector('#screen').textContent, next: (document.querySelector('#screen .notice [data-act="co-open"]') || { dataset: {} }).dataset.id }; });
+    ok('coach write: marking it written counts the second sitting and offers the next question', wr.u.w === '2026-11-18' && wr.days === 2 && wr.study === 30 && /Written on Wed 18 Nov/.test(wr.text) && wr.next === '7.2', wr);
+    pl = await plan();
+    ok('coach plan: today’s workbook steps are done, and the rest is spread again', pl.done === 2 && pl.todo.length === 0 && pl.sit === 48 && pl.today.join() === 'ksb:K5,cp:', pl);
+    await click(page, '#screen [data-act="co-unwrite"]');
+    ok('coach write: "Not finished yet" takes the mark off but keeps the words', await P((m) => { const u = window.__planner.state.coach.aw['7.1']; return !u.w && u.a === m; }, mine));
+    await click(page, '#screen [data-act="co-written"]');
+    await click(page, '#screen .notice [data-act="co-open"]');
+    ok('coach: Next opens the next question at its lesson', await P(() => { const p = window.__planner; return p.sub.cq === '7.2' && document.querySelector('.costeps [aria-pressed="true"]').textContent.trim() === '1 Learn'; }));
+    ok('coach: the phone’s back button closes the question, then leaves the coach', await P(() => { const p = window.__planner; const a = window.__capgownBack(); const mid = p.route + ':' + p.sub.cq; const b = window.__capgownBack(); return a === true && mid === 'coach:null' && b === true && p.route === 'home'; }));
+
+    // the workbook screen: progress, finish date, hand-ins, my answers
+    await P(() => { window.__planner.sub.cpath = 'aw'; window.__planner.go('coach'); });
+    const main = await P(() => document.querySelector('#screen').textContent);
+    ok('coach workbook: today’s steps are done and the pace is in plain words', /2 done today/.test(main) && /Today’s workbook steps are done/.test(main) && /48 short sittings left \(about 12h 0m\) and 31 days to go: 2 a day keeps you on track/.test(main) && /1 of 25 written/.test(main), main.slice(0, 900));
+    await P(() => { const el = document.querySelector('#co-end-aw'); el.value = '2026-11-21'; el.dispatchEvent(new Event('change', { bubbles: true })); });
+    ok('coach workbook: a finish date that is too close says so instead of piling it on', await P(() => { const p = window.__planner; const A = p.awToday(); return p.state.coach.end.aw === '2026-11-21' && A.P.per === 12 && A.quota === 4 && /12 a day, which is too many/.test(document.querySelector('#screen').textContent); }));
+    await P(() => { const el = document.querySelector('#co-end-aw'); el.value = '2026-11-01'; el.dispatchEvent(new Event('change', { bubbles: true })); });
+    ok('coach workbook: a date in the past is not kept', await P(() => !window.__planner.state.coach.end.aw && window.__planner.awEnd() === '2026-12-18'));
+    await click(page, '#screen [data-act="co-handed-lo"][data-id="1"]');
+    ok('coach workbook: an outcome already handed in drops out of the plan', await P(() => { const p = window.__planner; return ['1.1', '1.2', '1.3', '1.4'].every((id) => p.state.coach.aw[id].h === true) && p.awSittings().length === 40 && p.awOrder().length === 25 && /4 \/ 4/.test(document.querySelector('#screen').textContent); }));
+    await click(page, '#screen [data-act="co-handed-lo"][data-id="1"]');
+    ok('coach workbook: and comes back when switched off', await P(() => window.__planner.awSittings().length === 48));
+    await click(page, '#screen [data-act="co-open"][data-id="3.1"]');
+    await click(page, '#screen [data-act="co-step"][data-id="write"]');
+    await click(page, '#screen [data-act="co-handed"]');
+    ok('coach workbook: one question can be marked as handed in', await P(() => { const p = window.__planner; return p.state.coach.aw['3.1'].h === true && p.awSittings().length === 46 && /Handed in/.test(document.querySelector('#screen .card').textContent); }));
+    await click(page, '#screen [data-act="co-handed"]');
+    await P(() => { window.__planner.sub.cq = null; window.__planner.go('home'); window.__planner.go('coach'); window.__calls.length = 0; });
+    await click(page, '#screen [data-act="co-copy-all"]');
+    await click(page, '#screen [data-act="co-save-all"]');
+    ok('coach workbook: my answers can be copied or saved, with their questions', await P(([q, m]) => { const want = `Unit D/601/5313: Understanding the principles and practices of assessment\nMy answers\n\n7.1 ${q}\n\n${m}\n`; const f = window.__calls.find((c) => c[0] === 'saveFile'); return window.__lastCopy === want && f && f[1] === 'assessor-workbook-my-answers-2026-11-18.txt' && f[3] === 'text/plain'; }, [q71.q, mine]));
+    await P(() => { window.__lastInsert = ''; });
+    await click(page, '#screen [data-act="co-live"][data-k="week"]');
+    await page.waitForTimeout(400);
+    const week = await P(() => window.__lastInsert || '');
+    ok('coach workbook: Plan my week tells Claude where I am', /1 of 25 questions written/.test(week) && /I want to finish by Friday 18 December/.test(week) && /Still to do, in order: 7\.2 learn, 7\.2 write, 8\.1 learn/.test(week) && /0 of 51 KSBs evidenced/.test(week) && /Change project: my next step is "Note what you took from the change project workshop"/.test(week) && /Plan my next seven days/.test(week), week);
+    await click(page, '[data-act="close-tutor"]');
+    await click(page, '#screen [data-act="co-how"]');
+    ok('coach: the help sheet says plainly what the app does and what Claude does', await P(() => { const t = document.querySelector('#layer').textContent; return /The coach never writes it for you/.test(t) && /you tap Send in Claude yourself/.test(t); }));
+    await click(page, '[data-act="close-sheet"]');
+
+    // a question with the workbook's own headings, and an answer already written in Practice papers
+    await P(() => { const p = window.__planner; p.state.papers.aw12 = { answers: ['', '', '', '', 'Observation: I watch the candidate at work.'] }; p.sub.cq = '2.1'; p.sub.cs = 'write'; p.go('home'); p.go('coach'); });
+    ok('coach write: an answer from Practice papers is offered', await P(() => /You wrote an answer to this in Practice papers/.test(document.querySelector('#screen').textContent) && !!document.querySelector('#screen [data-act="co-heads"]')));
+    await click(page, '#screen [data-act="co-heads"]');
+    ok('coach write: the workbook’s headings can be laid out', await P(() => window.__planner.state.coach.aw['2.1'].a === 'Observation:\n\nOral Questioning:\n\nProfessional / Guided Discussion:\n\nWitness Testimony:\n\nExamination of Product Evidence:\n\nWritten Questioning:\n' && document.querySelector('#co-wc').textContent === '15 words'));
+    await P(() => { window.__planner.state.coach.aw['2.1'].a = ''; window.__planner.go('home'); window.__planner.go('coach'); });
+    await click(page, '#screen [data-act="co-import"]');
+    ok('coach write: and it is brought in, not typed again', await P(() => window.__planner.state.coach.aw['2.1'].a === 'Observation: I watch the candidate at work.' && document.querySelector('#co-a-2-1').value === 'Observation: I watch the candidate at work.' && !document.querySelector('#screen [data-act="co-import"]')));
+    ok('coach: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  {
+    // a lived-in phone from before the coach: the planner's ticks, the KSB evidence and the change project
+    const st = JSON.parse(JSON.stringify(rich));
+    ['as-o12-4', 'as-o12-5'].forEach((k) => { st.done[k] = Date.parse('2026-11-10T20:00:00'); });
+    st.portfolio.evidence.push({ id: 'e2', date: '2026-11-12', title: 'Observation 2 feedback', type: 'Observation', link: '', ksbs: [], status: 'draft', notes: '' });
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-18T19:30:00', state: st });
+    const P = (fn, arg) => page.evaluate(fn, arg);
+    const type = (sel, text) => P(([s, t]) => { const el = document.querySelector(s); if (!el) return false; el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); return true; }, [sel, text]);
+    ok('coach, older data: the coach’s record is added to a phone that never had one', await P(() => JSON.stringify(window.__planner.state.coach) === '{"aw":{},"ksb":{},"cp":{},"days":{},"end":{},"path":"aw","cpNote":""}'));
+    ok('coach, planner: a hand-in ticked off on the planner counts as handed in', await P(() => { const p = window.__planner; const H = p.awHandedLo(); return H[1] && H[2] && !H[3] && !H[7] && p.awSittings().length === 40 && !p.awSittings().some((x) => /^[12]\./.test(x.q.id)); }));
+    await P(() => { window.__planner.sub.cpath = 'aw'; window.__planner.go('coach'); });
+    ok('coach, planner: the screen says why outcomes 1 and 2 are not in the plan', await P(() => /Your planner shows the hand-in for outcomes 1, 2 as done/.test(document.querySelector('#screen').textContent) && document.querySelector('#screen [data-act="co-handed-lo"][data-id="1"]').getAttribute('aria-checked') === 'true'));
+    await click(page, '#screen [data-act="co-handed-lo"][data-id="2"]');
+    ok('coach, planner: my own switch wins over the planner', await P(() => { const p = window.__planner; return p.state.coach.aw['2.1'].h === false && p.awSittings().length === 42 && p.awSittings().some((x) => x.q.id === '2.1'); }));
+    const before = await P(() => JSON.stringify(window.__planner.state));
+    for (const s of [{ cpath: 'aw' }, { cpath: 'ksb' }, { cpath: 'cp' }, { cq: '2.1', cs: 'learn', cn: 9 }, { cq: '2.1', cs: 'check' }, { cq: '5.2', cs: 'plan' }, { cq: '5.2', cs: 'write' }, { cq: '8.4', cs: null }]) await P((x) => { const p = window.__planner; p.go('home'); Object.assign(p.sub, { cq: null, cs: null, cn: 1, ck: null }, x); p.go('coach'); }, s);
+    ok('coach: looking at its screens changes nothing', await P((b) => JSON.stringify(window.__planner.state) === b, before));
+
+    // KSBs: one a day, the ones that count towards the most duties first
+    await P(() => { const p = window.__planner; p.go('home'); Object.assign(p.sub, { cq: null, cs: null, ck: null }); p.go('coach'); });
+    await click(page, '#screen [data-act="co-path"][data-id="ksb"]');
+    const K = await P(() => { const p = window.__planner; const k = p.ksbToday(); return { gaps: k.gaps.length, pick: k.pick, end: k.P.end, perWeek: k.perWeek, left: k.left, path: p.state.coach.path, text: document.querySelector('#screen').textContent }; });
+    ok('coach KSBs: the gaps, the date and a pace of about three a week', K.gaps === 49 && K.pick === 'K5' && K.end === '2027-04-23' && K.perWeek === 3 && K.left === 1 && K.path === 'ksb' && /49 gaps and 23 weeks to go: about 3 a week, so one KSB on most days is plenty/.test(K.text) && /Today’s KSB · about 10 min/.test(K.text), K);
+    ok('coach KSBs: today’s KSB shows its wording and its duties', await P(() => { const p = window.__planner; const t = document.querySelector('#screen').textContent; return t.includes(p.KSBS.K5) && /Part of duty \d/.test(t); }));
+    await P(() => { window.__lastInsert = ''; });
+    await click(page, '#screen [data-act="co-live"][data-k="ksb"]');
+    await page.waitForTimeout(400);
+    const kp = await P(() => ({ t: window.__lastInsert || '', k: window.__planner.KSBS.K5 }));
+    ok('coach KSBs: Claude is asked to explain the KSB and suggest evidence, not to write the note', kp.t.includes(`Today's KSB is K5: "${kp.k}"`) && /Do not write the note for me/.test(kp.t) && /I have no evidence tagged to K5 yet/.test(kp.t) && /Lesson plan week 6 \(Lesson plan\)/.test(kp.t), kp.t);
+    await click(page, '[data-act="close-tutor"]');
+    await click(page, '#screen [data-act="co-tag"][data-id="e2"]');
+    ok('coach KSBs: evidence I already have can be tagged in one tap', await P(() => { const p = window.__planner; return p.state.portfolio.evidence.find((e) => e.id === 'e2').ksbs.join() === 'K5' && p.ksbCovered().has('K5') && p.ksbGaps().length === 48 && p.sub.ck === 'K5' && /Tagged already: Observation 2 feedback/.test(document.querySelector('#screen').textContent); }));
+    await type('#co-k-K5', 'The feedback shows I adapted the task for two learners with support plans.');
+    await P(() => { window.__lastInsert = ''; });
+    await click(page, '#screen [data-act="co-live"][data-k="ksb"]');
+    await page.waitForTimeout(400);
+    ok('coach KSBs: the brief carries the evidence just tagged and my two lines', await P(() => /Evidence I have already tagged to K5: Observation 2 feedback\./.test(window.__lastInsert || '') && /My notes so far: The feedback shows I adapted the task/.test(window.__lastInsert)));
+    await click(page, '[data-act="close-tutor"]');
+    await click(page, '#screen [data-act="co-ksb-done"]');
+    const kd = await P(() => { const p = window.__planner; const k = p.ksbToday(); return { u: p.state.coach.ksb.K5, days: p.state.coach.days['2026-11-18'], study: p.state.study['2026-11-18'], pick: k.pick, left: k.left, today: p.coachToday().map((x) => x.path).join(), text: document.querySelector('#screen').textContent }; });
+    ok('coach KSBs: done for today keeps my two lines, counts the day and moves to the next gap', kd.u.n === 'The feedback shows I adapted the task for two learners with support plans.' && kd.u.d === '2026-11-18' && kd.days === 1 && kd.study === 10 && kd.pick === 'K9' && kd.left === 0 && !/ksb/.test(kd.today) && /Today’s KSB is done/.test(kd.text), kd);
+    await click(page, '#screen [data-act="co-ksb-next"]');
+    ok('coach KSBs: Pick another moves on', await P(() => window.__planner.sub.ck === 'S18'));
+    await click(page, '#screen .ksbgrid [data-act="co-ksb-pick"][data-id="B1"]');
+    await click(page, '#screen [data-act="co-ksb-done"]');
+    ok('coach KSBs: a KSB worked on but without evidence waits in its own list', await P(() => { const p = window.__planner; const k = p.ksbToday(); return k.parked.join() === 'B1' && k.gaps.includes('B1') && p.state.coach.days['2026-11-18'] === 2 && !!document.querySelector('#screen .chips [data-act="co-ksb-pick"][data-id="B1"]'); }));
+    await click(page, '#screen [data-act="ev-new"]');
+    ok('coach KSBs: new evidence opens the evidence sheet', await P(() => /evidence/i.test(document.querySelector('#layer').textContent) && !document.querySelector('#layer').hidden));
+    await click(page, '[data-act="close-sheet"]');
+
+    // the change project: five minutes a day, the next planned step, running notes
+    await click(page, '#screen [data-act="co-path"][data-id="cp"]');
+    const C = await P(() => ({ text: document.querySelector('#screen').textContent, daily: window.__planner.CP_DAILY }));
+    ok('coach change project: one five-minute task, the next step in the plan and the module’s rules', C.daily.some((d) => C.text.includes(d)) && /Next step in your plan · Wed 25 Nov/.test(C.text) && /Note what you took from the change project workshop: \d+ min/.test(C.text) && /After that/.test(C.text) && /AITS 2/.test(C.text), C.text.slice(0, 1200));
+    await click(page, '#screen [data-act="co-cp-done"]');
+    ok('coach change project: five minutes done is counted once', await P(() => { const p = window.__planner; return p.state.coach.cp['2026-11-18'] === 1 && p.state.coach.days['2026-11-18'] === 3 && p.state.study['2026-11-18'] === 25 && !document.querySelector('#screen [data-act="co-cp-done"]') && /1 of the last 7 days/.test(document.querySelector('#screen').textContent) && !p.coachToday().some((x) => x.path === 'cp'); }));
+    await click(page, '#screen [data-act="co-note-ask"]');
+    ok('coach change project: empty notes are not sent to Claude', await P(() => /Write or speak a few notes first/.test(document.querySelector('#toast').textContent) && document.querySelector('#tutor').hidden));
+    await type('#co-cpnote', 'Week 1: 9 of 14 got the returning question on tolerances right.');
+    ok('coach change project: the running notes can be spoken into', await P(() => !!document.querySelector('#co-cpnote + .vbar [data-act="dictate"]')));
+    await P(() => { window.__lastInsert = ''; });
+    await click(page, '#screen [data-act="co-note-ask"]');
+    await page.waitForTimeout(400);
+    const np = await P(() => window.__lastInsert || '');
+    ok('coach change project: Claude asks what is missing from my notes and rewrites nothing', np.endsWith('Week 1: 9 of 14 got the returning question on tolerances right.') && /Do not write or rewrite anything for me/.test(np) && /Ask me up to five questions, one at a time/.test(np), np);
+    await click(page, '[data-act="close-tutor"]');
+    await P(() => { window.__lastInsert = ''; });
+    await click(page, '#screen [data-act="co-live"][data-k="cp"]');
+    await page.waitForTimeout(400);
+    const cp = await P(() => window.__lastInsert || '');
+    ok('coach change project: Claude coaches the next step with my notes and the module’s AI rule', /My next step is "Note what you took from the change project workshop"/.test(cp) && /Do not write the work for me/.test(cp) && /AITS 2/.test(cp) && /My running notes so far:\nWeek 1: 9 of 14/.test(cp), cp);
+    await click(page, '[data-act="close-tutor"]');
+    await click(page, '#screen [data-act="co-note-copy"]');
+    ok('coach change project: the notes can be copied', await P(() => window.__lastCopy === 'Week 1: 9 of 14 got the returning question on tolerances right.'));
+    await click(page, '#screen [data-act="start-step"]');
+    ok('coach change project: Start it now opens the planner’s step', await P(() => window.__planner.route === 'learn' && window.__planner.sub.stepId === 'pg-cp-w0'));
+    await P(() => { const p = window.__planner; p.state.coach.days['2026-11-17'] = 1; p.state.coach.days['2026-11-16'] = 2; p.state.coach.days['2026-11-14'] = 1; p.go('home'); });
+    ok('coach: days in a row are counted, and Home says so', await P(() => window.__planner.coachStreak() === 3 && /3 days in a row/.test(document.querySelector('#coach-card').textContent)));
+    await page.waitForTimeout(750);
+    ok('coach: everything is in the saved copy', await P(() => { const c = JSON.parse(window.AndroidApp.loadState()).coach; return c.ksb.K5.d === '2026-11-18' && c.cp['2026-11-18'] === 1 && /^Week 1/.test(c.cpNote) && c.aw['2.1'].h === false; }));
+    ok('coach, lived-in phone: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  {
+    // damaged saved data must not stop the app, and what is sound is kept
+    const st = JSON.parse(JSON.stringify(rich));
+    st.coach = { aw: { zz: { a: 'x' }, 1.1: 'text', '2.1': { a: 5, n: ['x'], t: 'no', q: [1, 'b'], h: 'yes', w: 'soon', k: 20261118, f: 9, r: null }, '7.1': { a: 'My own answer.', w: '2026-11-17', k: '2026-11-16', f: 2, t: { 0: 1 }, q: { 0: 1 } } }, ksb: { K5: { n: 'two lines', d: '2026-11-17' }, Q9: { n: 'x' }, S2: 7 }, cp: 'yes', days: [1, 2], end: { aw: 'soon', ksb: '2027-03-01' }, path: 'nowhere', cpNote: { a: 1 } };
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-18T19:30:00', state: st });
+    const c = await page.evaluate(() => window.__planner.state.coach);
+    ok('coach, damaged data: what is sound is kept', c.aw['7.1'] && c.aw['7.1'].a === 'My own answer.' && c.aw['7.1'].w === '2026-11-17' && c.aw['7.1'].k === '2026-11-16' && c.aw['7.1'].f === 2 && c.aw['7.1'].t[0] === 1 && c.aw['7.1'].q[0] === 1 && c.ksb.K5.n === 'two lines' && c.ksb.K5.d === '2026-11-17' && c.end.ksb === '2027-03-01', c);
+    ok('coach, damaged data: what is not is dropped', !c.aw.zz && Object.keys(c.aw).every((k) => /^\d\.\d$/.test(k) && c.aw[k] && typeof c.aw[k] === 'object') && (!c.aw['2.1'] || (typeof (c.aw['2.1'].a || '') === 'string' && typeof c.aw['2.1'].h !== 'string' && !c.aw['2.1'].w && !c.aw['2.1'].k)) && !c.ksb.Q9 && (!c.ksb.S2 || typeof c.ksb.S2 === 'object') && c.cp && typeof c.cp === 'object' && !Array.isArray(c.cp) && !Array.isArray(c.days) && !c.end.aw && c.path === 'aw' && c.cpNote === '', c);
+    const shown = await page.evaluate(() => { const p = window.__planner; const out = []; for (const s of [{ cpath: 'aw' }, { cpath: 'ksb' }, { cpath: 'cp' }, { cq: '2.1', cs: 'check' }, { cq: '2.1', cs: 'write' }, { cq: '7.1', cs: null }]) { p.go('home'); Object.assign(p.sub, { cq: null, cs: null, ck: null }, s); p.go('coach'); out.push(document.querySelector('#screen').textContent.length > 200); } p.go('home'); out.push(!!document.querySelector('#coach-card')); return out; });
+    ok('coach, damaged data: every coach screen still opens', shown.every(Boolean) && await page.evaluate(() => window.__planner.selfTest()), shown);
+    ok('coach, damaged data: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  for (const who of [{ name: 'the app before Listen and Speak', o: { app: true, app4: true } }, { name: 'a browser', o: { app: false } }]) {
+    const { ctx, page, errors } = await open(browser, Object.assign({ now: '2026-11-18T19:30:00', state: null }, who.o));
+    await page.evaluate(() => { window.__planner.state.settings.chatTipSeen = true; window.__planner.go('home'); });
+    await click(page, '#coach-card [data-act="co-go"][data-path="aw"]');
+    for (let i = 0; i < 5 && await click(page, '#screen [data-act="co-more"]'); i++);
+    await click(page, '#screen [data-act="co-read"]');
+    const q = await page.evaluate(() => window.__planner.AW_BY['7.1'].check.map((c) => c[2]));
+    for (const i of [0, 1]) await click(page, `#screen [data-act="co-ans"][data-i="${i}"][data-o="${q[i]}"]`);
+    await click(page, '#screen [data-act="co-conf"][data-n="2"]');
+    await click(page, '#screen [data-act="co-step"][data-id="write"]');
+    await page.evaluate(() => { const el = document.querySelector('#co-a-7-1'); el.value = 'My own words about records.'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+    await click(page, '#screen [data-act="co-written"]');
+    ok(`coach in ${who.name}: learn, check and write all work`, await page.evaluate(() => { const u = window.__planner.state.coach.aw['7.1']; return u.r && u.k && u.w && u.a === 'My own words about records.' && window.__planner.state.coach.days['2026-11-18'] === 2; }));
+    await click(page, '#screen [data-act="co-check"]');
+    await page.waitForTimeout(400);
+    ok(`coach in ${who.name}: Check my answer opens the tutor`, await page.evaluate((app) => !document.querySelector('#tutor').hidden && (!app || /My answer:\nMy own words about records\.$/.test(window.__lastInsert || '')), who.o.app));
+    await click(page, '[data-act="close-tutor"]');
+    for (const p of ['ksb', 'cp']) await page.evaluate((x) => { const P = window.__planner; P.sub.cq = null; P.sub.cpath = x; P.go('home'); P.go('coach'); }, p);
+    ok(`coach in ${who.name}: no script errors`, errors.length === 0, errors);
+    await ctx.close();
+  }
+
   // ---------- H. looks: dark, dyslexia display, small and large phones ----------
   for (const look of [{ name: 'dark', dark: true, width: 360 }, { name: 'dys', width: 360, dys: true }, { name: 'wide', width: 430 }, { name: 'narrow', width: 320 }]) {
     const state = JSON.parse(JSON.stringify(rich));

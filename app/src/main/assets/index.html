@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Cap and Gown</title>
-<meta name="capgown-page" content="43">
+<meta name="capgown-page" content="44">
 <meta name="capgown-min-app" content="0">
 <meta name="theme-color" content="#3454D9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -294,6 +294,9 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 .seg{grid-auto-columns:minmax(0,1fr)}
 .seg button{min-width:0;overflow-wrap:anywhere}
 .seg.five{grid-auto-columns:1fr;overflow-x:auto;scrollbar-width:none}
+.seg.costeps button{font-size:12.5px;padding:8px 2px;display:flex;align-items:center;justify-content:center;gap:4px}
+.cotick{flex:0 0 22px;width:22px;height:22px;border-radius:7px;border:1.5px solid var(--muted);display:grid;place-items:center;color:#fff}
+.cotick.on{background:var(--good);border-color:var(--good)}
 </style>
 
 <div class="app" id="app">
@@ -410,8 +413,17 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       // version 4: what you opened, finished or skipped in the library (by id), and today's For you notes
       res: {}, fy: null,
       // version 5: the notepad on the Listen & speak screen (spoken or pasted text)
-      voicePad: ''
+      voicePad: '',
+      // version 6: the coach (a small step every day)
+      coach: freshCoach()
     };
+  }
+  function freshCoach() {
+    // aw: by workbook question { r: day the lesson was read, q: the check answers picked, k: day the check was finished, f: how sure (1 to 3),
+    //   t: ticks on the answer checklist, n: my plan, a: my answer, w: day written, h: handed in already }.
+    // ksb: by KSB { n: my two lines, d: day worked on }. cp: days the change project's five minutes were done.
+    // days: coach steps done by day. end: finish dates I set. path: the tab last open. cpNote: running notes.
+    return { aw: {}, ksb: {}, cp: {}, days: {}, end: {}, path: 'aw', cpNote: '' };
   }
   function freshPortfolio() {
     // nums: hours you had before the log (lead, setting, remote). evidence: the evidence log, tagged to KSBs.
@@ -431,6 +443,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     out.library = out.library.filter((u) => u && typeof u === 'object' && u.id && u.title);
     const p = out.portfolio && typeof out.portfolio === 'object' ? out.portfolio : {};
     out.portfolio = { ...freshPortfolio(), ...p };
+    out.coach = { ...freshCoach(), ...(out.coach && typeof out.coach === 'object' && !Array.isArray(out.coach) ? out.coach : {}) };
     ['nums', 'obs', 'checks', 'duties', 'ksbDone', 'obsInfo', 'placements', 'dutyNotes'].forEach((k) => { if (!out.portfolio[k] || typeof out.portfolio[k] !== 'object' || Array.isArray(out.portfolio[k])) out.portfolio[k] = {}; });
     ['evidence', 'hours', 'meetings'].forEach((k) => { if (!Array.isArray(out.portfolio[k])) out.portfolio[k] = []; });
     return repair(out);
@@ -466,7 +479,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     keep(out.moved, isDay); keep(out.due, isDay);
     keep(out.energy, (v, k) => isDay(k) && typeof v === 'string');
     keep(out.weekCap, (v) => isNum(v) && v > 0);
-    keep(out.mastery, isNum); keep(out.study, isNum);
+    keep(out.mastery, isNum); keep(out.study, (v) => isNum(v) && v >= 0);
     keep(out.missed, Array.isArray);
     Object.keys(out.missed).forEach((k) => { out.missed[k] = out.missed[k].filter(isDay); });
     ['reviews', 'reflections', 'formats', 'res', 'papers'].forEach((k) => keep(out[k], isObj));
@@ -541,6 +554,24 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       m.discussed = str(m.discussed); m.actions = str(m.actions); m.none = !!m.none;
       return m;
     });
+    const C = out.coach;
+    ['aw', 'ksb', 'cp', 'days', 'end'].forEach((k) => { if (!isObj(C[k])) C[k] = {}; });
+    keep(C.aw, (v, k) => isObj(v) && /^\d\.\d$/.test(k));
+    Object.values(C.aw).forEach((u) => {
+      ['r', 'k', 'w'].forEach((f) => { if (u[f] != null && !isDay(u[f])) delete u[f]; });
+      u.a = str(u.a).slice(0, 20000); u.n = str(u.n).slice(0, 8000);
+      u.t = isObj(u.t) ? keep(u.t, flag) : {};
+      u.q = isObj(u.q) ? keep(u.q, (x) => isNum(x) && x >= 0 && x <= 9) : {};
+      u.f = clamp(Math.round(Number(u.f)) || 0, 0, 3);
+      if (typeof u.h !== 'boolean') delete u.h;
+    });
+    keep(C.ksb, (v, k) => isObj(v) && /^[KSB]\d{1,2}$/.test(k));
+    Object.values(C.ksb).forEach((u) => { u.n = str(u.n).slice(0, 4000); if (u.d != null && !isDay(u.d)) delete u.d; });
+    keep(C.cp, (v, k) => isDay(k) && flag(v));
+    keep(C.days, (v, k) => isDay(k) && isNum(v) && v > 0);
+    keep(C.end, (v, k) => (k === 'aw' || k === 'ksb') && isDay(v));
+    if (!['aw', 'ksb', 'cp'].includes(C.path)) C.path = 'aw';
+    C.cpNote = str(C.cpNote).slice(0, 30000);
     return out;
   }
   function loadLocal() {
@@ -558,7 +589,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   let state = normalise(newest(loadLocal(), loadFromApp()));
   // Six tabs; the other screens open from them (or from More) and have a back button.
   const TABS = ['home', 'plan', 'study', 'portfolio', 'progress', 'more'];
-  const ROUTE_NAMES = TABS.concat(['courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'pp', 'voice']);
+  const ROUTE_NAMES = TABS.concat(['courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'pp', 'voice', 'coach']);
   const OLD_ROUTES = { today: 'home', chat: 'home', reflect: 'goals', practice: 'study' };
   const routeOf = (v) => (OLD_ROUTES[v] || (ROUTE_NAMES.includes(v) ? v : 'home'));
   let route = 'home';
@@ -2485,6 +2516,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
           <div class="row">${ahead ? `<button class="btn sm" data-act="pull" data-id="${esc(c.id)}">${ic('play', 14)} Do it tonight</button>` : `<button class="btn sm" data-act="start-step" data-id="${esc(c.id)}">${ic('play', 14)} Start now</button>`}<button class="btn sm ghost" data-act="why-next">Why this?</button></div></div>`;
       }
     }
+    html += coachHomeCard();
     if (state.settings.energyCheck !== false) {
       html += `<div class="card"><div class="row between"><h3>How's your energy today?</h3>${e === 'low' ? '<span class="pill warn">low</span>' : e === 'high' ? '<span class="pill good">high</span>' : e === 'okay' ? '<span class="pill info">okay</span>' : ''}</div>
         <div class="chips">${[['low', 'Low, keep it light'], ['okay', 'Okay'], ['high', 'Good, push me']].map(([k, l]) => `<button class="chip" data-act="energy" data-id="${k}" aria-pressed="${e === k}">${l}</button>`).join('')}</div></div>`;
@@ -2775,7 +2807,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     return pp.duties.map((i) => `Duty ${i + 1}: ${PORT.duties[i]}. Tell the story of one piece of evidence that shows this duty: what you did, what happened for your learners, which KSBs it shows, and what you would do differently.`);
   }
   function papersView() {
-    return '<div class="small muted">Practice papers: answer in your own words, then review them with your tutor, who checks against the criteria without rewriting them.</div>'
+    return '<div class="small muted">Practice papers: answer in your own words, then review them with your tutor, who checks against the criteria without rewriting them. For the assessor workbook itself, the coach has its exact questions with a lesson for each. <button class="linkish" data-act="co-go" data-path="aw" data-id="">Open the coach</button></div>'
       + PAPERS.map((pp) => {
         const qs = paperQs(pp);
         const a = (state.papers[pp.id] && state.papers[pp.id].answers) || {};
@@ -3109,6 +3141,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   V.more = () => {
     const mon = mondayOf(todayKey());
     const tiles = [
+      ['coach', 'Coach', (() => { const n = coachToday().length; return n ? `${plural(n, 'small step')} today` : 'A small step every day'; })()],
       ['courses', 'Courses', '2 active'],
       ['learn', 'Learn', 'Today’s lesson'],
       ['library', 'Library', `Online library · ${plural(catalogue().length, 'resource')}`],
@@ -3353,7 +3386,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   // The page checks its own main screens before telling the app it works.
   function selfTest() {
     try {
-      ['home', 'plan', 'study', 'progress', 'more', 'library', 'settings', 'courses', 'deadlines', 'voice'].forEach((r) => { if (typeof V[r] !== 'function' || typeof V[r]() !== 'string') throw new Error(r); });
+      ['home', 'plan', 'study', 'progress', 'more', 'library', 'settings', 'courses', 'deadlines', 'voice', 'coach'].forEach((r) => { if (typeof V[r] !== 'function' || typeof V[r]() !== 'string') throw new Error(r); });
       return true;
     } catch (e) { return false; }
   }
@@ -3372,7 +3405,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 
   /* ---------- What makes it smart ---------- */
   V.about = () => `<div class="notice"><div><b>Can it be smarter than Claude?</b><p>No app can out-think the model it runs on, and the tutor here is Claude, your own account. What the app adds is memory: your deadlines, missed evenings, portfolio gaps, quiz mistakes and what works for you. So it can put the right thing in front of you, and hand Claude your week when you ask.</p></div></div>
-    ${[['Listen and speak', 'The phone reads lessons, readings and your own writing to you, even with the screen off. Tap Speak under any writing box to turn what you say into text, and keep spoken notes with each observation.'], ['Podcasts inside the app', 'Tap Play on the day’s podcast and it plays here, with the screen off and on the lock screen. It carries on from where you stopped, and every episode of the show is a tap away.'], ['Online library, inside the app', 'Your course reading list on Padlet and the Ann Gravells list open in the app. Save any page and it is filed by topic.'], ['A Study tab that picks for you', 'What to study, read, watch and listen to, chosen from your weak topics, what is due, your energy and the time you have. Every pick says why.'], ['Learns what works', 'Tap Done and say if it stuck. Readings, videos and podcasts are ranked by what has worked for you.'], ['Updates by itself', 'New library items, deadlines and fixes arrive without a new install.'], ['Tutor that knows your week', 'Ask tutor opens your Claude account in the app, with your plan ready to go in the message box.'], ['One next step', 'The single best thing to do now: an open review first, then the closest deadline.'], ['Portfolio readiness', 'Eight parts of the Module 3 portfolio, measured from your own records.'], ['Self-healing planner', 'Missed steps move to the next evening with room before their deadline.'], ['Energy check-in', 'Low evenings keep only the most urgent step.'], ['Mistake notebook', 'Wrong answers become review cards.'], ['Spaced repetition', 'Cards come back just before you forget them.'], ['Format that fits', 'Leads with the format that sticks for you.'], ['Real alarms', 'Rings like an alarm clock until the work is ticked off.'], ['Decision log', 'Every change explained, most can be undone.']].map(([a, b]) => `<div class="card"><b>${esc(a)}</b><div class="small muted">${esc(b)}</div></div>`).join('')}`;
+    ${[['The coach', 'A small step each day. For the assessor workbook: a short lesson and two checks for every question, then a plan and your own answer. For the PGCE: one KSB a day, and five minutes a day on the change project. Claude joins in for live coaching and for feedback, and never writes it for you. Open it from Home or More.'], ['Listen and speak', 'The phone reads lessons, readings and your own writing to you, even with the screen off. Tap Speak under any writing box to turn what you say into text, and keep spoken notes with each observation.'], ['Podcasts inside the app', 'Tap Play on the day’s podcast and it plays here, with the screen off and on the lock screen. It carries on from where you stopped, and every episode of the show is a tap away.'], ['Online library, inside the app', 'Your course reading list on Padlet and the Ann Gravells list open in the app. Save any page and it is filed by topic.'], ['A Study tab that picks for you', 'What to study, read, watch and listen to, chosen from your weak topics, what is due, your energy and the time you have. Every pick says why.'], ['Learns what works', 'Tap Done and say if it stuck. Readings, videos and podcasts are ranked by what has worked for you.'], ['Updates by itself', 'New library items, deadlines and fixes arrive without a new install.'], ['Tutor that knows your week', 'Ask tutor opens your Claude account in the app, with your plan ready to go in the message box.'], ['One next step', 'The single best thing to do now: an open review first, then the closest deadline.'], ['Portfolio readiness', 'Eight parts of the Module 3 portfolio, measured from your own records.'], ['Self-healing planner', 'Missed steps move to the next evening with room before their deadline.'], ['Energy check-in', 'Low evenings keep only the most urgent step.'], ['Mistake notebook', 'Wrong answers become review cards.'], ['Spaced repetition', 'Cards come back just before you forget them.'], ['Format that fits', 'Leads with the format that sticks for you.'], ['Real alarms', 'Rings like an alarm clock until the work is ticked off.'], ['Decision log', 'Every change explained, most can be undone.']].map(([a, b]) => `<div class="card"><b>${esc(a)}</b><div class="small muted">${esc(b)}</div></div>`).join('')}`;
 
   /* ---------- Deadlines and Add ---------- */
   function filterChips() {
@@ -3435,7 +3468,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   };
 
   /* ---------- the shell: top bars, six tabs, sheets, toasts ---------- */
-  const TITLES = { plan: 'Planner', study: 'Study', portfolio: 'Portfolio', progress: 'Progress', more: 'More', courses: 'Courses', learn: 'Learn', library: 'Library', voice: 'Listen & speak', terms: 'Key terms & models', goals: 'Goals & reflection', log: 'How it adapts', settings: 'Settings', about: 'What makes it smart', deadlines: 'Deadlines', add: 'Add a deadline', paper: 'Practice paper' };
+  const TITLES = { plan: 'Planner', study: 'Study', portfolio: 'Portfolio', progress: 'Progress', more: 'More', courses: 'Courses', learn: 'Learn', library: 'Library', voice: 'Listen & speak', terms: 'Key terms & models', goals: 'Goals & reflection', log: 'How it adapts', settings: 'Settings', about: 'What makes it smart', deadlines: 'Deadlines', add: 'Add a deadline', paper: 'Practice paper', coach: 'Coach' };
   const NAV = [['home', 'Home'], ['plan', 'Plan'], ['study', 'Study'], ['portfolio', 'Portfolio'], ['progress', 'Progress'], ['more', 'More']];
   function renderNav() {
     const top = TABS.includes(route) ? route : (stack.length && TABS.includes(stack[0]) ? stack[0] : 'more');
@@ -3478,6 +3511,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     $('#screen').scrollTop = 0;
   }
   function back() {
+    if (route === 'coach' && sub.cq) { sub.cq = null; render(); $('#screen').scrollTop = 0; return; }
     route = stack.pop() || 'home';
     render();
     $('#screen').scrollTop = 0;
@@ -4276,6 +4310,703 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
         ${sub.padClear ? '<div class="notice warn"><div><b>Clear the notepad?</b><div class="btnrow" style="margin-top:8px"><button class="btn sm danger" data-act="pad-clear">Yes, clear it</button><button class="btn sm ghost" data-act="pad-clear-no">Keep it</button></div></div></div>' : `<div class="btnrow"><button class="btn sm ghost" data-act="pad-copy">Copy</button><button class="btn sm ghost" data-act="pad-ask">${ic('spark', 14)} Ask tutor to tidy it</button><button class="btn sm ghost danger" data-act="pad-clear-ask">Clear</button></div>`}</div>`;
   };
 
+  /* ---------- Coach: a small step every day, taught before you write ----------
+     The coach plans the day's steps in the app, teaches each workbook question in short parts, checks it stuck,
+     then helps you plan and write your own answer. Claude (your own account) does the live teaching and the feedback.
+     The workbook lessons follow Unit D/601/5313 question by question, written from the assessor's role. */
+  const VERBS = {
+    Explain: 'Say how or why, with reasons and an example. A list on its own is not enough.',
+    Define: 'Give the exact meaning of each term, in a sentence each.',
+    Identify: 'Name each one and say briefly why it applies to your area.',
+    Compare: 'Set them side by side: strengths, limits, and which suits whom.',
+    Summarise: 'Give the main points briefly, without long explanation.',
+    Evaluate: 'Weigh the benefits against the limits, then give your own judgement.'
+  };
+  const REFS = {
+    gr21: 'Gravells, A. (2021) Principles and Practices of Assessment: A Guide for Assessors in the FE and Skills Sector. 4th edn. London: Learning Matters (SAGE).',
+    gr16: 'Gravells, A. (2016) Principles and Practices of Quality Assurance: A Guide for Internal and External Quality Assurers in the FE and Skills Sector. London: Learning Matters (SAGE).',
+    lluk: 'Lifelong Learning UK (2010) National Occupational Standards for Learning and Development, Standard 9: Assess learner achievement. London: Lifelong Learning UK.',
+    jessup: 'Jessup, G. (1991) Outcomes: NVQs and the Emerging Model of Education and Training. London: Falmer Press.',
+    scriven: 'Scriven, M. (1967) ‘The methodology of evaluation’, in Tyler, R.W., Gagné, R.M. and Scriven, M. (eds) Perspectives of Curriculum Evaluation. Chicago: Rand McNally, pp. 39–83.',
+    wolf: 'Wolf, A. (1995) Competence-Based Assessment. Buckingham: Open University Press.',
+    glaser: 'Glaser, R. (1963) ‘Instructional technology and the measurement of learning outcomes: some questions’, American Psychologist, 18(8), pp. 519–521.',
+    messick: 'Messick, S. (1989) ‘Validity’, in Linn, R.L. (ed.) Educational Measurement. 3rd edn. New York: American Council on Education/Macmillan, pp. 13–103.',
+    read: 'Read, H. (2016) The Best Assessor’s Guide: Essential Knowledge and Skills for Vocational Assessors. Read On Publications.',
+    ofqual: 'Ofqual (no date) Ofqual Handbook: General Conditions of Recognition. Coventry: Ofqual. Available at: https://www.gov.uk/guidance/ofqual-handbook',
+    jcq: 'Joint Council for Qualifications (2025) AI Use in Assessments: Protecting the Integrity of Qualifications. Revision 2, April 2025. London: JCQ.',
+    hswa: 'Health and Safety at Work etc. Act 1974, c. 37. London: HMSO.',
+    eqa: 'Equality Act 2010, c. 15. London: The Stationery Office.',
+    dpa: 'Data Protection Act 2018, c. 12. London: The Stationery Office.',
+    kcsie: 'Department for Education (2026) Keeping children safe in education 2026: statutory guidance for schools and colleges. London: Department for Education.',
+    miller: 'Miller, G.E. (1990) ‘The assessment of clinical skills/competence/performance’, Academic Medicine, 65(9 Suppl.), pp. S63–S67.',
+    bloom: 'Anderson, L.W. and Krathwohl, D.R. (eds) (2001) A Taxonomy for Learning, Teaching, and Assessing: A Revision of Bloom’s Taxonomy of Educational Objectives. New York: Longman.',
+    eraut00: 'Eraut, M. (2000) ‘Non-formal learning and tacit knowledge in professional work’, British Journal of Educational Psychology, 70(1), pp. 113–136.',
+    doran: 'Doran, G.T. (1981) ‘There’s a S.M.A.R.T. way to write management’s goals and objectives’, Management Review, 70(11), pp. 35–36.',
+    knowles: 'Knowles, M.S., Holton, E.F. and Swanson, R.A. (2015) The Adult Learner: The Definitive Classic in Adult Education and Human Resource Development. 8th edn. Abingdon: Routledge.',
+    hager: 'Hager, P. and Gonczi, A. (1996) ‘What is competence?’, Medical Teacher, 18(1), pp. 15–18.',
+    stobart: 'Stobart, G. (2008) Testing Times: The Uses and Abuses of Assessment. Abingdon: Routledge.',
+    hse: 'Health and Safety Executive (2014) Risk assessment: A brief guide to controlling risks in the workplace (INDG163, rev. 4). Bootle: HSE.',
+    ryan: 'Ryan, R.M. and Deci, E.L. (2000) ‘Self-determination theory and the facilitation of intrinsic motivation, social development, and well-being’, American Psychologist, 55(1), pp. 68–78.',
+    boud: 'Boud, D. (1995) Enhancing Learning through Self Assessment. London: Kogan Page.',
+    torrance: 'Torrance, H. (2007) ‘Assessment as learning? How the use of explicit learning objectives, assessment criteria and feedback in post-secondary education and training can come to dominate learning’, Assessment in Education: Principles, Policy & Practice, 14(3), pp. 281–294.',
+    sadler: 'Sadler, D.R. (1987) ‘Specifying and promulgating achievement standards’, Oxford Review of Education, 13(2), pp. 191–209.',
+    harlen: 'Harlen, W. (2005) ‘Trusting teachers’ judgement: research evidence of the reliability and validity of teachers’ assessment used for summative purposes’, Research Papers in Education, 20(3), pp. 245–270.',
+    gipps: 'Gipps, C. and Murphy, P. (1994) A Fair Test? Assessment, Achievement and Equity. Buckingham: Open University Press.',
+    oneill: 'O’Neill, O. (2002) A Question of Trust: The BBC Reith Lectures 2002. Cambridge: Cambridge University Press.',
+    deming: 'Deming, W.E. (1986) Out of the Crisis. Cambridge, MA: Massachusetts Institute of Technology, Center for Advanced Engineering Study.',
+    hattie: 'Hattie, J. and Timperley, H. (2007) ‘The power of feedback’, Review of Educational Research, 77(1), pp. 81–112.',
+    kluger: 'Kluger, A.N. and DeNisi, A. (1996) ‘The effects of feedback interventions on performance: a historical review, a meta-analysis, and a preliminary feedback intervention theory’, Psychological Bulletin, 119(2), pp. 254–284.',
+    jisc: 'Jisc (2020) The future of assessment: five principles, five targets for 2025. Bristol: Jisc.',
+    cummins: 'Cummins, J. (1979) ‘Cognitive/academic language proficiency, linguistic interdependence, the optimum age question and some other matters’, Working Papers on Bilingualism, 19, pp. 121–129.',
+    welsh: 'Welsh Language (Wales) Measure 2011, nawm 1. Cardiff: National Assembly for Wales.',
+    schon: 'Schön, D.A. (1983) The Reflective Practitioner: How Professionals Think in Action. New York: Basic Books.',
+    gibbs: 'Gibbs, G. (1988) Learning by Doing: A Guide to Teaching and Learning Methods. Oxford: Further Education Unit, Oxford Polytechnic.',
+    eraut94: 'Eraut, M. (1994) Developing Professional Knowledge and Competence. London: Falmer Press.'
+  };
+  const AW_LO = ['', 'The principles and requirements of assessment', 'Types of assessment method', 'How to plan assessment', 'Involving learners and others', 'Making assessment decisions', 'Quality assurance', 'Managing assessment information', 'Legal and good practice requirements'];
+  // The planner deadline each outcome is handed in for, so questions with a hand-in still ahead come first.
+  const AW_DL = { 1: 'as-o12', 2: 'as-o12', 3: 'as-o36', 4: 'as-o36', 5: 'as-o36', 6: 'as-o36', 7: 'as-o78', 8: 'as-o78' };
+  // Where the same question sits in the practice papers (paper id, question index), to bring an answer across.
+  const AW_PAPER = { '1.1': ['aw12', 0], '1.2': ['aw12', 1], '1.3': ['aw12', 2], '1.4': ['aw12', 3], '2.1': ['aw12', 4], '7.1': ['aw78', 0], '7.2': ['aw78', 1], '8.1': ['aw78', 2], '8.2': ['aw78', 3], '8.3': ['aw78', 4], '8.4': ['aw78', 5] };
+  // q: the workbook's wording. t: study topic. learn: the lesson in short parts. check: [question, options, right one, why].
+  // cover: what a good answer covers. trap: the common slip. own: the example to bring. start: ways to begin. src: sources.
+  const AW = [
+    { id: '1.1', q: 'Explain the function of assessment in learning and development.', t: 'vacsr',
+      learn: [['What assessment is, for an assessor', 'An assessor collects evidence of what a candidate (the learner you assess) can do and knows, and judges it against published standards. The result is a decision: competent, or not yet competent. The trainer builds the skill. The assessor confirms, independently, that the standard has been reached.'],
+        ['Its main functions', 'Initial assessment finds the starting point and any prior learning. Formative assessment gives interim decisions and feedback on what is met and what is not yet met. Summative assessment is the final decision. Scriven (1967) first separated the formative role from the summative one.'],
+        ['Why it matters beyond the candidate', 'Decisions lead to certificates, progression and jobs, so employers rely on them. Records give an audit trail for quality assurance. Jessup (1991) argued that what counts is the outcome shown against standards, not the time spent learning.'],
+        ['The assessment cycle', 'Gravells (2021) describes a cycle: initial assessment, assessment planning, assessment activity, decision and feedback, review of progress. It repeats until the qualification is achieved.']],
+      check: [['A candidate is not yet competent on one criterion. What does the assessor do?', ['Teach the missing skill during the assessment', 'Record the decision, give feedback and refer the gap back for more training or experience', 'Pass them if the rest was good'], 1, 'The assessor judges and records. The gap goes back to the trainer or the workplace, and is assessed again later.'],
+        ['Which is a summative function of assessment?', ['Finding out what the candidate can already do', 'The final decision that all the criteria are met', 'Feedback part way through a unit'], 1, 'Summative means the final judgement. Starting points are initial assessment, and interim feedback is formative.']],
+      cover: ['The assessor’s function: judging evidence against standards and recording a decision', 'Initial, formative and summative functions, seen from the assessor’s side', 'The link to certification, progression and competence at work', 'Quality and accountability: records that can be checked'],
+      trap: 'Writing about teaching or lesson planning. This question is about the assessor’s role.',
+      own: 'One learner you assess: what did an interim decision tell them, and what happened next?',
+      start: ['The function of assessment is to…', 'For example, when I assessed…'], src: ['gr21', 'jessup', 'scriven'] },
+    { id: '1.2', q: 'Define the key concepts and principles of assessment.', t: 'vacsr',
+      learn: [['Concepts and principles are different things', 'Concepts are the ideas that describe how assessment is organised. Principles are the rules that make every decision trustworthy. A good answer defines each one in a sentence. It does not just list them.'],
+        ['Key concepts', 'Competence-based: the candidate proves they can do the job to the standard. There are no marks, only competent or not yet competent (Wolf, 1995). Criterion-referenced: judged against fixed criteria, not against other candidates (Glaser, 1963). Others to define: initial, formative and summative assessment, direct and indirect evidence, holistic assessment, recognition of prior learning, and standardisation.'],
+        ['Key principles', 'Validity: the method assesses what the criterion asks for (Messick, 1989). Reliability: the same evidence gets the same decision from any assessor, on any day. Fairness: every candidate has an equal chance to show competence. Gravells (2021) sums up the rules for evidence as VACSR: valid, authentic, current, sufficient and reliable.']],
+      check: [['Two assessors look at the same evidence and reach different decisions. Which principle has failed?', ['Validity', 'Currency', 'Reliability'], 2, 'Reliability is about consistency between assessors and over time. Validity is about assessing the right thing.'],
+        ['Criterion-referenced assessment means the candidate is judged…', ['Against the rest of the group', 'Against their own earlier work', 'Against fixed, published criteria'], 2, 'Judging against the group is norm-referencing. Judging against earlier work is ipsative assessment.']],
+      cover: ['A sentence defining each concept and each principle, not a list', 'Competence-based and criterion-referenced assessment', 'Validity, reliability and fairness', 'VACSR for evidence'],
+      trap: 'Mixing up validity (the right thing is assessed) with reliability (the same decision every time).',
+      own: 'Pick one principle and say how you applied it in a recent assessment.',
+      start: ['A concept is… For example…', 'Validity means…'], src: ['gr21', 'wolf', 'glaser', 'messick'] },
+    { id: '1.3', q: 'Explain the responsibilities of the assessor.', t: 'vacsr',
+      learn: [['The core responsibility', 'The assessor makes accurate, fair and defensible decisions against the standards, and records them so they can be quality assured. The national standard for the role is Standard 9, Assess learner achievement (Lifelong Learning UK, 2010).'],
+        ['What that means day to day', 'Know the standards and the awarding organisation’s assessment strategy. Plan with the candidate and the employer. Carry out the assessment with valid methods. Judge the evidence using VACSR. Give clear feedback. Record, sign and date, and track progress.'],
+        ['Integrity and staying competent', 'Take part in internal quality assurance (IQA) sampling and standardisation. Declare conflicts of interest and report suspected malpractice. Resist pressure to pass someone who is not yet competent (Read, 2016). Follow health and safety, safeguarding, equality and data protection law. Keep your occupational and assessment practice current through CPD. Until you are qualified, your decisions are countersigned.']],
+      check: [['Who owns the assessment decision?', ['The assessor', 'The internal quality assurer', 'The employer'], 0, 'The assessor makes and owns the decision. The IQA samples it to check it is sound.'],
+        ['An employer asks you to sign off an apprentice who is not yet competent, to meet a target. You should…', ['Refuse: decisions are made only against the standards', 'Sign, because the employer knows the apprentice best', 'Ask the candidate to decide'], 0, 'Independence from pressure is part of the role. If the pressure continues, report it through your centre.']],
+      cover: ['Occupational competence and knowing the standards', 'Plan, assess, decide, give feedback and record', 'Quality assurance and standardisation', 'Integrity: conflicts of interest, malpractice and pressure', 'Legal duties and CPD, with countersigning until qualified'],
+      trap: 'Saying the IQA makes the decision. The assessor decides, and the IQA samples.',
+      own: 'Which of these do you already do for the learners you assess, and which is new to you?',
+      start: ['The assessor is responsible for…', 'In my own practice this means…'], src: ['lluk', 'read', 'ofqual'] },
+    { id: '1.4', q: 'Identify the regulations and requirements relevant to the assessment in own area of practice.', t: 'law',
+      learn: [['Think in three layers', 'The rules of the qualification, the law, and the standards of your industry. “Identify” means name each one and say briefly why it applies to your own assessments.'],
+        ['Qualification rules', 'Ofqual regulates awarding organisations through its General Conditions of Recognition. Your centre is bound through its agreement with the awarding organisation. Day to day you follow the qualification specification and the assessment strategy: what must be observed, whether simulation is allowed, who may assess, and the rules on AI in assessed work (Joint Council for Qualifications, 2025).'],
+        ['The law', 'Health and Safety at Work etc. Act 1974. Equality Act 2010, including reasonable adjustments. Data Protection Act 2018 and UK GDPR. Safeguarding: Keeping children safe in education for learners under 18, and the Prevent duty. Copyright, Designs and Patents Act 1988.'],
+        ['Your industry', 'Candidates are judged against current industry standards. In engineering these include BS 8888:2025 for drawings and BS 7671:2018+A4:2026 for electrical work. An assessor must know which edition is current.']],
+      check: [['Who does Ofqual regulate directly?', ['Colleges and training providers', 'Awarding organisations', 'Individual assessors'], 1, 'Ofqual regulates awarding organisations. Centres are bound through their centre agreement.'],
+        ['Where do you find which criteria must be directly observed?', ['The Equality Act 2010', 'The college timetable', 'The awarding organisation’s assessment strategy'], 2, 'The qualification specification and the assessment strategy set the rules for evidence.']],
+      cover: ['Ofqual’s conditions and the awarding organisation’s assessment strategy', 'Health and safety, equality, data protection and safeguarding law', 'Standards from your own industry, with current dates', 'Each one tied to your own area of practice'],
+      trap: 'Saying Ofqual regulates the college. It regulates awarding organisations.',
+      own: 'Name your own qualification, its awarding organisation and the industry standards your learners work to.',
+      start: ['In my area of practice, which is…', 'The assessment strategy requires…'], src: ['ofqual', 'jcq', 'hswa', 'eqa'] },
+    { id: '2.1', q: 'Compare the strengths and limitations of a range of assessment methods with reference to the needs of individual learners.', t: 'methods',
+      parts: ['Observation', 'Oral Questioning', 'Professional / Guided Discussion', 'Witness Testimony', 'Examination of Product Evidence', 'Written Questioning'],
+      learn: [['Direct methods', 'Observation shows real performance, so it is the most valid method for practical criteria. But people can act differently when watched, and it does not show the knowledge behind the action. Examining a product is concrete and can be checked again, but you must confirm that the candidate made it.'],
+        ['Questioning and discussion', 'Oral questioning is quick and checks the “why” behind the work, but it must be planned and recorded. A professional discussion covers many criteria in one planned, two-way talk and draws out tacit knowledge (Eraut, 2000), but a fluent talker can seem more competent than they are. Written questions give a permanent record, but answers can be copied or written by AI, and writing can disadvantage candidates with low literacy.'],
+        ['Witness testimony', 'A statement from someone who saw the work, such as a supervisor. It covers what you cannot see, like night shifts. It is indirect evidence, so check who the witness is and what they know, and keep to the limits in the assessment strategy (Read, 2016).'],
+        ['Match the method to the person', 'For each method, say who it suits. Oral questioning suits a candidate with dyslexia. Share a discussion agenda in advance with an anxious candidate. A reader, a scribe or extra time can support written questions. The standard itself never changes.']],
+      check: [['Which method is the most valid for a practical performance criterion?', ['Written questioning', 'Observation of real work', 'Witness testimony'], 1, 'Observation shows the candidate doing it. Miller (1990) puts “does” at the top of his framework.'],
+        ['A candidate hands in a well-made component. What must you still check?', ['That it is heavier than the last one', 'Nothing, a product speaks for itself', 'That it is authentic: they made it'], 2, 'Authenticity is the main risk with products. Confirm it by questioning, observation or a witness.']],
+      cover: ['For each of the six methods: a strength, a limitation and a point about individual needs', 'Some judgement across the methods, because the verb is Compare', 'Authenticity checks for products and written answers', 'Checks on whether a witness is suitable'],
+      trap: 'Listing the methods without comparing them or linking them to individual learners.',
+      own: 'Which two methods do you use most with your learners, and who do they suit or not suit?',
+      start: ['Compared with observation, written questioning…', 'For a learner who…, the better method is…'], src: ['miller', 'eraut00', 'read', 'bloom'] },
+    { id: '3.1', q: 'Summarise key factors to consider when planning assessment.', t: 'planning',
+      learn: [['Plan with the candidate', 'The assessor plans with the candidate, and usually the employer, and records it in an assessment plan. Gravells (2021) suggests who, what, when, where, why and how. A good plan is SMART (Doran, 1981).'],
+        ['Factors about the standard and the person', 'The standards and the assessment strategy: which criteria, what evidence, what must be observed. The candidate: their job, prior learning, readiness, needs and adjustments, and shift pattern. Methods: valid for each criterion, without over-assessing.'],
+        ['Factors about the setting', 'Holistic opportunities. Timing around real work and deadlines. Location and safety: access, induction, risk assessment and PPE. Others involved: the employer, witnesses and the IQA. Authenticity and the AI rules. Recording and data protection. A contingency in case the work is not available.']],
+      check: [['“Summarise” asks you to…', ['Argue for and against', 'Give the main points briefly', 'Describe one factor in great depth'], 1, 'Summarise means the key points in brief. Keep the weighing up for Evaluate questions.'],
+        ['Before you plan an observation, who should confirm the candidate is ready?', ['The candidate, with the trainer or employer', 'Nobody: readiness is the assessor’s guess', 'The external quality assurer'], 0, 'Readiness is confirmed with those who know the candidate’s work, so the assessment is fair and safe.']],
+      cover: ['The standards and the assessment strategy', 'The candidate: role, prior learning, readiness and needs', 'Methods, holistic opportunities and timing', 'Location, health and safety, and others involved', 'Authenticity, recording and quality assurance'],
+      trap: 'Describing lesson planning. This is about planning an assessment.',
+      own: 'Use an assessment plan you have written, or are about to write, as your example.',
+      start: ['The key factors I consider are…', 'When I planned the assessment of…'], src: ['gr21', 'doran', 'knowles'] },
+    { id: '3.2', q: 'Evaluate the benefits of using a holistic approach to assessment.', t: 'planning',
+      learn: [['What holistic means', 'One piece of real work is used to collect evidence for criteria across several units, instead of assessing each criterion on its own. Hager and Gonczi (1996) argue that competence is knowledge, skill and judgement working together, so it is best judged together.'],
+        ['Benefits', 'More valid: competence is seen as it happens in the job. More efficient: fewer visits, less duplicated evidence and less disruption for the employer. Less over-assessment and stress. Knowledge and performance are linked through questioning. Units can be achieved sooner.'],
+        ['Limits, and a judgement', 'Planning and mapping are harder, and criteria can be missed without a mapping grid. Records must cross-reference every criterion. It needs an experienced assessor. “Evaluate” means you weigh both sides and say where you land. For competence-based qualifications the benefits usually outweigh the limits, if the mapping is careful (Gravells, 2021).']],
+      check: [['What makes an answer an evaluation, not a description?', ['Benefits, limitations and a reasoned conclusion', 'A longer list of benefits', 'More references'], 0, 'Evaluate needs both sides and your own judgement.'],
+        ['Which tool stops criteria being missed in holistic assessment?', ['A seating plan', 'A mapping grid', 'A longer observation'], 1, 'Mapping shows which criteria each activity can cover, and which still need other evidence.']],
+      cover: ['What a holistic approach is', 'Benefits: validity, efficiency and less over-assessment', 'Limitations: mapping, recording and assessor skill', 'A reasoned conclusion', 'A work example of one activity covering several units'],
+      trap: 'Only listing benefits. Evaluate needs the limits and a conclusion.',
+      own: 'One task your learners do that could cover criteria from more than one unit.',
+      start: ['The main benefit of a holistic approach is…', 'On balance, I judge that…'], src: ['hager', 'wolf', 'gr21'] },
+    { id: '3.3', q: 'Explain how to plan a holistic approach to assessment', t: 'planning',
+      learn: [['Start from the work', 'Plan from the candidate’s real work, not from the list of criteria (Gravells, 2021; Read, 2016). First find out what tasks the candidate does, and when.'],
+        ['The steps', 'Know the standards and what must be observed. Find out about the job. Choose a natural activity that covers many criteria. Map it against the units. Agree a SMART plan with the candidate and the employer. Prepare: risk assessment, questions for the gaps, and a briefing for any witness.'],
+        ['After the activity', 'Assess, and cross-reference each piece of evidence to every criterion it meets. Give feedback. Update the tracking record, plan for what is not yet met, and include the decision in IQA sampling.']],
+      check: [['Where does holistic planning start?', ['From criterion 1.1, in order', 'From the IQA sampling plan', 'From the candidate’s real work activities'], 2, 'The plan follows the work. The standards are then used to judge it.'],
+        ['Knowledge criteria not seen during the activity are usually covered by…', ['Leaving them out', 'Questioning or a professional discussion', 'A second identical observation'], 1, 'Questioning fills the knowledge gaps without repeating the task.']],
+      cover: ['Identify a suitable real work activity', 'Map and cross-reference criteria across units', 'Agree the plan with the candidate and the employer', 'Record against all the criteria, then review'],
+      trap: 'Repeating your answer to 3.2. This one asks how to plan it, so give the steps.',
+      own: 'Walk through how you would plan one holistic assessment for a learner you know.',
+      start: ['First, I would find out…', 'I would then map the activity to…'], src: ['gr21', 'read', 'hager'] },
+    { id: '3.4', q: 'Summarise the types of risks that may be involved in assessment in own area of responsibility.', t: 'planning',
+      learn: [['What counts as a risk', 'A risk is anything that could cause harm, make a decision invalid or unfair, or damage the integrity of the qualification. Stobart (2008) shows that high-stakes assessment creates pressures that can distort decisions, so risks are not only physical.'],
+        ['Risks to people', 'Health and safety: machinery, electricity, lifting, hazardous substances, unfamiliar sites and lone working. Safeguarding and welfare: learners under 18, one-to-one or online contact, stress and anxiety. Equality: arrangements that disadvantage some candidates.'],
+        ['Risks to the decision', 'Validity and reliability: wrong methods, bias, inconsistent decisions, too little evidence or over-assessment. Malpractice: plagiarism, undeclared AI use, false witness testimony, or signing off without evidence. Conflicts of interest and pressure to pass. Information: lost evidence or a data breach. Organisational: wrong certification claims and sanctions.']],
+      check: [['Which of these is a risk to the integrity of an assessment decision?', ['Pressure from an employer to pass a candidate', 'A noisy workshop', 'A long drive to the site'], 0, 'Pressure and conflicts of interest threaten the decision itself.'],
+        ['Assessing a relative is an example of…', ['Holistic assessment', 'A reasonable adjustment', 'A conflict of interest'], 2, 'Declare it, so that another assessor can be arranged.']],
+      cover: ['Health and safety', 'Safeguarding and welfare', 'Validity, reliability and bias', 'Malpractice and authenticity, including AI', 'Conflicts of interest, information and organisational risks'],
+      trap: 'Covering only health and safety. Risks to the decision matter just as much.',
+      own: 'The two or three risks that are most real where you assess.',
+      start: ['The types of risk in my area include…', 'A risk to the decision itself is…'], src: ['stobart', 'hse', 'jcq'] },
+    { id: '3.5', q: 'Explain how to minimise risks through the planning process.', t: 'planning',
+      learn: [['Use the risk assessment steps', 'The Health and Safety Executive’s steps work for every kind of assessment risk: identify the hazards, assess the risks, control them, record, and review (Health and Safety Executive, 2014). Most risks are reduced by what you do when you plan.'],
+        ['Planning actions for people', 'Safety: check the risk assessments, induction and PPE, confirm the candidate is trained and ready, and agree that you will stop if anything is unsafe. Safeguarding: use visible areas, follow lone-working rules, and know who the designated safeguarding lead is. Fairness: agree and record adjustments in advance.'],
+        ['Planning actions for the decision', 'Validity: plan methods from the assessment strategy and map the criteria. Reliability: standardisation and planned IQA sampling. Authenticity: brief candidates on plagiarism and AI, use declarations, and plan questions on products. Conflicts: declare them early. Information: use the secure e-portfolio. Agree a contingency.']],
+      check: [['You find you are due to assess a friend. The planning action is to…', ['Assess them anyway, but more strictly', 'Declare the conflict, so another assessor can be arranged', 'Ask the friend not to mention it'], 1, 'Conflicts are declared when candidates are allocated, before any assessment.'],
+        ['Which planning action reduces the risk of product evidence that is not the candidate’s own?', ['Allowing more time', 'Planning questions about how the product was made', 'Using a bigger room'], 1, 'A candidate who made it can explain how.']],
+      cover: ['A planning action for each type of risk in 3.4', 'Health and safety checks before an observation', 'Adjustments agreed in advance', 'Standardisation, IQA sampling and authenticity checks', 'Conflicts declared, and a contingency'],
+      trap: 'Restating the risks from 3.4. Here every risk needs a planning action.',
+      own: 'For the risks you named in 3.4, what do you put in the plan?',
+      start: ['To minimise this risk, I plan…', 'Before an observation I check…'], src: ['hse', 'gr21', 'ofqual'] },
+    { id: '4.1', q: 'Explain the importance of involving the learner and others in the assessment process.', t: 'involve',
+      learn: [['Assessment is done with people', 'Adults expect a say in decisions that affect them (Knowles, Holton and Swanson, 2015), and motivation grows with autonomy and competence (Ryan and Deci, 2000). A candidate who helped to plan knows what is expected.'],
+        ['Why involve the candidate', 'Ownership and readiness. Better evidence: they know their job, where evidence occurs naturally and what prior learning they have. Fairness: they can tell you about needs and commitments. Transparency: fewer disputes and appeals.'],
+        ['Why involve others', 'Employers give access to work, agree timing, confirm readiness and act as witnesses. Trainers confirm readiness and pick up the gaps. Witnesses cover work you cannot see. IQAs and external quality assurers (EQAs) sample and standardise. Support staff help with adjustments. Other assessors help to avoid over-assessment.']],
+      check: [['Why does involving the candidate in planning reduce appeals?', ['They can choose their own result', 'The assessor has less to record', 'They understand the standard and how the decision is made'], 2, 'Transparency makes decisions more likely to be accepted.'],
+        ['Which “other” can give evidence of work the assessor cannot see?', ['A workplace witness, such as a supervisor', 'The external quality assurer', 'Another candidate’s parent'], 0, 'Witness testimony covers work outside the assessor’s visits.']],
+      cover: ['Why the learner’s involvement matters: ownership, valid evidence and fairness', 'Named others, and what each one contributes', 'The effect on the process: planned, transparent, accepted decisions'],
+      trap: 'Naming others without saying why each one matters to assessment.',
+      own: 'Who, besides the learner, is involved when you assess, and what do they add?',
+      start: ['Involving the learner matters because…', 'The employer contributes by…'], src: ['knowles', 'ryan', 'gr21'] },
+    { id: '4.2', q: 'Summarise types of information that should be made available to learners and others involved in the assessment process.', t: 'involve',
+      learn: [['Transparency', 'Fair assessment needs everyone to know what will be assessed, how, when and by whom, and what happens to the decision and the records (Gravells, 2021).'],
+        ['For candidates', 'The units and criteria in plain language. The assessment plan. What competent and not yet competent mean, and how feedback is given. The rules on authenticity, plagiarism and AI. Their rights: reasonable adjustments, special consideration, appeals and complaints. Safety and safeguarding arrangements, and how their data is used.'],
+        ['For others', 'Employers: the plan, dates, progress and what is needed from them. Witnesses: the criteria and what a valid statement must contain. Trainers: the gaps found. IQAs and EQAs: plans, records, decisions and tracking. The awarding organisation: registrations, claims and adjustment requests. Share only with those entitled to it.']],
+      check: [['Which must every candidate be told about?', ['How to appeal against a decision', 'Other candidates’ results', 'The assessor’s salary'], 0, 'Appeals and reasonable adjustments are rights that candidates must know about.'],
+        ['What does a witness need before writing a statement?', ['The candidate’s medical history', 'The relevant criteria, and what a valid statement contains', 'Nothing'], 1, 'A briefed witness writes evidence that is specific to the criteria.']],
+      cover: ['Information for learners: standards, plan, process, rules and rights', 'Appeals and reasonable adjustments', 'Information for employers, witnesses, IQA and EQA, and the awarding organisation', 'Shared only with those entitled to it, and kept secure'],
+      trap: 'Covering only the learner. The question says learners and others.',
+      own: 'What do you give your learners at the start, and what does the employer or the IQA get?',
+      start: ['Learners need to know…', 'Others involved need…'], src: ['gr21', 'ofqual', 'dpa'] },
+    { id: '4.3', q: 'Explain how peer and self-assessment can be used effectively to promote learner involvement and personal responsibility in the assessment of learning.', t: 'involve',
+      learn: [['What they are', 'Self-assessment: the candidate judges their own competence and evidence against the standards. Peer assessment: colleagues or fellow candidates comment on each other’s work. Neither replaces the assessor’s decision. Boud (1995) argues that judging your own work against standards is what makes learning last.'],
+        ['How they build involvement and responsibility', 'A skills scan at the start lets the candidate say what they can already prove. Saying “I am ready to be assessed” makes readiness their responsibility. Reflective accounts mapped to the criteria deepen understanding. Checking their own product against the drawing builds the habits the job needs. Peer review mirrors the second check that happens at work.'],
+        ['Using them well', 'Give the standards in plain language, with examples. Use checklists and templates. Discuss the self-assessment, and confirm or challenge it. Keep the boundary clear: both are formative, and only the assessor decides. Torrance (2007) warns against ticking criteria without understanding them.']],
+      check: [['Peer and self-assessment are…', ['Summative: they replace the assessor', 'Formative: they inform, but the assessor decides', 'Only for written work'], 1, 'They build involvement. The decision stays with the assessor.'],
+        ['A candidate measures their component against the drawing tolerances before handing it in. This is…', ['Self-assessment', 'Witness testimony', 'Standardisation'], 0, 'Checking your own work against the specification is self-assessment, and good working practice.']],
+      cover: ['What self-assessment and peer assessment mean', 'How they increase involvement and responsibility: gap analysis, readiness, reflective accounts', 'How to use them effectively: clear criteria, tools and discussion', 'The assessor still makes the final decision'],
+      trap: 'Treating peer comments as assessment decisions, or as witness testimony.',
+      own: 'A time a learner judged their own work before you assessed it. What changed?',
+      start: ['Self-assessment promotes responsibility because…', 'To use it effectively, I…'], src: ['boud', 'torrance'] },
+    { id: '4.4', q: 'Explain how assessment arrangements can be adapted to meet the needs of individual learners.', t: 'involve',
+      learn: [['The rule', 'You can change how the assessment is carried out, but not the standard being assessed. The Equality Act 2010 (section 20) requires reasonable adjustments for disabled candidates, and awarding organisations must have arrangements for adjustments and for special consideration.'],
+        ['Ways of adapting', 'Timing: extra time, breaks, several visits, shift patterns or religious observance. Method: oral instead of written, where the assessment strategy allows. Presentation: plain language, enlarged print or coloured paper. Support: a reader, scribe or interpreter. Environment: a quiet room or an adapted workstation.'],
+        ['Doing it properly', 'Plan early with the candidate, from evidence of need. Some adjustments need the awarding organisation’s approval first. Record them on the plan so the IQA can see them. A reasonable adjustment is agreed before the assessment. Special consideration is applied after an assessment that was affected by illness or other circumstances.']],
+      check: [['A candidate with dyslexia answers the knowledge questions orally. Safe isolation must still be…', ['Excused', 'Described in writing instead', 'Demonstrated to the same standard'], 2, 'The method can change. The competence cannot.'],
+        ['Special consideration is applied…', ['After an assessment affected by temporary illness or other circumstances', 'Before the assessment, for a known need', 'Whenever a candidate asks'], 0, 'Reasonable adjustments are planned in advance. Special consideration comes after the event.']],
+      cover: ['A range of adaptations: timing, method, presentation, support and environment', 'The standard and the competence do not change', 'Reasonable adjustment compared with special consideration', 'Agreed early, approved where needed, and recorded'],
+      trap: 'Suggesting an adjustment that lowers the standard.',
+      own: 'An adjustment you made, or would make, for a learner you assess.',
+      start: ['Arrangements can be adapted by…', 'The standard stays the same because…'], src: ['eqa', 'ofqual', 'gr21'] },
+    { id: '5.1', q: 'Explain how to judge whether evidence is sufficient, authentic and current.', t: 'decisions',
+      parts: ['Sufficient', 'Authentic', 'Current'],
+      learn: [['Sufficient', 'Enough evidence to cover every criterion, the range and the knowledge, and to show the candidate can do it consistently, not once by chance. You judge it by checking against the standards and the tracking record. Wolf (1995) explains that competence is inferred from a sample, so the sample must be large and varied enough. More than enough is over-assessment.'],
+        ['Authentic', 'The candidate’s own work. You judge it by observing directly, questioning them about products and written work, and checking witness statements, signed declarations and version histories. Warning signs are a sudden change in style, or work they cannot explain. Misuse of AI is malpractice (Joint Council for Qualifications, 2025). It is reported, not handled privately.'],
+        ['Current', 'Shows competence now, against today’s standards. Check the date against any time limit in the assessment strategy, and that it reflects current law and industry standards. For recognition of prior learning, confirm by questioning or observation that the skill has been kept up (Gravells, 2021).']],
+      check: [['How do you judge that a written answer is authentic?', ['Count the words', 'Question the candidate about it, and compare it with their usual work', 'Check the date on it'], 1, 'If it is theirs, they can explain it. The date tells you about currency, not authenticity.'],
+        ['A certificate from eight years ago is offered as evidence. What do you do first?', ['Accept it: a certificate is proof', 'Reject it without discussion', 'Confirm through questioning or observation that the skill is still current'], 2, 'Older evidence can count through recognition of prior learning, once currency is confirmed.']],
+      cover: ['For each of the three: how the assessor judges it, not only what it means', 'Sufficient: coverage, consistency, tracking and no over-assessment', 'Authentic: questioning, observation, declarations, AI and malpractice', 'Current: dates, current standards and checks for prior learning'],
+      trap: 'Only defining the three words. The question asks how you judge each one.',
+      own: 'One piece of evidence you judged recently: how did you know it was the learner’s own?',
+      start: ['I judge evidence to be sufficient when…', 'To check authenticity, I…'], src: ['wolf', 'jcq', 'gr21'] },
+    { id: '5.2', q: 'Explain how to ensure that assessment decisions are made against specified criteria, valid, reliable and fair.', t: 'decisions',
+      parts: ['Made against specified criteria', 'Valid', 'Reliable', 'Fair'],
+      learn: [['Made against specified criteria', 'Judge only against the published criteria, not against other candidates or your own idea of good work (Glaser, 1963). Work from the current standards, reference each piece of evidence to the criteria, and record your reason. Criteria can be read in different ways, so exemplars and standardisation matter (Sadler, 1987).'],
+        ['Valid', 'The method and the evidence actually assess the criterion (Messick, 1989). Observe performance, question knowledge, follow the assessment strategy, and remove barriers that are not part of the competence.'],
+        ['Reliable', 'The same decision, whoever assesses and whenever. Use guidance and exemplars, take part in standardisation, act on IQA feedback and keep clear records. Harlen (2005) found that practitioners’ judgements are dependable when the criteria are clear and they take part in moderation.'],
+        ['Fair', 'Nobody is advantaged or disadvantaged by anything unrelated to the competence. Give the same information and chances, make reasonable adjustments, avoid bias, declare conflicts, give reasons, and explain how to appeal. Gipps and Murphy (1994) show that fairness is an equal chance to show achievement, not identical treatment.']],
+      check: [['Which activity most directly improves reliability?', ['Longer feedback', 'Assessing faster', 'Standardisation meetings'], 2, 'Comparing decisions on the same evidence brings assessors to the same standard.'],
+        ['The halo effect, where a good impression colours the decision, is a threat to…', ['Fairness', 'Currency', 'Sufficiency'], 0, 'Bias makes decisions unfair. Judge only the evidence against the criteria.']],
+      cover: ['For each of the four: what the assessor does to ensure it', 'Criteria: current standards, evidence referenced and reasons recorded', 'Validity: the right method for the criterion', 'Reliability: standardisation, IQA and exemplars', 'Fairness: adjustments, no bias, and appeals'],
+      trap: 'Defining the four words without saying how you make sure of each.',
+      own: 'What you do, or will do, to keep your decisions consistent with other assessors.',
+      start: ['To make sure my decision is valid, I…', 'Reliability is ensured by…'], src: ['glaser', 'sadler', 'messick', 'harlen', 'gipps'] },
+    { id: '6.1', q: 'Evaluate the importance of quality assurance in the assessment process.', t: 'qa',
+      learn: [['What quality assurance is', 'Quality assurance checks that assessors’ decisions are accurate, consistent and meet the awarding organisation’s requirements. Internal quality assurance (IQA) is done by the centre. External quality assurance (EQA) is done by the awarding organisation (Gravells, 2016).'],
+        ['Why it matters', 'Accurate decisions: sampling catches errors before certificates are claimed. Consistency between assessors. Protection for candidates, including a route for appeals. Credibility with employers. Development for assessors, and countersigning for those not yet qualified. The centre keeps its approval.'],
+        ['The other side, and a judgement', 'Quality assurance costs time and paperwork, and it can slide into box-ticking. O’Neill (2002) warns that heavy audit can undermine professional trust. It works best when it is risk-based and developmental. “Evaluate” means you finish with a judgement, for example that it is essential because decisions could not be relied on without it.']],
+      check: [['Who carries out external quality assurance?', ['The centre’s own IQA', 'The awarding organisation', 'The employer'], 1, 'IQA is internal to the centre. EQA comes from the awarding organisation.'],
+        ['Risk-based sampling means…', ['Sampling nothing unless there is a complaint', 'Sampling every decision equally', 'Sampling more where the risk is higher, such as new assessors'], 2, 'New assessors, new qualifications and new sites get more attention.']],
+      cover: ['What quality assurance is, with IQA and EQA told apart', 'Why it matters: accuracy, consistency, candidates, credibility and assessor development', 'Its costs or limitations', 'A reasoned conclusion'],
+      trap: 'Describing quality assurance without weighing it up. The verb is Evaluate.',
+      own: 'What has IQA feedback or sampling changed in the way you assess?',
+      start: ['Quality assurance is important because…', 'However, it can also… On balance…'], src: ['gr16', 'oneill', 'deming'] },
+    { id: '6.2', q: 'Summarise quality assurance and standardisation procedures in own area of practice.', t: 'qa',
+      learn: [['The IQA cycle', 'Gravells (2016) describes it as: identify what is to be quality assured, plan, check assessment practice and decisions, give feedback and support to assessors, and review.'],
+        ['Quality assurance procedures you will meet', 'A sampling plan that covers every assessor, unit, method and site, at interim and summative stages. Observation of you assessing, and interviews with candidates. Checks that records are accurate, signed and dated. Countersigning of your decisions until you are qualified. EQA visits or remote sampling. Checks on assessors’ qualifications and CPD.'],
+        ['Standardisation', 'Assessors independently assess the same evidence, compare their decisions and agree the standard. They use the awarding organisation’s exemplars and common documents, and keep records of the meetings for the EQA.']],
+      check: [['What happens in a standardisation meeting?', ['Assessors judge the same evidence and compare their decisions', 'The IQA marks all the work again', 'Candidates present their portfolios'], 0, 'The aim is a shared reading of the standard.'],
+        ['Interim sampling takes place…', ['During the programme, so problems are put right early', 'Only after certificates are issued', 'Once every five years'], 0, 'Summative sampling then happens before certification is claimed.']],
+      cover: ['Quality assurance procedures: sampling plan, observation of assessors, record checks, countersigning and EQA', 'Standardisation: assessors comparing decisions to agree a standard', 'Your own centre’s actual procedures'],
+      trap: 'Writing only about quality assurance, or only about standardisation. The question asks for both.',
+      own: 'How it works at your centre: who is your IQA, how often do you standardise, and what have you taken to a meeting?',
+      start: ['In my centre, quality assurance includes…', 'Standardisation takes place…'], src: ['gr16', 'ofqual'] },
+    { id: '6.3', q: 'Summarise the procedures to follow when there are disputes concerning assessment in own area of practice.', t: 'qa',
+      learn: [['The right to challenge', 'Candidates can challenge an assessment decision. Awarding organisations must have an appeals process, and every approved centre has its own procedure. Disputes should be settled fairly, promptly and at the lowest level possible (Gravells, 2021).'],
+        ['The usual stages', 'Informal: the candidate raises it with the assessor, who explains the decision against the criteria. Formal: a written appeal to the IQA, within a set time. An independent review by someone who was not involved. A centre appeals panel. Then the awarding organisation. Last, a complaint to Ofqual if the awarding organisation did not follow its own procedure.'],
+        ['Your part as the assessor', 'Keep full, clear records so the decision can be reviewed. Stay professional, and never treat a candidate worse for appealing. Act on the outcome, and share what was learned at standardisation.']],
+      check: [['What is the first stage in most appeals procedures?', ['A complaint to Ofqual', 'A letter to the awarding organisation', 'An informal discussion with the assessor'], 2, 'Most disputes end at the informal stage, once the decision is explained against the criteria.'],
+        ['What most helps a decision stand up at appeal?', ['The assessor’s confidence', 'How long the assessment took', 'Clear records of the evidence and the reasons'], 2, 'Records are what the reviewer looks at.']],
+      cover: ['A staged procedure: informal, formal, independent review, awarding organisation', 'Timescales and written records', 'The assessor’s part in it', 'Your own centre’s procedure'],
+      trap: 'Going straight to the awarding organisation. The centre’s stages come first.',
+      own: 'Find your centre’s appeals procedure: what are its stages and time limits?',
+      start: ['If a learner disagrees with my decision, first…', 'The formal stage requires…'], src: ['ofqual', 'gr21', 'eqa'] },
+    { id: '7.1', q: 'Explain the importance of following procedures for the management of information relating to assessment.', t: 'records',
+      learn: [['What information', 'Assessment plans, evidence, observation and questioning records, witness testimonies, decisions, feedback, tracking and certification claims. Together these decide whether a candidate gets a qualification.'],
+        ['Why the procedures matter', 'Audit trail: signed and dated records let the IQA, the EQA and the awarding organisation check each decision. If it is not recorded, there is no proof it happened. Certification claims must rest on complete records. Records are the evidence in appeals and malpractice investigations, and they must be kept for the period the awarding organisation sets (Gravells, 2021).'],
+        ['The law and good practice', 'Records are personal data under the Data Protection Act 2018 and UK GDPR: used for a stated purpose, accurate, kept no longer than needed, and secure. Photos and videos need consent. Use the centre’s secure system, not personal devices, and report any data breach at once.']],
+      check: [['Why does an unrecorded assessment cause a problem?', ['There is no proof it took place, so it cannot be quality assured', 'It saves time', 'The candidate will forget it'], 0, 'The audit trail is what quality assurance and certification rest on.'],
+        ['Videos of a candidate at work, kept as evidence, should be stored…', ['On your own phone', 'In a shared social media group', 'In the centre’s secure system, with consent'], 2, 'They are personal data, so consent and secure storage are required.']],
+      cover: ['The audit trail for IQA and EQA', 'Accurate certification claims', 'Awarding organisation requirements and how long records are kept', 'Evidence for appeals and malpractice', 'Data protection and confidentiality'],
+      trap: 'Describing the records without explaining why the procedures matter.',
+      own: 'Where do your assessment records live, who can see them, and how long are they kept?',
+      start: ['Following the procedures matters because…', 'In my own practice, records are…'], src: ['gr21', 'dpa', 'ofqual'] },
+    { id: '7.2', q: 'Explain how feedback and questioning contribute to the assessment process.', t: 'records',
+      learn: [['Questioning', 'Questioning is an assessment method in its own right, and it completes the evidence from other methods (Read, 2016). It confirms the knowledge behind what you saw, checks that work is the candidate’s own, covers criteria you did not see, and tests “what if” situations that cannot safely be set up.'],
+        ['Good questions', 'Planned against the criteria, open and probing, pitched at the right level (Anderson and Krathwohl, 2001), and recorded so that the IQA can see the answers.'],
+        ['Feedback', 'Feedback tells the candidate the decision against the criteria, what is not yet met and what happens next. Hattie and Timperley (2007) give three questions: where am I going, how am I going, and where to next. Keep it specific, prompt and about the work, not the person (Kluger and DeNisi, 1996). Make it two-way, and record it.']],
+      check: [['Which is NOT something questioning does in assessment?', ['Confirms underpinning knowledge', 'Replaces the need for criteria', 'Checks that work is authentic'], 1, 'Questions are planned against the criteria. They do not replace them.'],
+        ['Feedback works best when it focuses on…', ['The task and the criteria', 'The candidate’s personality', 'Other candidates’ results'], 0, 'Kluger and DeNisi (1996) found that feedback aimed at the person can lower performance.']],
+      cover: ['Questioning as a method: knowledge, authenticity and sufficiency', 'What makes questions effective, and that they are recorded', 'Feedback: confirms the decision, the gaps and the next steps', 'Feedback is specific, two-way and recorded'],
+      trap: 'Writing about classroom questioning. Keep it to the assessment process.',
+      own: 'One question you asked a learner after an observation, and what the answer told you.',
+      start: ['Questioning contributes by…', 'Feedback contributes by…'], src: ['read', 'bloom', 'hattie', 'kluger'] },
+    { id: '8.1', q: 'Explain legal issues, policies, and procedures relevant to assessment, including those for confidentiality, health, safety and welfare.', t: 'law',
+      learn: [['Confidentiality', 'Data Protection Act 2018 and UK GDPR: candidate information is used only for assessment, kept accurate and secure, and not kept longer than needed. Follow your centre’s policy and the employer’s rules on site. Confidentiality has a limit: a safeguarding concern must go to the designated safeguarding lead.'],
+        ['Health and safety', 'Health and Safety at Work etc. Act 1974: you have a duty of care, you follow site rules, and you stop an assessment if the candidate works unsafely. Unsafe practice cannot be judged competent. Regulations under the Act cover risk assessment, work equipment (PUWER), hazardous substances (COSHH) and incident reporting (RIDDOR).'],
+        ['Welfare and other law', 'Safeguarding: Keeping children safe in education for learners under 18, DBS checks, and the Prevent duty. Wellbeing: notice stress and refer to support. Also the Equality Act 2010, copyright law on plagiarism, and the centre’s and awarding organisation’s policies on appeals, malpractice, conflicts of interest and AI.']],
+      check: [['A candidate tells you something that raises a safeguarding concern and asks you to keep it secret. You…', ['Keep it secret, because it is confidential', 'Pass it to the designated safeguarding lead', 'Tell their employer first'], 1, 'Confidentiality has limits. Never promise to keep a safeguarding concern secret.'],
+        ['During an observation the candidate removes a machine guard. You should…', ['Stop the assessment', 'Wait, and mention it in feedback', 'Ignore it if the product is good'], 0, 'Stop at once. Unsafe practice cannot be judged competent.']],
+      cover: ['Confidentiality: data protection, and its limits', 'Health and safety law as it applies during assessment', 'Welfare and safeguarding, including Prevent', 'Equality, copyright, and centre or awarding organisation policies', 'Each one explained, not only listed'],
+      trap: 'Thinking confidentiality means never sharing. Safeguarding concerns must be reported.',
+      own: 'Your centre’s policies: who is the safeguarding lead, and what site rules apply where you assess?',
+      start: ['The law on confidentiality means that I…', 'If a learner works unsafely during assessment, I…'], src: ['dpa', 'hswa', 'kcsie', 'eqa'] },
+    { id: '8.2', q: 'Explain the contribution that technology can make to the assessment process.', t: 'law',
+      learn: [['What technology adds', 'It can make assessment more efficient, more accessible and easier to quality assure. Jisc (2020) sets five principles for assessment in a digital age: authentic, accessible, appropriately automated, continuous and secure.'],
+        ['Examples', 'E-portfolios: evidence is uploaded and mapped to criteria, decisions and feedback are recorded, the IQA can sample remotely, and time stamps give an audit trail. Photo, video and audio evidence. Remote observation and online discussion, where allowed. Online tests. In engineering: CAD files and version histories. Accessibility: text-to-speech and speech-to-text. Online standardisation.'],
+        ['Limits to manage', 'Authenticity: work written by AI or copied. AI detectors are unreliable on their own, so authenticate through questioning (Joint Council for Qualifications, 2025). Digital exclusion: not everyone has the devices or the skills. Data security, and consent for recordings. System failures. The assessor still checks VACSR (Gravells, 2021).']],
+      check: [['How should you authenticate work you suspect was produced with AI?', ['Rely on an AI detector score alone', 'Ignore it', 'Question the candidate about the work'], 2, 'Detectors are unreliable on their own. A candidate who did the work can explain it.'],
+        ['Which is a contribution of an e-portfolio?', ['It lets the IQA sample remotely, with a time-stamped audit trail', 'It makes decisions for the assessor', 'It removes the need for criteria'], 0, 'Technology supports the process. The assessor still makes the decision.']],
+      cover: ['Contributions, with examples: e-portfolios, recorded evidence, remote assessment and accessibility', 'Benefits for quality assurance and standardisation', 'Limitations: authenticity and AI, access, and security', 'The assessor still judges the evidence'],
+      trap: 'Only listing tools. Say what each one contributes, and its limits.',
+      own: 'The technology you actually use to assess, for example Teams, Forms, a tracker or an e-portfolio.',
+      start: ['Technology contributes to assessment by…', 'A limitation I have to manage is…'], src: ['jisc', 'jcq', 'gr21'] },
+    { id: '8.3', q: 'Evaluate requirements for equality and diversity and, where appropriate, bilingualism in relation to assessment.', t: 'law',
+      learn: [['Equality and diversity', 'The Equality Act 2010 protects nine characteristics. For an assessor it means no direct or indirect discrimination, harassment or victimisation, and reasonable adjustments for disabled candidates. Public bodies such as colleges also have the Public Sector Equality Duty.'],
+        ['In practice', 'Check materials and questions for bias. Remove language demands that are not part of the competence. Plan around religious observance, caring, pregnancy or disability. Decide only on the evidence, and guard against stereotypes about who belongs in the occupation.'],
+        ['Bilingualism', 'In Wales, the Welsh Language (Wales) Measure 2011 gives Welsh official status, and candidates may be assessed in Welsh where the qualification is offered in it. In England, candidates with English as an additional language should not be penalised for language that is not part of the competence. Cummins (1979) shows that everyday fluency comes much sooner than academic language.'],
+        ['Weighing it up', 'These requirements make assessment fairer and more valid. But adjustments must never lower the standard, and they take time and resources. Gipps and Murphy (1994) show that fairness has to be designed in. The judgement: treat candidates equitably, not identically.']],
+      check: [['How many protected characteristics are in the Equality Act 2010?', ['Six', 'Nine', 'Twelve'], 1, 'Age, disability, gender reassignment, marriage and civil partnership, pregnancy and maternity, race, religion or belief, sex, and sexual orientation.'],
+        ['Treating candidates equitably means…', ['Treating everyone identically', 'Removing barriers that are irrelevant to the competence, while keeping the standard', 'Lowering the standard for some'], 1, 'Equity is an equal chance to show competence against the same standard.']],
+      cover: ['Equality Act 2010: protected characteristics and reasonable adjustments', 'What the assessor does in practice', 'Bilingualism: Welsh, and English as an additional language', 'A judgement: equitable, not identical, with the standard kept'],
+      trap: 'Describing the law without evaluating it, or leaving out bilingualism.',
+      own: 'A learner whose first language is not English, or who needed an adjustment: what did you keep the same, and what did you change?',
+      start: ['The requirements make assessment fairer because…', 'The tension is that… I resolve it by…'], src: ['eqa', 'gipps', 'cummins', 'welsh'] },
+    { id: '8.4', q: 'Explain the value of reflective practice and continuing professional development in the assessment process.', t: 'law',
+      learn: [['Two linked ideas', 'Reflective practice is reviewing your own assessment practice and decisions in order to improve them. Continuing professional development (CPD) is keeping your occupational knowledge and your assessment practice up to date. Assessment strategies require assessors to stay occupationally competent.'],
+        ['Reflective practice', 'Schön (1983) separates reflection-in-action (adjusting during an assessment, such as rephrasing a question) from reflection-on-action (reviewing afterwards). Gibbs (1988) gives a cycle: description, feelings, evaluation, analysis, conclusion and action plan. Sources include IQA feedback, standardisation, candidate feedback and appeals. Its value is fairer, more consistent decisions and better feedback.'],
+        ['CPD', 'Occupational: industry updates, new technology and changes to standards (Eraut, 1994). Assessment: qualification updates, standardisation, and training on AI, safeguarding and equality. Its value: decisions stay valid and current, the awarding organisation’s requirements are met, and you have credibility. It is recorded in a CPD log that the IQA checks. Reflection finds what to improve, and CPD puts it right.']],
+      check: [['Rephrasing a question during an assessment, because the candidate misunderstood it, is…', ['Reflection-in-action', 'Reflection-on-action', 'Standardisation'], 0, 'Schön: in-action happens during the event, and on-action happens afterwards.'],
+        ['Why must an assessor keep occupational CPD up to date?', ['To earn more', 'So that decisions are made against current industry practice', 'It is optional'], 1, 'Out-of-date knowledge leads to invalid decisions.']],
+      cover: ['The value of reflective practice for an assessor, with a named model', 'The value of CPD: occupational and assessment currency', 'How the two link', 'Your own examples'],
+      trap: 'Covering only reflection, or only CPD. The question needs both.',
+      own: 'One thing you changed in your assessing after feedback, and one piece of CPD you have done or planned.',
+      start: ['Reflective practice is valuable because…', 'CPD keeps my decisions…'], src: ['schon', 'gibbs', 'eraut94', 'gr21'] }
+  ];
+  AW.forEach((q) => { q.lo = Number(q.id[0]); q.verb = q.q.split(' ')[0]; });
+  const AW_BY = {};
+  AW.forEach((q) => { AW_BY[q.id] = q; });
+  // Five minutes a day for the change project, so the write-up builds itself. One comes up each day, in turn.
+  const CP_DAILY = [
+    'Write one question for next week’s retrieval round that asks learners to explain or apply, not just recall.',
+    'Note one thing a learner said or did today that relates to your project. Date it.',
+    'Read one page on retrieval practice or on Lewin, and write one sentence you could cite, with the reference in APA 7.',
+    'Add one line to your running notes: what you tried this week and what happened.',
+    'Write down one thing that might explain your results other than your change. You will need these for the limits.',
+    'Draft one slide heading for the presentation, and say which learning outcome (LO1 to LO4) it serves.',
+    'Check one learner’s support plan against your rounds: is anyone missing out? Note what you would adjust.'
+  ];
+
+  /* ---------- the coach's plan: what is left, the days to go, and so how much today ---------- */
+  const COACH_PATHS = [['aw', 'Workbook'], ['ksb', 'KSBs'], ['cp', 'Change project']];
+  const awU = (id) => state.coach.aw[id] || {};
+  const awSet = (id) => { const u = (state.coach.aw[id] = state.coach.aw[id] || {}); if (!u.t || typeof u.t !== 'object') u.t = {}; if (!u.q || typeof u.q !== 'object') u.q = {}; return u; };
+  const awLearned = (u) => !!(u.k || u.w || u.h);
+  const awWritten = (u) => !!(u.w || u.h);
+  // An outcome whose hand-in is ticked off on the planner counts as handed in, unless you switch it yourself.
+  function awHandedLo() {
+    const dl = {};
+    deadlines().forEach((d) => { dl[d.id] = d; });
+    const out = {};
+    for (let lo = 1; lo <= 8; lo++) { const d = dl[AW_DL[lo]]; out[lo] = !!(d && d.chunks.length && d.complete); }
+    return out;
+  }
+  const awE = (q, HL) => { const u = awU(q.id); return { ...u, h: typeof u.h === 'boolean' ? u.h : !!(HL || awHandedLo())[q.lo] }; };
+  const awStatus = (u) => (u.h ? ['good', 'Handed in'] : u.w ? ['good', 'Written'] : u.k ? ['gold', 'Learned'] : (u.r || wordCount(u.a)) ? ['info', 'Started'] : ['', 'New']);
+  // Questions whose hand-in date is still ahead come first; the rest follow in workbook order.
+  function awOrder() {
+    const today = todayKey();
+    const dl = {};
+    deadlines().forEach((d) => { dl[d.id] = d; });
+    const key = (q) => { const d = dl[AW_DL[q.lo]]; return d && d.due && d.due >= today && !d.complete ? d.due : '9999'; };
+    return AW.map((q, i) => ({ q, i, k: key(q) })).sort((a, b) => a.k.localeCompare(b.k) || a.i - b.i).map((x) => x.q);
+  }
+  // Each question is two short sittings: learn it (lesson and check), then write it (plan and answer).
+  function awSittings() {
+    const out = [];
+    const HL = awHandedLo();
+    awOrder().forEach((q) => {
+      const u = awE(q, HL);
+      if (!awLearned(u)) out.push({ q, s: 'learn', m: 10 });
+      if (!awWritten(u)) out.push({ q, s: 'write', m: 20 });
+    });
+    return out;
+  }
+  function awEnd() {
+    const today = todayKey();
+    if (state.coach.end.aw) return state.coach.end.aw;
+    const wb = deadlines().find((d) => d.id === 'as-wb');
+    // the planner's own aim: the last step before the hand-in, so the break stays a break
+    const aim = wb && wb.chunks.length > 1 ? wb.chunks[wb.chunks.length - 2].dateEff : null;
+    if (aim && aim >= today) return aim;
+    if (wb && wb.due && wb.due >= today) return wb.due;
+    return addDays(today, 21);
+  }
+  function coachPace(left, end) {
+    const today = todayKey();
+    const days = Math.max(1, daysBetween(today, end) + 1);
+    return { left, end, days, per: left ? Math.ceil(left / days) : 0, late: end < today };
+  }
+  function awDoneToday() {
+    const today = todayKey();
+    return AW.reduce((n, q) => { const u = awU(q.id); return n + (u.k === today ? 1 : 0) + (u.w === today ? 1 : 0); }, 0);
+  }
+  // Today's workbook sittings. Low energy: one light one (a lesson you can listen to). Good energy: one more.
+  function awToday() {
+    const sit = awSittings();
+    const P = coachPace(sit.length, awEnd());
+    const energy = state.energy[todayKey()];
+    let quota = clamp(P.per, 1, 4);
+    if (energy === 'high') quota = Math.min(4, quota + 1);
+    if (energy === 'low') quota = 1;
+    const done = awDoneToday();
+    let todo = sit.slice(0, Math.max(0, quota - done));
+    if (energy === 'low' && todo.length && todo[0].s !== 'learn') { const light = sit.find((x) => x.s === 'learn'); if (light) todo = [light]; }
+    return { sit, P, quota, done, todo, energy };
+  }
+  const ksbU = (k) => state.coach.ksb[k] || {};
+  const ksbSet = (k) => (state.coach.ksb[k] = state.coach.ksb[k] || {});
+  // KSBs with no evidence yet. Those that count towards the most duties come first.
+  function ksbGaps() {
+    const cov = ksbCovered();
+    const weight = (k) => DUTY_KSBS.filter((l) => l.includes(k)).length;
+    return KSB_IDS.filter((k) => !cov.has(k)).map((k, i) => ({ k, i, w: weight(k) })).sort((a, b) => b.w - a.w || a.i - b.i).map((x) => x.k);
+  }
+  function ksbEnd() {
+    const today = todayKey();
+    if (state.coach.end.ksb) return state.coach.end.ksb;
+    const pd = deadlines().find((d) => d.id === 'pg-pd');
+    const c = pd && pd.chunks.find((x) => /KSB check/i.test(x.title));
+    if (c && c.dateEff >= today) return c.dateEff;
+    if (pd && pd.due && pd.due >= today) return pd.due;
+    return addDays(today, 60);
+  }
+  function ksbToday() {
+    const today = todayKey();
+    const gaps = ksbGaps();
+    const P = coachPace(gaps.length, ksbEnd());
+    const weeks = Math.max(1, Math.ceil(P.days / 7));
+    const perWeek = gaps.length ? Math.ceil(gaps.length / weeks) : 0;
+    const fresh = gaps.filter((k) => !ksbU(k).d);
+    const parked = gaps.filter((k) => ksbU(k).d);
+    const doneToday = KSB_IDS.filter((k) => ksbU(k).d === today).length;
+    const quota = perWeek > 7 ? 2 : 1;
+    const pick = sub.ck && KSBS[sub.ck] ? sub.ck : (fresh[0] || parked[0] || null);
+    return { gaps, P, weeks, perWeek, fresh, parked, doneToday, quota, pick, left: gaps.length ? Math.max(0, quota - doneToday) : 0 };
+  }
+  function cpSteps() { return allChunks(deadlines().filter((d) => d.id === 'pg-cp' || d.id === 'pg-m2')).filter((c) => !c.done); }
+  const cpDaily = () => CP_DAILY[Math.abs(daysBetween('2026-01-01', todayKey())) % CP_DAILY.length];
+  const cpDoneToday = () => !!state.coach.cp[todayKey()];
+  // Everything the coach asks for today, most pressing first.
+  function coachToday() {
+    const out = [];
+    awToday().todo.forEach((x) => out.push({ path: 'aw', id: x.q.id, s: x.s, m: x.m, title: `${x.q.id} ${x.s === 'learn' ? 'Learn it' : 'Write it'}`, sub: x.q.q }));
+    if (PORT) { const K = ksbToday(); if (K.left && K.pick) out.push({ path: 'ksb', id: K.pick, m: 10, title: `${K.pick}: today’s KSB`, sub: KSBS[K.pick] }); }
+    if (cpSteps().length && !cpDoneToday()) out.push({ path: 'cp', id: '', m: 5, title: 'Change project: five minutes', sub: cpDaily() });
+    return out;
+  }
+  function coachStreak() {
+    let n = 0;
+    let d = todayKey();
+    if (!state.coach.days[d]) d = addDays(d, -1);
+    while (state.coach.days[d]) { n++; d = addDays(d, -1); }
+    return n;
+  }
+  function coachDid(m) {
+    const k = todayKey();
+    state.coach.days[k] = (Number(state.coach.days[k]) || 0) + 1;
+    if (m) addStudy(m);
+  }
+  const awLessonText = (q) => [`Question ${q.id.replace('.', ' point ')}. ${q.q}`].concat(q.learn.map(([h, b]) => `${h}. ${b}`)).join('\n');
+  function awAllText() {
+    const done = AW.filter((q) => wordCount(awU(q.id).a));
+    if (!done.length) return '';
+    return ['Unit D/601/5313: Understanding the principles and practices of assessment', 'My answers', ''].concat(done.map((q) => `${q.id} ${q.q}\n\n${String(awU(q.id).a).trim()}\n`)).join('\n');
+  }
+
+  /* ---------- what the coach hands to Claude: the question, the checklist, where you are, and the rules ---------- */
+  const COACH_RULES = 'Do not write my answer for me, not even a model paragraph or replacement sentences: my assessor wants it in my own words, and I have to declare any AI tool I use.';
+  function awTeachPrompt(q) {
+    const u = awU(q.id);
+    const right = q.check.filter((c, i) => u.q && u.q[i] === c[2]).length;
+    const where = [u.r ? 'I have read the short lesson in my app' : 'I have not read the lesson yet', u.k ? `I got ${right} of ${q.check.length} check questions right` : '', u.f ? `my confidence is ${['', 'low', 'medium', 'high'][u.f]}` : ''].filter(Boolean).join('; ');
+    return `Be my study coach for my Level 3 assessor award, Unit D/601/5313 (Understanding the principles and practices of assessment). I teach T Level Engineering in a further education college and I am training as an assessor.\n\nThe workbook question I am learning for: "${q.id} ${q.q}"\n\nCoach me in small steps, one at a time, and wait for my reply after each step:\n1. Ask me one question to find out what I already know.\n2. Teach what I am missing in short parts (under 120 words each), from the assessor's role (judging a learner's evidence against standards), not the teacher's role. Use examples from assessing engineering learners.\n3. Check I understood with two quick questions, one at a time.\n4. Help me plan my own answer: remind me what "${q.verb}" asks for, and ask me for an example from my own practice.\nThen stop. ${COACH_RULES}\n\nWhat a good answer covers (my checklist):\n${q.cover.map((c) => '- ' + c).join('\n')}\nA common slip: ${q.trap}\nWhere I am: ${where}.${String(u.n || '').trim() ? `\nMy notes so far: ${String(u.n).trim().slice(0, 1500)}` : ''}`;
+  }
+  function awCheckPrompt(q) {
+    const u = awU(q.id);
+    return `Here is my own answer to a question in my Level 3 assessor workbook (Unit D/601/5313). Please check it as my study coach. ${COACH_RULES}\n\nQuestion: "${q.id} ${q.q}"\n"${q.verb}" means: ${VERBS[q.verb] || ''}\n\nGo through this list and tell me, point by point, whether I covered it well, covered it thinly, or missed it:\n${q.cover.map((c) => '- ' + c).join('\n')}\n\nAlso tell me: anything that is inaccurate; anything written from a teacher's role instead of an assessor's; whether I used an example of my own; and whether I named at least one source. Finish with up to three things to improve, as pointers or questions, not as rewritten text.\n\nMy answer:\n${String(u.a || '').trim() || '(not written yet)'}`;
+  }
+  function coachWeekPrompt() {
+    const A = awToday();
+    const lines = [`Be my study coach. This is where I am, from my Cap and Gown planner on ${fmtLong(todayKey())}.`, '',
+      `Assessor workbook (Unit D/601/5313): ${AW.filter((q) => awWritten(awE(q))).length} of ${AW.length} questions written. I want to finish by ${fmtLong(A.P.end)} (${plural(A.P.days, 'day')} left).${A.sit.length ? ` Still to do, in order: ${A.sit.slice(0, 12).map((x) => `${x.q.id} ${x.s}`).join(', ')}${A.sit.length > 12 ? ', and more' : ''}.` : ''}`];
+    if (PORT) { const K = ksbToday(); lines.push(`PGCE portfolio: ${KSB_IDS.length - K.gaps.length} of ${KSB_IDS.length} KSBs evidenced.${K.gaps.length ? ` Gaps: ${K.gaps.slice(0, 20).join(', ')}${K.gaps.length > 20 ? ', and more' : ''}. I want every KSB evidenced by ${fmtLong(K.P.end)}.` : ''}`); }
+    const cp = cpSteps()[0];
+    if (cp) lines.push(`Change project: my next step is "${cp.title}" on ${fmtShort(cp.dateEff)}.`);
+    const e = state.energy[todayKey()];
+    if (e) lines.push(`Energy today: ${e}.`);
+    lines.push('', 'Plan my next seven days as a short list: one or two small steps a day of 10 to 30 minutes, lighter at weekends, with the workbook first if its date is nearest. Then ask me which day looks hardest, and adjust.');
+    return lines.join('\n');
+  }
+  function ksbTeachPrompt(k) {
+    const ev = evidenceFor(k);
+    const mine = state.portfolio.evidence.slice(-8).map((e) => `${e.title} (${e.type})`).join('; ');
+    const duties = DUTY_KSBS.map((l, i) => (l.includes(k) ? i : -1)).filter((i) => i >= 0);
+    return `Be my study coach for my PGCE FE and Skills portfolio (the Learning and Skills Teacher occupational standard). Today's KSB is ${k}: "${KSBS[k]}"${duties.length && PORT ? ` It sits under duty ${duties.map((i) => `${i + 1} (${PORT.duties[i]})`).join(' and duty ')}.` : ''}\n\nCoach me in small steps, one at a time, and wait for my reply after each step:\n1. Explain in plain words what this KSB asks for, with one example from teaching T Level Engineering (Level 3).\n2. Ask me what I already do that shows it.\n3. Suggest up to three kinds of evidence from my everyday teaching that could show it, and say what a good two-line note beside each would need to include.\n4. Ask me to write my two lines, then tell me what is strong and what is missing.\nDo not write the note for me: it has to be in my own words.\n\n${ev.length ? `Evidence I have already tagged to ${k}: ${ev.map((e) => e.title).join('; ')}.` : `I have no evidence tagged to ${k} yet.`}${mine ? ` Recent items in my evidence log: ${mine}.` : ''}${String(ksbU(k).n || '').trim() ? `\nMy notes so far: ${String(ksbU(k).n).trim().slice(0, 1000)}` : ''}`;
+  }
+  const cpAbout = () => { const d = (DATA.deadlines || []).find((x) => x.id === 'pg-cp'); return d && d.how ? d.how : 'a small change to my teaching, run and evaluated over a term'; };
+  function cpCoachPrompt(c) {
+    const m2 = (DATA.deadlines || []).find((d) => d.id === 'pg-m2');
+    return `Be my study coach for my PGCE Module 2 change project. The project: ${cpAbout()}. I teach T Level Engineering, and it ends in a 20-minute presentation.\n\nMy next step is "${c.title}" (${c.mins || 30} minutes), planned for ${fmtLong(c.dateEff)}.${c.tip ? ` My planner's tip: ${c.tip}` : ''}\n\nCoach me through it in small steps, one at a time, and wait for my reply after each step:\n1. Ask what I have done so far for this step.\n2. Teach me, briefly, what I need to know to do it well: the idea, and one thing people often get wrong.\n3. Help me break it into two or three pieces of 10 to 15 minutes, and ask which one I will do first.\nDo not write the work for me.${m2 && m2.note ? ` My module's rules: ${m2.note}` : ''}${String(state.coach.cpNote || '').trim() ? `\n\nMy running notes so far:\n${String(state.coach.cpNote).trim().slice(0, 2500)}` : ''}`;
+  }
+  const cpNotesPrompt = () => `These are my running notes for my PGCE Module 2 change project (${cpAbout()}). Read them as my study coach. Ask me up to five questions, one at a time, about what is missing or unclear: evidence, numbers, other explanations for the results, limits, and links to reading. Do not write or rewrite anything for me.\n\n${String(state.coach.cpNote || '').trim().slice(0, 12000)}`;
+
+  /* ---------- the coach's screens ---------- */
+  const coachUnit = () => (sub.cq && AW_BY[sub.cq] ? AW_BY[sub.cq] : null);
+  const coachPath = () => { const p = sub.cpath || state.coach.path; return COACH_PATHS.some(([k]) => k === p) && (p !== 'ksb' || PORT) ? p : 'aw'; };
+  // The brief for Claude is worked out when the button is tapped, so it carries what you typed a moment ago.
+  const liveBtn = (kind, id, label, cls) => `<button class="${cls || 'btn ghost'}" data-act="co-live" data-k="${kind}" data-id="${esc(id || '')}">${ic('spark', 14)} ${label || 'Coach me live with Claude'}</button>`;
+  V.coach = () => {
+    const q = coachUnit();
+    if (q) return coachUnitView(q);
+    const path = coachPath();
+    const st = coachStreak();
+    return `<div class="card"><div class="row between"><div class="label">Your study coach</div>${st ? `<span class="pill gold num">${plural(st, 'day')} in a row</span>` : ''}</div>
+        <h3 style="font-size:18px">A small step every day</h3>
+        <div class="small muted">The coach picks today’s step, teaches it in short parts, checks it stuck, then helps you write your own answer. Claude joins in when you tap Coach me live.</div>
+        <button class="linkish" data-act="co-how" style="align-self:flex-start">How the coach works</button></div>
+      <div class="seg">${COACH_PATHS.filter(([k]) => k !== 'ksb' || PORT).map(([k, l]) => `<button data-act="co-path" data-id="${k}" aria-pressed="${k === path}">${l}</button>`).join('')}</div>
+      ${({ aw: coachAw, ksb: coachKsb, cp: coachCp }[path])()}`;
+  };
+  const sitRow = (x) => `<button class="li tap" data-act="co-open" data-id="${x.q.id}" style="width:100%;text-align:left"><span class="pill info" style="font-family:var(--f-mono)">${x.q.id}</span><span class="grow" style="min-width:0"><b>${x.s === 'learn' ? 'Learn it' : 'Write it'} · ${x.m} min</b><span class="small muted" style="display:block">${esc(x.q.q)}</span></span>${ic('play', 16)}</button>`;
+  function coachAw() {
+    const today = todayKey();
+    const A = awToday();
+    const HL = awHandedLo();
+    const written = AW.filter((x) => awWritten(awE(x, HL))).length;
+    const auto = [1, 2, 3, 4, 5, 6, 7, 8].filter((lo) => HL[lo] && AW.filter((x) => x.lo === lo).every((x) => typeof awU(x.id).h !== 'boolean'));
+    const minsLeft = A.sit.reduce((n, x) => n + x.m, 0);
+    let pace;
+    if (!A.sit.length) pace = 'Every question is written. Read it through once more, then send it.';
+    else if (A.P.late) pace = `Your finish date has passed and ${plural(A.sit.length, 'short sitting')} are left. Set a new date below.`;
+    else if (A.P.per > 4) pace = `${plural(A.sit.length, 'short sitting')} left and ${plural(A.P.days, 'day')} to go. That is ${A.P.per} a day, which is too many. Move the finish date, or tick the outcomes you have already handed in.`;
+    else pace = `${plural(A.sit.length, 'short sitting')} left (about ${hm(minsLeft)}) and ${plural(A.P.days, 'day')} to go: ${A.P.per <= 1 ? 'one' : A.P.per} a day keeps you on track.`;
+    let html = `<div class="card"><div class="row between"><h3>Today · workbook</h3><span class="pill ${A.done ? 'good' : 'info'} num">${A.done} done today</span></div>
+      <div class="small muted">${esc(pace)}</div>
+      ${A.energy === 'low' && A.todo.length ? '<div class="small muted">Your energy is low, so the coach kept one light step: a lesson you can listen to.</div>' : ''}
+      ${auto.length && A.sit.length ? `<div class="small muted">Your planner shows the hand-in for outcome${auto.length > 1 ? 's' : ''} ${auto.join(', ')} as done, so the coach starts with what is still to write. You can switch an outcome back below.</div>` : ''}
+      ${A.todo.length ? `<div class="list">${A.todo.map(sitRow).join('')}</div>` : A.sit.length ? `<div class="small"><b>Today’s workbook steps are done.</b> Come back tomorrow, or carry on if you have the energy:</div><div class="list">${sitRow(A.sit[0])}</div>` : ''}
+      <div class="field"><label for="co-end-aw">Finish the workbook by</label><input type="date" id="co-end-aw" data-co-end="aw" value="${esc(A.P.end)}" min="${today}"></div>
+      <div class="btnrow">${liveBtn('week', '', 'Plan my week with Claude', 'btn sm ghost')}</div></div>`;
+    for (let lo = 1; lo <= 8; lo++) {
+      const qs = AW.filter((x) => x.lo === lo);
+      const n = qs.filter((x) => awWritten(awE(x, HL))).length;
+      html += `<div class="card"><div class="row between"><div style="min-width:0"><div class="label">Outcome ${lo}</div><b>${esc(AW_LO[lo])}</b></div><span class="pill ${n === qs.length ? 'good' : ''} num">${n} / ${qs.length}</span></div>
+        <div class="list">${qs.map((x) => { const s = awStatus(awE(x, HL)); return `<button class="li tap" data-act="co-open" data-id="${x.id}" style="width:100%;text-align:left"><span class="pill info" style="font-family:var(--f-mono)">${x.id}</span><span class="grow small" style="min-width:0">${esc(x.q)}</span><span class="pill ${s[0]}">${s[1]}</span></button>`; }).join('')}</div>
+        <div class="li" style="border:0;padding:0"><div class="grow small muted">I have already handed in outcome ${lo}</div>${toggle(qs.every((x) => awE(x, HL).h), 'co-handed-lo', String(lo), `Outcome ${lo} already handed in`)}</div></div>`;
+    }
+    html += `<div class="card"><h3>My answers</h3><div class="small muted">${written} of ${AW.length} written. Copy them into your Word workbook when you are ready. They are your own words, so the declaration at the end of the workbook is true. If the coach or Claude helped you, name it there and say what for.</div>
+      <div class="btnrow"><button class="btn sm ghost" data-act="co-copy-all">Copy all my answers</button><button class="btn sm ghost" data-act="co-save-all">Save them as a file</button></div></div>`;
+    return html;
+  }
+  const CO_STEPS = [['learn', 'Learn'], ['check', 'Check'], ['plan', 'Plan'], ['write', 'Write']];
+  function coachStepOf(q) {
+    if (CO_STEPS.some(([k]) => k === sub.cs)) return sub.cs;
+    const u = awE(q);
+    return awWritten(u) || (u.k && wordCount(u.a)) ? 'write' : u.k ? 'plan' : u.r ? 'check' : 'learn';
+  }
+  function coachUnitView(q) {
+    const u = awE(q);
+    const step = coachStepOf(q);
+    const s = awStatus(u);
+    const picks = u.q || {};
+    const ticks = u.t || {};
+    const answered = q.check.filter((c, i) => picks[i] != null).length;
+    const right = q.check.filter((c, i) => picks[i] === c[2]).length;
+    const nTicks = q.cover.filter((c, i) => ticks[i]).length;
+    const stepDone = { learn: !!u.r || awLearned(u), check: awLearned(u), plan: nTicks > 0 || !!wordCount(u.n) || awWritten(u), write: awWritten(u) };
+    const tickRows = `<div class="list">${q.cover.map((c, i) => `<button class="li tap" data-act="co-tick" data-id="${q.id}" data-i="${i}" role="checkbox" aria-checked="${!!ticks[i]}" style="width:100%;text-align:left"><span class="cotick${ticks[i] ? ' on' : ''}">${ticks[i] ? ic('check', 14) : ''}</span><span class="grow small" style="min-width:0">${esc(c)}</span></button>`).join('')}</div>`;
+    const tid = (k) => `co-${k}-${q.id.replace('.', '-')}`;
+    let html = `<div class="card"><div class="row between"><span class="pill info" style="font-family:var(--f-mono)">${q.id}</span><span class="pill ${s[0]}">${s[1]}</span></div>
+        <h3 style="font-size:17px;line-height:1.35">${esc(q.q)}</h3><div class="small muted">Outcome ${q.lo}: ${esc(AW_LO[q.lo])}</div></div>
+      <div class="seg costeps">${CO_STEPS.map(([k, l], i) => `<button data-act="co-step" data-id="${k}" aria-pressed="${k === step}">${stepDone[k] ? ic('check', 12) : `<span class="num">${i + 1}</span>`} ${l}</button>`).join('')}</div>`;
+    if (step === 'learn') {
+      const shown = clamp(Number(sub.cn) || 1, 1, q.learn.length);
+      html += `${listenOn() ? `<button class="btn sm ghost" data-act="co-listen" data-id="${q.id}" style="align-self:flex-start">${ic('speaker', 14)} Listen to this lesson</button>` : ''}
+        ${q.learn.slice(0, shown).map(([h, b]) => `<div class="step"><b>${esc(h)}</b><div>${esc(b)}</div></div>`).join('')}
+        ${shown < q.learn.length ? `<button class="btn" data-act="co-more">Show the next part (${shown} of ${q.learn.length})</button>` : `<button class="btn" data-act="co-read" data-id="${q.id}">${ic('check', 16)} I have read it. Check it stuck</button>`}
+        ${liveBtn('aw', q.id)}`;
+    } else if (step === 'check') {
+      html += q.check.map((c, i) => {
+        const p = picks[i];
+        const on = p != null;
+        return `<div class="card"><div class="label">Check ${i + 1} of ${q.check.length}</div><b style="line-height:1.4">${esc(c[0])}</b>
+          <div style="display:flex;flex-direction:column;gap:8px">${c[1].map((o, k) => `<button class="qopt ${on ? (k === c[2] ? 'right' : k === p ? 'wrong' : '') : ''}" data-act="co-ans" data-id="${q.id}" data-i="${i}" data-o="${k}" ${on ? 'disabled' : ''}>${esc(o)}</button>`).join('')}</div>
+          ${on ? `<div class="notice" style="background:${p === c[2] ? 'var(--good-soft)' : 'var(--bad-soft)'}"><div><b>${p === c[2] ? 'Correct' : 'Not quite'}</b><p>${esc(c[3])}</p></div></div>` : ''}</div>`;
+      }).join('');
+      if (answered === q.check.length) {
+        html += `<div class="card"><h3>${right} of ${q.check.length} right. How sure do you feel about this one?</h3><div class="small muted">Your answer tells the coach what to do next.</div>
+          <div class="chips wrap">${[[1, 'Not yet'], [2, 'Getting there'], [3, 'Confident']].map(([n, l]) => `<button class="chip" data-act="co-conf" data-id="${q.id}" data-n="${n}" aria-pressed="${u.f === n}">${l}</button>`).join('')}</div>
+          ${u.f === 1 ? '<div class="small">Read the lesson once more, or let Claude teach it another way. Then come back and plan your answer.</div>' : u.f ? '<div class="small">Good. Plan your answer next, today or tomorrow. Writing it after a gap helps it stick.</div>' : ''}
+          <div class="btnrow">${u.f ? '<button class="btn sm" data-act="co-step" data-id="plan">Plan my answer</button>' : ''}${u.f === 1 ? '<button class="btn sm ghost" data-act="co-step" data-id="learn">Read it again</button>' : ''}<button class="btn sm ghost" data-act="co-retry" data-id="${q.id}">Try the check again</button></div></div>`;
+      }
+      html += liveBtn('aw', q.id);
+    } else if (step === 'plan') {
+      html += `<div class="card"><div class="label">What the question asks</div><b>${esc(q.verb)}</b><div class="small">${esc(VERBS[q.verb] || '')}</div></div>
+        <div class="card"><h3>A good answer covers</h3><div class="small muted">Tick each one as you note how you will cover it.</div>${tickRows}
+          <div class="notice warn"><div><b>Watch out</b><p>${esc(q.trap)}</p></div></div></div>
+        <div class="card"><h3>Make it yours</h3><div class="small"><b>Your own example:</b> ${esc(q.own)}</div>
+          ${q.parts ? `<div class="small"><b>The workbook’s headings:</b> ${q.parts.map(esc).join(', ')}.</div>` : ''}
+          <div class="small"><b>Ways to start:</b> ${q.start.map((x) => `“${esc(x)}”`).join(' ')}</div>
+          <div class="small muted">The checklist and the starters are scaffolding. The sentences have to be yours.</div></div>
+        <div class="card"><h3>Sources you could read and cite</h3><ul class="vlist">${q.src.map((k) => `<li class="small" style="overflow-wrap:anywhere">${esc(REFS[k])}</li>`).join('')}</ul><div class="small muted">Cite only what you have read.</div><button class="linkish" data-act="lib-topic" data-id="${q.t}" style="align-self:flex-start">Open the Library on this topic</button></div>
+        <div class="card"><h3>My plan</h3><div class="small muted">Key words and your own example. Tap Speak to say it.</div>
+          <textarea id="${tid('n')}" data-input="co" data-id="${q.id}" data-k="n" maxlength="8000" aria-label="My plan for question ${q.id}" placeholder="Notes for your answer">${esc(u.n || '')}</textarea></div>
+        <button class="btn" data-act="co-step" data-id="write">Write my answer</button>
+        ${liveBtn('aw', q.id)}`;
+    } else {
+      const pp = AW_PAPER[q.id];
+      const old = pp && state.papers[pp[0]] && state.papers[pp[0]].answers ? String(state.papers[pp[0]].answers[pp[1]] || '').trim() : '';
+      const w = wordCount(u.a);
+      const nx = awSittings().find((x) => x.q.id !== q.id);
+      html += `${!w && old ? `<div class="notice"><div><b>You wrote an answer to this in Practice papers</b><p>${wordCount(old)} words. Bring it in and carry on from there?</p><div class="btnrow" style="margin-top:8px"><button class="btn sm" data-act="co-import" data-id="${q.id}">Bring it in</button></div></div></div>` : ''}
+        <div class="card"><h3>My answer</h3><div class="small muted">Your own words and your own example. Tap Speak to say it, then tidy it. It saves as you type.</div>
+          <textarea id="${tid('a')}" data-input="co" data-id="${q.id}" data-k="a" maxlength="20000" style="min-height:220px" aria-label="My answer to question ${q.id}" placeholder="${esc(q.parts ? `Use the workbook’s headings: ${q.parts.join(', ')}.` : q.start[0])}">${esc(u.a || '')}</textarea>
+          <div class="row between"><span class="wc muted" id="co-wc">${w} words</span>${q.parts && !w ? `<button class="linkish" data-act="co-heads" data-id="${q.id}">Add the headings</button>` : ''}</div></div>
+        <div class="card"><div class="row between"><h3>Before you finish</h3><span class="pill num">${nTicks} / ${q.cover.length}</span></div>${tickRows}
+          <div class="small muted">“${esc(q.verb)}”: ${esc(VERBS[q.verb] || '')}</div></div>
+        <div class="btnrow"><button class="btn sm ghost" data-act="co-check" data-id="${q.id}">${ic('spark', 14)} Check my answer with Claude</button><button class="btn sm ghost" data-act="co-copy" data-id="${q.id}">Copy my answer</button></div>
+        ${u.w ? `<div class="notice"><div><b>Written on ${esc(fmtShort(u.w))}</b><p>Copy it into your Word workbook. You can still change it here.</p><div class="btnrow" style="margin-top:8px">${nx ? `<button class="btn sm" data-act="co-open" data-id="${nx.q.id}">Next: ${nx.q.id}</button>` : ''}<button class="btn sm ghost" data-act="co-unwrite" data-id="${q.id}">Not finished yet</button></div></div></div>` : `<button class="btn" data-act="co-written" data-id="${q.id}">${ic('check', 16)} Mark as written</button>`}
+        <div class="li" style="border:0;padding:0"><div class="grow small muted">I have already handed this one in</div>${toggle(u.h, 'co-handed', q.id, 'Already handed in')}</div>
+        <div class="small muted">Your workbook ends with a declaration that the work is your own and that you have named any AI tool you used. If the coach or Claude helped you learn, or gave you feedback, say so there.</div>`;
+    }
+    return html;
+  }
+  function coachKsb() {
+    const K = ksbToday();
+    const k = K.pick;
+    const today = todayKey();
+    let html = `<div class="card"><div class="row between"><h3>KSB portfolio</h3><span class="pill ${K.gaps.length ? 'info' : 'good'} num">${KSB_IDS.length - K.gaps.length}/${KSB_IDS.length}</span></div>
+      <div class="small muted">${K.gaps.length ? `${plural(K.gaps.length, 'gap')} and ${plural(K.weeks, 'week')} to go: about ${K.perWeek} a week${K.perWeek <= 7 ? ', so one KSB on most days is plenty' : ''}.` : 'Every KSB has evidence. Keep the log up to date as new evidence arrives.'}</div>
+      <div class="field"><label for="co-end-ksb">Every KSB evidenced by</label><input type="date" id="co-end-ksb" data-co-end="ksb" value="${esc(K.P.end)}" min="${today}"></div></div>`;
+    if (k) {
+      const u = ksbU(k);
+      const duties = DUTY_KSBS.map((l, i) => (l.includes(k) ? i : -1)).filter((i) => i >= 0);
+      const tagged = evidenceFor(k);
+      const mine = state.portfolio.evidence.filter((e) => !(e.ksbs || []).includes(k)).slice(-4).reverse();
+      html += `<div class="card"><div class="row between"><div class="label">${K.left ? 'Today’s KSB' : 'Next KSB'} · about 10 min</div><span class="pill ${ksbCovered().has(k) ? 'good' : 'info'}" style="font-family:var(--f-mono)">${k}</span></div>
+        <h3 style="font-size:16px;line-height:1.4">${esc(KSBS[k])}</h3>
+        ${duties.length ? `<div class="small muted">Part of duty ${duties.map((i) => i + 1).join(', ')}: ${duties.map((i) => esc(PORT.duties[i])).join('; ')}.</div>` : ''}
+        ${!K.left && K.gaps.length ? '<div class="small"><b>Today’s KSB is done.</b> This is the next one, if you want to get ahead.</div>' : ''}
+        <div class="step"><b>1. Understand it</b><div>Say in your own words what it asks for. If it is not clear, let Claude explain it with an engineering example.</div><div class="btnrow" style="margin-top:8px">${liveBtn('ksb', k, '', 'btn sm ghost')}</div></div>
+        <div class="step"><b>2. Find one piece of evidence</b><div>${tagged.length ? `Tagged already: ${tagged.map((e) => esc(e.title)).join('; ')}.` : 'Something you already have is best: a lesson plan, observation feedback, learner work or a reflection.'}</div>
+          ${mine.length ? `<div class="list" style="margin-top:8px">${mine.map((e) => `<div class="li"><div class="grow small" style="min-width:0"><b>${esc(e.title || 'Untitled')}</b><div class="muted">${esc(e.type)}</div></div><button class="btn sm ghost" data-act="co-tag" data-id="${esc(e.id)}" data-k="${k}">Tag ${k}</button></div>`).join('')}</div>` : ''}
+          <div class="btnrow" style="margin-top:8px"><button class="btn sm ghost" data-act="ev-new" data-id="${k}">${ic('plus', 14)} Add new evidence</button></div></div>
+        <div class="step"><b>3. Two lines: how does it show ${k}?</b><textarea id="co-k-${k}" data-input="cok" data-id="${k}" maxlength="4000" style="margin-top:8px" aria-label="How my evidence shows ${k}" placeholder="What I did, and what it shows">${esc(u.n || '')}</textarea></div>
+        <div class="li" style="border:0;padding:0"><div class="grow"><b class="small">The evidence is in PebblePad</b><div class="small muted">Turn this on once it is uploaded there.</div></div>${toggle(state.portfolio.ksbDone[k], 'ksb-done', k, 'Already evidenced in PebblePad')}</div>
+        <div class="btnrow">${u.d === today ? '<span class="pill good">Done for today</span>' : `<button class="btn sm" data-act="co-ksb-done" data-id="${k}">${ic('check', 14)} Done for today</button>`}${K.gaps.length > 1 ? `<button class="btn sm ghost" data-act="co-ksb-next" data-id="${k}">Pick another</button>` : ''}</div></div>`;
+    }
+    if (K.parked.length) html += `<div class="card"><h3>Worked on, evidence still to go in</h3><div class="chips wrap">${K.parked.map((x) => `<button class="chip" data-act="co-ksb-pick" data-id="${x}" aria-pressed="${x === k}">${x}</button>`).join('')}</div></div>`;
+    if (K.gaps.length) html += `<div class="card"><h3>All gaps</h3><div class="small muted">In the coach’s order: KSBs that count towards the most duties come first.</div><div class="ksbgrid">${K.gaps.map((x) => `<button class="ksb" data-act="co-ksb-pick" data-id="${x}">${x}</button>`).join('')}</div></div>`;
+    return html;
+  }
+  function coachCp() {
+    const steps = cpSteps();
+    const c = steps[0];
+    const m2 = deadlines().find((d) => d.id === 'pg-m2');
+    const today = todayKey();
+    const week = [0, 1, 2, 3, 4, 5, 6].filter((i) => state.coach.cp[addDays(today, -i)]).length;
+    return `<div class="card"><div class="row between"><h3>Five minutes today</h3>${week ? `<span class="pill gold num">${week} of the last 7 days</span>` : ''}</div>
+        <div class="small muted">A little every day, so the analysis and the slides are half written before you sit down to them.</div>
+        <div class="step">${esc(cpDaily())}</div>
+        ${cpDoneToday() ? '<span class="pill good" style="align-self:flex-start">Done today</span>' : `<button class="btn sm" data-act="co-cp-done" style="align-self:flex-start">${ic('check', 14)} Done today</button>`}</div>
+      ${c ? `<div class="card"><div class="label">Next step in your plan · ${esc(fmtShort(c.dateEff))}</div><h3 style="font-size:17px">${esc(c.title)}: ${c.mins || 30} min</h3>
+        <div class="small muted">For ${esc(c.deadline.title)}.${c.tip ? ' ' + esc(c.tip) : ''}</div>
+        <div class="btnrow">${liveBtn('cp', c.id, 'Coach me through it with Claude', 'btn sm')}<button class="btn sm ghost" data-act="start-step" data-id="${esc(c.id)}">${ic('play', 14)} Start it now</button></div>
+        ${steps.length > 1 ? `<div class="label">After that</div><div class="list">${steps.slice(1, 4).map((x) => `<div class="li"><div class="grow small" style="min-width:0"><b>${esc(x.title)}</b><div class="muted">${esc(fmtShort(x.dateEff))} · ${x.mins || 30} min</div></div></div>`).join('')}</div>` : ''}</div>` : '<div class="card small muted">Every change project step in your plan is ticked.</div>'}
+      <div class="card"><h3>Running notes</h3><div class="small muted">One place for what you tried, what happened and what you read. Speak them or type them. They become your analysis and your slides.</div>
+        <textarea id="co-cpnote" data-input="conote" data-stamp="1" maxlength="30000" style="min-height:160px" aria-label="Running notes for the change project" placeholder="Today I…">${esc(state.coach.cpNote || '')}</textarea>
+        <div class="btnrow"><button class="btn sm ghost" data-act="co-note-copy">Copy</button><button class="btn sm ghost" data-act="co-note-ask">${ic('spark', 14)} Ask Claude what is missing</button></div></div>
+      <div class="card"><h3>Learn it first</h3><div class="small muted">The ideas your project stands on. Each is a short lesson you can listen to.</div><div class="chips wrap">${['retrieval', 'change', 'memory', 'adaptive'].map((t) => `<button class="chip" data-act="learn" data-id="${t}">${esc(TOPICS[t].name)}</button>`).join('')}</div></div>
+      ${m2 && m2.note ? `<div class="notice"><div><b>Your module’s rules</b><p>${esc(m2.note)}</p></div></div>` : ''}`;
+  }
+  // The card on Home: the first of today's steps, and how many more.
+  function coachHomeCard() {
+    const items = coachToday();
+    const st = coachStreak();
+    const done = Number(state.coach.days[todayKey()]) || 0;
+    const first = items[0];
+    return `<div class="card" id="coach-card"><div class="row between"><div class="label">Coach · a small step ${isWeekday(todayKey()) ? 'tonight' : 'today'}</div>${st ? `<span class="pill gold num">${plural(st, 'day')} in a row</span>` : ''}</div>
+      ${first ? `<h3 style="font-size:17px">${esc(first.title)} · ${first.m} min</h3><div class="small muted">${esc(first.sub)}</div>
+        <div class="row"><button class="btn sm" data-act="co-go" data-path="${first.path}" data-id="${esc(first.id)}">${ic('play', 14)} Start</button><button class="btn sm ghost" data-act="co-go" data-path="" data-id="">${items.length > 1 ? `All ${items.length} for today` : 'Open the coach'}</button></div>`
+    : `<h3 style="font-size:17px">${done ? 'Today’s coach steps are done' : 'Nothing from the coach today'}</h3><div class="row"><button class="btn sm ghost" data-act="co-go" data-path="" data-id="">Open the coach</button></div>`}</div>`;
+  }
+  function coachHow() {
+    sheet(`<h3>How the coach works</h3>
+      <ol class="steps"><li><b>It plans.</b> It counts what is left and the days to your date, and sets a small step for each day. Miss a day and it spreads the rest again. Low energy on Home means one light step.</li>
+        <li><b>It teaches first.</b> Each workbook question has a short lesson to read or listen to, then two quick checks.</li>
+        <li><b>It helps you plan.</b> What the question word asks for, what a good answer covers, the common slip, and sources.</li>
+        <li><b>You write.</b> Your own words and your own example, typed or spoken. The coach never writes it for you.</li>
+        <li><b>Claude joins in when you ask.</b> Coach me live opens your own Claude with the question, the checklist and where you are, and it teaches you one step at a time. Check my answer gets feedback against the checklist, without rewriting.</li></ol>
+      <div class="small muted">The plan and the lessons work without a connection. The live coaching needs one, and you tap Send in Claude yourself: the app cannot run Claude on its own.</div>
+      <button class="btn block" data-act="close-sheet">Got it</button>`);
+  }
+  document.addEventListener('change', (e) => {
+    const k = e.target && e.target.dataset ? e.target.dataset.coEnd : '';
+    if (k !== 'aw' && k !== 'ksb') return;
+    const v = e.target.value;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v) && v >= todayKey()) state.coach.end[k] = v; else delete state.coach.end[k];
+    commit();
+    render();
+  });
+
   /* ---------- Ask tutor: your own Claude account, inside the app ----------
      On Android a second web view with claude.ai sits under the tutor's top bar.
      Suggestions and "Ask tutor" buttons put your week and the question into the message box. */
@@ -4419,6 +5150,96 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       case 'close-sheet': closeSheet(); break;
       case 'close-tutor': closeTutor(); break;
       case 'ask': closeSheet(true); ask(el.dataset.q || '', !!el.dataset.week); break;
+      // the coach
+      case 'co-path': if (COACH_PATHS.some(([k]) => k === id)) { sub.cpath = id; state.coach.path = id; sub.cq = null; commit(); render(); } break;
+      case 'co-how': coachHow(); break;
+      case 'co-live': {
+        const kind = el.dataset.k;
+        let brief = '';
+        if (kind === 'aw' && AW_BY[id]) brief = awTeachPrompt(AW_BY[id]);
+        else if (kind === 'ksb' && KSBS[id]) brief = ksbTeachPrompt(id);
+        else if (kind === 'cp') { const st = cpSteps(); const c = st.find((x) => x.id === id) || st[0]; if (c) brief = cpCoachPrompt(c); }
+        else if (kind === 'week') brief = coachWeekPrompt();
+        if (brief) { closeSheet(true); ask(brief); }
+        break;
+      }
+      case 'co-go': {
+        const path = el.dataset.path;
+        if (COACH_PATHS.some(([k]) => k === path)) { sub.cpath = path; if (state.coach.path !== path) { state.coach.path = path; commit(); } }
+        sub.cq = path === 'aw' && AW_BY[id] ? id : null; sub.cs = null; sub.cn = 1;
+        if (path === 'ksb' && KSBS[id]) sub.ck = id;
+        go('coach');
+        break;
+      }
+      case 'co-open': if (AW_BY[id]) { closeSheet(true); sub.cq = id; sub.cs = null; sub.cn = 1; render(); $('#screen').scrollTop = 0; } break;
+      case 'co-step': if (CO_STEPS.some(([k]) => k === id)) { sub.cs = id; render(); $('#screen').scrollTop = 0; } break;
+      case 'co-more': sub.cn = (Number(sub.cn) || 1) + 1; render(); break;
+      case 'co-listen': { const q = AW_BY[id]; if (q) listen(`Workbook question ${q.id}`, awLessonText(q)); break; }
+      case 'co-read': { const q = AW_BY[id]; if (q) { const u = awSet(id); if (!u.r) { u.r = todayKey(); commit(); } sub.cs = 'check'; render(); $('#screen').scrollTop = 0; } break; }
+      case 'co-ans': { const q = AW_BY[id]; const i = Number(el.dataset.i); if (q && q.check[i]) { const u = awSet(id); if (u.q[i] == null) { u.q[i] = Number(el.dataset.o) || 0; if (!u.r) u.r = todayKey(); commit(); } render(); } break; }
+      case 'co-retry': if (AW_BY[id]) { awSet(id).q = {}; commit(); render(); } break;
+      case 'co-conf': {
+        const q = AW_BY[id];
+        if (!q) break;
+        const u = awSet(id);
+        u.f = clamp(Number(el.dataset.n) || 0, 1, 3);
+        const first = !u.k;
+        if (first) { u.k = todayKey(); coachDid(10); }
+        commit(); render();
+        if (first) toast(`<b>${esc(id)} learned.</b> ${u.f === 1 ? 'A second pass will help it settle.' : 'Next: plan it and write it.'}`);
+        break;
+      }
+      case 'co-tick': { const q = AW_BY[id]; const i = Number(el.dataset.i); if (q && q.cover[i]) { const u = awSet(id); if (u.t[i]) delete u.t[i]; else u.t[i] = 1; commit(); render(); } break; }
+      case 'co-heads': { const q = AW_BY[id]; if (q && q.parts) { const u = awSet(id); if (!wordCount(u.a)) { u.a = q.parts.map((x) => `${x}:\n`).join('\n'); commit(); render(); } } break; }
+      case 'co-import': {
+        const pp = AW_PAPER[id];
+        if (!pp || !AW_BY[id]) break;
+        const old = state.papers[pp[0]] && state.papers[pp[0]].answers ? String(state.papers[pp[0]].answers[pp[1]] || '') : '';
+        const u = awSet(id);
+        if (old.trim() && !wordCount(u.a)) { u.a = old.slice(0, 20000); commit(); render(); toast('Brought in from Practice papers.'); }
+        break;
+      }
+      case 'co-check': { const q = AW_BY[id]; if (q) { if (!wordCount(awU(id).a)) toast('Write your answer first, then Claude can check it.'); else ask(awCheckPrompt(q)); } break; }
+      case 'co-copy': { const q = AW_BY[id]; if (q) { if (!wordCount(awU(id).a)) toast('There is no answer here yet.'); else copyText(`${q.id} ${q.q}\n\n${String(awU(id).a).trim()}`, 'Copied. Paste it into your workbook.'); } break; }
+      case 'co-written': {
+        if (!AW_BY[id]) break;
+        const u = awSet(id);
+        if (!wordCount(u.a)) { toast('Write your answer first.'); break; }
+        if (!u.w) { u.w = todayKey(); coachDid(20); }
+        commit(); render();
+        toast(`<b>${esc(id)} written.</b> Copy it into your workbook when you are ready.`);
+        break;
+      }
+      case 'co-unwrite': if (AW_BY[id]) { delete awSet(id).w; commit(); render(); } break;
+      case 'co-handed': if (AW_BY[id]) { awSet(id).h = !awE(AW_BY[id]).h; commit(); render(); } break;
+      case 'co-handed-lo': { const qs = AW.filter((x) => String(x.lo) === id); if (qs.length) { const HL = awHandedLo(); const on = !qs.every((x) => awE(x, HL).h); qs.forEach((x) => { awSet(x.id).h = on; }); commit(); render(); } break; }
+      case 'co-copy-all': { const t = awAllText(); if (!t) toast('No answers written yet.'); else copyText(t, 'All your answers are copied.'); break; }
+      case 'co-save-all': { const t = awAllText(); if (!t) toast('No answers written yet.'); else saveFile(`assessor-workbook-my-answers-${todayKey()}.txt`, t, 'text/plain'); break; }
+      case 'co-tag': {
+        const ev = p.evidence.find((x) => x.id === id);
+        const k = el.dataset.k;
+        if (!ev || !KSBS[k]) break;
+        ev.ksbs = Array.isArray(ev.ksbs) ? ev.ksbs : [];
+        if (!ev.ksbs.includes(k)) { ev.ksbs.push(k); ev.ksbs.sort((x, y) => KSB_IDS.indexOf(x) - KSB_IDS.indexOf(y)); }
+        sub.ck = k;
+        commit(); render();
+        toast(`<b>Tagged ${esc(k)}.</b> Now write your two lines.`);
+        break;
+      }
+      case 'co-ksb-done': {
+        if (!KSBS[id]) break;
+        const u = ksbSet(id);
+        if (u.d !== todayKey()) { u.d = todayKey(); coachDid(10); }
+        sub.ck = null;
+        commit(); render();
+        toast(`<b>${esc(id)} done for today.</b>${ksbCovered().has(id) ? '' : ' It stays on the list until its evidence is tagged or in PebblePad.'}`);
+        break;
+      }
+      case 'co-ksb-next': { const g = ksbGaps(); if (g.length) { sub.ck = g[(g.indexOf(id) + 1) % g.length]; render(); } break; }
+      case 'co-ksb-pick': if (KSBS[id]) { sub.ck = id; render(); $('#screen').scrollTop = 0; } break;
+      case 'co-cp-done': if (!cpDoneToday()) { state.coach.cp[todayKey()] = 1; coachDid(5); commit(); render(); toast('<b>Five minutes done.</b> That is how the workload shrinks.'); } break;
+      case 'co-note-copy': if (!String(state.coach.cpNote || '').trim()) toast('Your notes are empty.'); else copyText(state.coach.cpNote, 'Notes copied.'); break;
+      case 'co-note-ask': if (!String(state.coach.cpNote || '').trim()) toast('Write or speak a few notes first.'); else ask(cpNotesPrompt()); break;
       case 'copy': copyText(el.dataset.q || '', 'Copied.'); break;
       case 'copy-week': copyText(weekText(), 'Your week is copied. Paste it into Claude and add your question.'); break;
       // Home and the planner
@@ -4812,6 +5633,15 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       clearTimeout(window.__paperT); window.__paperT = setTimeout(commit, 600);
       return;
     }
+    if (d.input === 'co') {
+      if (!AW_BY[d.id]) return;
+      awSet(d.id)[d.k === 'n' ? 'n' : 'a'] = el.value;
+      if (d.k === 'a') { const wc = $('#co-wc'); if (wc) wc.textContent = `${wordCount(el.value)} words`; }
+      clearTimeout(window.__coT); window.__coT = setTimeout(commit, 600);
+      return;
+    }
+    if (d.input === 'cok') { if (KSBS[d.id]) { ksbSet(d.id).n = el.value; clearTimeout(window.__coT); window.__coT = setTimeout(commit, 600); } return; }
+    if (d.input === 'conote') { state.coach.cpNote = el.value; clearTimeout(window.__coT); window.__coT = setTimeout(commit, 600); return; }
     if (d.ev && evDraft) { evDraft[d.ev] = el.value; return; }
     if (d.obs) {
       const info = (state.portfolio.obsInfo[d.obs] = state.portfolio.obsInfo[d.obs] || {});
@@ -4942,7 +5772,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       if (DICT.on) dictStop();
       if (sheetOpen) { closeSheet(); return true; }
       if (tutorOpen) { closeTutor(); return true; }
-      if (stack.length) { back(); return true; }
+      if (stack.length || (route === 'coach' && sub.cq)) { back(); return true; }
       if (route !== 'home') { go('home'); return true; }
       return false;
     };
@@ -4977,7 +5807,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); });
 
   // Exposed for testing only
-  window.__planner = { deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
+  window.__planner = { deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
 })();
 
 </script>

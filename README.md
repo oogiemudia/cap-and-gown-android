@@ -2,6 +2,18 @@
 
 The Cap and Gown study planner as an Android app, with real alarms and Claude inside the app.
 
+## Page 44: the coach, a small step every day
+
+A page change only: it arrives by itself, with no new install (see Live updates below).
+
+- **It plans.** The coach counts what is left and the days to your date, and sets a small step for each day. Miss a day and the rest is spread again. Low energy on Home keeps one light step; good energy adds one. Home shows tonight's first step, and **More, Coach** has all of it.
+- **Assessor workbook (Unit D/601/5313).** Each of the 25 questions is two short sittings. **Learn it** (about 10 minutes): a lesson in three or four parts to read or listen to, then two quick checks and how sure you feel. **Write it** (about 20 minutes): what the question word asks for, what a good answer covers, the common slip, sources you could read and cite, your own plan, then your own answer, typed or spoken. Questions whose hand-in is still ahead come first. An outcome whose hand-in is ticked on the planner counts as handed in, and you can switch any outcome or question yourself. **My answers** copies them or saves them as a file for the Word workbook.
+- **KSB portfolio.** One KSB a day, the ones that count towards the most duties first: understand it, tag one piece of evidence you already have (or add a new one), and write two lines on how it shows the KSB.
+- **Change project.** Five minutes a day (one small task, in turn), the next step from the planner, and one place for running notes, typed or spoken.
+- **Claude joins in when you ask.** **Coach me live with Claude** opens your own Claude with the question, the checklist and where you are, and asks it to teach one step at a time. **Check my answer with Claude** asks for feedback against the checklist. Every brief tells Claude not to write the answer, the note or the project work: the workbook ends with a declaration that the work is your own and that any AI tool is named. The app has no Claude of its own, so you tap Send in Claude yourself; the plan and the lessons work without a connection.
+
+The lessons are in `AW` in `index.html` (one entry per question: `learn`, `check`, `cover`, `trap`, `own`, `start`, `src`), written from the assessor's role, with sources from `REFS`. To add a course, add its units in the same shape and a tab in `COACH_PATHS`. What you do is kept in `state.coach`.
+
 ## Version 6: podcasts play inside the app
 
 - **Play here.** Every podcast in the library now plays in the app itself. The day's podcast in Study, For you has **Play here**, and Home has **Play today's podcast here**. The app finds the episode in the show's own feed and streams it; nothing opens outside the app.
@@ -76,7 +88,7 @@ For a podcast, add `pod:` with the show's key in `SHOWS` so it plays in the app.
 `tools/qa/` is a test robot (Playwright, headless Chromium) with a stand-in for the phone:
 
 - `smoke.js` opens every screen in the app, in a browser and in an older app, at two phone widths.
-- `logic.js` checks behaviour: the recommendations, the library, saved pages, live updates, old and damaged data, different dates, dark and dyslexia display, Listen and Speak (the player bar, speech into each kind of box, spoken notes into a reflection, a refused microphone, an older app, a plain browser), and podcasts (each library podcast finds its own episode, Play from For you and Home, the bar's buttons and slider, carrying on from a saved place, the end of an episode, a lost connection, a show that cannot be reached, an older app, a browser, a 320-pixel phone).
+- `logic.js` checks behaviour: the recommendations, the library, saved pages, live updates, old and damaged data, different dates, dark and dyslexia display, Listen and Speak (the player bar, speech into each kind of box, spoken notes into a reflection, a refused microphone, an older app, a plain browser), and podcasts (each library podcast finds its own episode, Play from For you and Home, the bar's buttons and slider, carrying on from a saved place, the end of an episode, a lost connection, a show that cannot be reached, an older app, a browser, a 320-pixel phone), and the coach (every lesson has its parts, checks, checklist and real sources; the plan for today under normal, low and good energy; learn, check, plan and write for a question; nothing counted twice; hand-ins from the planner and by hand; the briefs given to Claude and that each says not to write the work; KSB evidence tagged in one tap; the change project's five minutes and notes; damaged data; an older app; a browser).
 - `reader.js` takes the script that collects a web page's words for **Listen to this page** out of `ReaderActivity.java` and runs it on made-up pages: menus, cookie notices and footers must be left out.
 - `clicker.js` taps every button on every screen, and whatever each tap reveals.
 - `bigtext.js` checks nothing runs off the edge on a small phone with the phone's text size turned up, the dyslexia-friendly font and wide letters. `FONT="DejaVu Sans"` in front of any of the tests runs it with wide letters, which is what the checks on GitHub use.
