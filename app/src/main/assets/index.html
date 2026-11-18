@@ -1,5 +1,7 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Cap and Gown</title>
+<meta name="capgown-page" content="40">
+<meta name="capgown-min-app" content="0">
 <meta name="theme-color" content="#3454D9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -242,6 +244,26 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
 
 @media (max-width:380px){.nav button{font-size:10px}.stats{gap:6px}.stat{padding:10px}.two{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* Version 4: online library, For you, live updates */
+.seg.five button{font-size:12px;padding:8px 1px;white-space:nowrap}
+.res{grid-template-columns:40px minmax(0,1fr) auto}
+.res.tap{width:100%;text-align:left}
+.hubbtn{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;text-align:left;padding:10px 12px;border-radius:14px;background:var(--surface2);border:1px solid var(--line)}
+.restext{min-width:0;display:flex;flex-direction:column;gap:1px;text-align:left}
+.restext b{font-size:14px;line-height:1.3;overflow-wrap:anywhere}
+.ftype svg{width:18px;height:18px}
+.k-Read{background:var(--accent-soft);color:var(--accent)}
+.k-Watch{background:var(--bad-soft);color:var(--bad)}
+.k-Listen{background:var(--gold-soft);color:var(--gold)}
+.k-File,.k-Note{background:var(--surface2);color:var(--muted)}
+.kpill svg{width:12px;height:12px}
+.rec h3{font-size:16px;line-height:1.3;overflow-wrap:anywhere}
+.rec .why{font-size:13px;line-height:1.45;padding:9px 11px;border-radius:11px;background:var(--surface2)}
+.toast .linkish{color:inherit}
+/* narrow screens and large text: a long label beside a heading wraps instead of running off the edge */
+.row.between>.pill{white-space:normal;text-align:right}
+.chips.wrap .chip{flex:0 1 auto;max-width:100%;white-space:normal;text-align:left}
+.seg.five{overflow-x:auto;scrollbar-width:none}
 </style>
 
 <div class="app" id="app">
@@ -255,8 +277,10 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
 </div>
 <script>window.STUDY_DATA = {"version": 4, "owner": "Godswill", "timezone": "Europe/London", "updated": "2026-10-28", "defaults": {"eveningStart": "19:00", "dueTime": "09:00"}, "courses": [{"id": "pgce", "short": "PGCE", "name": "PGCE FE and Skills, Year 2", "detail": "Module 2 (7X-710020): change project and presentation. Module 3 (7X-710021): PebblePad portfolio and professional discussion."}, {"id": "assess", "short": "Assessor", "name": "L3 Assessor Awards", "detail": "L3 Award in Assessing Vocationally Related Achievement and L3 Award in Assessing Competence in the Work Environment. Assessor: Andrea."}], "deadlines": [{"id": "pg-ctd", "course": "pgce", "kind": "submission", "title": "Draft Change Template", "due": "2026-10-14", "status": "confirmed", "how": "Submitted to the tutor team", "chunks": []}, {"id": "as-icq1", "course": "assess", "kind": "event", "title": "1:1 learner interview for the ICQ", "due": "2026-10-12", "status": "confirmed", "how": "With Andrea. First action plan agreed.", "chunks": []}, {"id": "as-icq2", "course": "assess", "kind": "event", "title": "Second 1:1 learner interview for the ICQ", "due": "2026-10-19", "status": "confirmed", "how": "With Andrea", "chunks": []}, {"id": "as-o12", "course": "assess", "kind": "submission", "title": "Workbook outcomes 1 and 2, plus SOL and assessment schedule", "due": "2026-11-02", "status": "confirmed", "how": "Email to Andrea", "note": "Half term week, so a bit more time each evening.", "chunks": [{"id": "as-o12-1", "date": "2026-10-26", "mins": 40, "title": "Answer Q1.1", "tip": "Usually the functions of assessment in learning. Check the exact wording in your workbook, then answer in your own words with one example from your T Level groups."}, {"id": "as-o12-2", "date": "2026-10-27", "mins": 40, "title": "Answer Q1.2", "tip": "Key concepts and principles of assessment. VACSR (valid, authentic, current, sufficient, reliable) is a good frame. One short example for each."}, {"id": "as-o12-3", "date": "2026-10-28", "mins": 50, "title": "Answer Q1.3 and Q1.4", "tip": "Your responsibilities as an assessor, then the rules that apply in your own area: awarding body, safeguarding, data protection. Keep it about your setting."}, {"id": "as-o12-4", "date": "2026-10-29", "mins": 40, "title": "Answer Q2.1", "tip": "Compare assessment methods: strengths and limits, linked to what individual learners need. A small table first, then a short paragraph."}, {"id": "as-o12-5", "date": "2026-10-30", "mins": 50, "title": "Tidy the SOL and assessment schedule, then email everything", "tip": "Read outcomes 1 and 2 once more and send it all to Andrea tonight, so Monday is not a rush."}]}, {"id": "pg-ctf", "course": "pgce", "kind": "submission", "title": "Final Change Template (retrieval practice)", "due": "2026-11-11", "status": "confirmed", "how": "Submit to the tutor team on Teams", "note": "Write it from the scaffold in your project. The project itself cannot start until this is approved.", "chunks": [{"id": "pg-ctf-1", "date": "2026-10-27", "mins": 20, "title": "Read the draft feedback and list what to change", "tip": "One line per comment. You tick them off as you go."}, {"id": "pg-ctf-2", "date": "2026-10-29", "mins": 10, "title": "Email your mentor to book a chat about the narrower project", "tip": "Q13 needs what they say about the retrieval-only version."}, {"id": "pg-ctf-s1", "date": "2026-11-01", "mins": 40, "title": "Write Q1 and Q2 from the scaffold", "tip": "Weekend slot. Move it with the arrow if Sunday is no good. Q1 280 to 340 words, Q2 280 to 340."}, {"id": "pg-ctf-s2", "date": "2026-11-02", "mins": 20, "title": "Pull hub results from both trackers for Q3", "tip": "For each game: learners with a result, first-attempt scores, and the dates results came in."}, {"id": "pg-ctf-s3", "date": "2026-11-03", "mins": 25, "title": "Write Q13 from your mentor chat", "tip": "When you met, what they said, any concerns, what you changed. 120 to 160 words."}, {"id": "pg-ctf-s4", "date": "2026-11-04", "mins": 20, "title": "Set up the delayed check and the baseline survey", "tip": "8 to 10 questions learners first met in September, same format. Three or four statements in an anonymous Form. Run both in lessons this week or early next."}, {"id": "pg-ctf-s5", "date": "2026-11-05", "mins": 25, "title": "Write Q4, Q5 and Q6", "tip": "One main outcome in Q4. Keep your adaptive teaching list in Q5. Four to six KSBs in Q6."}, {"id": "pg-ctf-s6", "date": "2026-11-08", "mins": 50, "title": "Write Q7 to Q11", "tip": "Weekend slot. Q11 has four short sections and the Lewin table."}, {"id": "pg-ctf-s7", "date": "2026-11-09", "mins": 40, "title": "Write Q3 and Q12 with your baseline numbers", "tip": "Fill the baseline table, then set the SMART target from the gap between September and the delayed check."}, {"id": "pg-ctf-s8", "date": "2026-11-10", "mins": 45, "title": "Write Q14, delete the grey boxes, run the final checks", "tip": "Read it aloud once. Reading aloud catches the sentences that do not sound like you."}, {"id": "pg-ctf-s9", "date": "2026-11-11", "mins": 10, "title": "Submit the final template", "time": "08:00"}]}, {"id": "as-o36", "course": "assess", "kind": "submission", "title": "Workbook outcomes 3 to 6 (3.1 to 6.3, 13 questions)", "due": "2026-11-09", "status": "confirmed", "how": "Email to Andrea for formative assessment", "chunks": [{"id": "as-o36-1", "date": "2026-11-02", "mins": 45, "title": "Outcome 3: planning assessment", "tip": "What you plan around, holistic assessment and risks. Use your own assessment plan as the example."}, {"id": "as-o36-2", "date": "2026-11-03", "mins": 40, "title": "Outcome 4: involving learners and others", "tip": "Why involve them, what information they need, peer and self-assessment, and adapting arrangements for individual needs."}, {"id": "as-o36-3", "date": "2026-11-04", "mins": 30, "title": "Outcome 5: making assessment decisions", "tip": "How you judge evidence is sufficient, authentic and current, and how decisions stay valid, reliable and fair."}, {"id": "as-o36-4", "date": "2026-11-05", "mins": 35, "title": "Outcome 6: quality assurance", "tip": "Why QA matters, how standardisation works where you are, and what happens if a learner disputes a decision."}, {"id": "as-o36-5", "date": "2026-11-06", "mins": 25, "title": "Read through 3 to 6 and email Andrea", "tip": "Check every question number has an answer. Send it before the weekend."}]}, {"id": "pg-tp", "course": "pgce", "kind": "target", "title": "Alternative placement reflection (TotalPeople) in PebblePad", "due": "2026-11-20", "status": "target", "how": "Upload to PebblePad", "note": "Carried over from Year 1. The date is your own target, not a university deadline.", "chunks": [{"id": "pg-tp-1", "date": "2026-11-17", "mins": 20, "title": "Rough notes from the placement", "tip": "What you saw, what surprised you, one thing you would take into your own lessons."}, {"id": "pg-tp-2", "date": "2026-11-19", "mins": 30, "title": "Write the reflection", "tip": "Your notebook pages from the visit are a good starting point."}, {"id": "pg-tp-3", "date": "2026-11-20", "mins": 15, "title": "Map to the OS and upload to PebblePad"}]}, {"id": "as-l1u1", "course": "assess", "kind": "submission", "title": "Assessment records for learner 1 (one whole unit)", "due": "2026-11-30", "status": "confirmed", "how": "Email to Andrea", "chunks": [{"id": "as-l1u1-1", "date": "2026-11-16", "mins": 20, "title": "List the unit criteria and the evidence you already hold", "tip": "Three columns: criterion, evidence, where it is. The gaps tell you what to do next."}, {"id": "as-l1u1-2", "date": "2026-11-18", "mins": 30, "title": "Gather the assessment plan and observation records"}, {"id": "as-l1u1-3", "date": "2026-11-23", "mins": 40, "title": "Write up missing records and Q&A", "tip": "Questioning records count. Note the question, the answer and your judgement."}, {"id": "as-l1u1-4", "date": "2026-11-25", "mins": 30, "title": "Feedback and sign-off check", "tip": "Each decision needs feedback to the learner. Every record signed and dated by both of you."}, {"id": "as-l1u1-5", "date": "2026-11-27", "mins": 15, "title": "Final check, then email the records"}]}, {"id": "pg-osr", "course": "pgce", "kind": "target", "title": "OS professional discussion 2: reflection and portfolio updates", "due": "2026-12-11", "status": "target", "how": "PebblePad", "note": "Your tutor recommended portfolio updates after the second formative discussion. The date is your own target.", "chunks": [{"id": "pg-osr-1", "date": "2026-11-24", "mins": 20, "title": "List what came out of the discussion", "tip": "Include each update your tutor asked for, so nothing gets missed."}, {"id": "pg-osr-2", "date": "2026-11-26", "mins": 30, "title": "Write the reflection"}, {"id": "pg-osr-3", "date": "2026-12-08", "mins": 30, "title": "Portfolio updates, first half"}, {"id": "pg-osr-4", "date": "2026-12-10", "mins": 30, "title": "Portfolio updates, second half, and check the OS mapping"}, {"id": "pg-osr-5", "date": "2026-12-11", "mins": 15, "title": "Upload to PebblePad"}]}, {"id": "as-o78", "course": "assess", "kind": "submission", "title": "Workbook outcomes 7 and 8 (7.1, 7.2, 8.1 to 8.4)", "due": "2026-12-07", "status": "confirmed", "how": "Email to Andrea", "chunks": [{"id": "as-o78-1", "date": "2026-11-30", "mins": 30, "title": "Answer Q7.1", "tip": "Managing assessment information: why the procedures matter (records, storage, data protection)."}, {"id": "as-o78-2", "date": "2026-12-01", "mins": 30, "title": "Answer Q7.2", "tip": "How feedback and questioning feed into assessment. One real example from learner 1 works well."}, {"id": "as-o78-3", "date": "2026-12-02", "mins": 45, "title": "Answer Q8.1 and Q8.2", "tip": "Legal issues and policies (confidentiality, health and safety, welfare), then how technology helps, such as Teams, Forms and your tracker."}, {"id": "as-o78-4", "date": "2026-12-03", "mins": 45, "title": "Answer Q8.3 and Q8.4", "tip": "Equality and diversity in assessment, then reflective practice and CPD. Your PGCE gives you plenty here."}, {"id": "as-o78-5", "date": "2026-12-04", "mins": 20, "title": "Read through and email Andrea"}]}, {"id": "as-wb", "course": "assess", "kind": "submission", "title": "Complete knowledge workbook, and agree a professional discussion date", "due": "2027-01-04", "status": "confirmed", "how": "Email to Andrea", "note": "Aim to finish on 18 December so the Christmas break stays a break.", "chunks": [{"id": "as-wb-1", "date": "2026-12-14", "mins": 40, "title": "Put all outcomes in one workbook and act on feedback for 1 and 2"}, {"id": "as-wb-2", "date": "2026-12-16", "mins": 40, "title": "Act on feedback for outcomes 3 to 6"}, {"id": "as-wb-3", "date": "2026-12-18", "mins": 40, "title": "Feedback for 7 and 8, then a last proofread", "tip": "Last working day before the break. Finish here if you can."}, {"id": "as-wb-4", "date": "2027-01-04", "time": "08:00", "mins": 15, "title": "Email the workbook and offer dates for the professional discussion"}]}, {"id": "pg-cp", "course": "pgce", "kind": "project", "title": "Change project: run and evaluate (spring term)", "due": "2027-04-02", "status": "target", "how": "Weekly in-lesson retrieval rounds in both groups, about six teaching weeks", "note": "Main measure: scores on questions that come back 2 to 3 weeks later. The end date is your own target, so the analysis is done before Easter.", "chunks": [{"id": "pg-cp-w0", "date": "2026-11-25", "mins": 15, "title": "Note what you took from the change project workshop", "tip": "Wednesday session: exemplars and assignment support."}, {"id": "pg-cp-1", "date": "2026-12-09", "mins": 15, "title": "Check the template was approved and note any conditions"}, {"id": "pg-cp-2", "date": "2027-01-05", "mins": 40, "title": "Write the first two weeks of rounds, with returning questions planned", "tip": "Include at least two explain or apply questions in each round."}, {"id": "pg-cp-r0", "date": "2027-01-14", "mins": 20, "title": "Before the run: tell both groups what the rounds are for and check support plans"}, {"id": "pg-cp-r1", "date": "2027-01-21", "mins": 20, "title": "Run week 1: log results, the most-missed question and what you retaught"}, {"id": "pg-cp-r2", "date": "2027-01-28", "mins": 20, "title": "Run week 2: results, most-missed question, reteach"}, {"id": "pg-cp-r3", "date": "2027-02-04", "mins": 20, "title": "Run week 3: results, most-missed question, reteach"}, {"id": "pg-cp-r4", "date": "2027-02-11", "mins": 25, "title": "Run week 4 and a mid-point look", "tip": "Are returning-question scores moving? Is anyone missing out?"}, {"id": "pg-cp-r5", "date": "2027-02-25", "mins": 20, "title": "Run week 5: results, most-missed question, reteach"}, {"id": "pg-cp-r6", "date": "2027-03-04", "mins": 20, "title": "Run week 6: results, most-missed question, reteach"}, {"id": "pg-cp-e1", "date": "2027-03-08", "mins": 20, "title": "Set the end survey and a final delayed check for lessons this week"}, {"id": "pg-cp-e2", "date": "2027-03-11", "mins": 30, "title": "Put every result in one sheet"}, {"id": "pg-cp-e3", "date": "2027-03-16", "mins": 40, "title": "Compare returning-question scores with the baseline, group by group"}, {"id": "pg-cp-e4", "date": "2027-03-18", "mins": 30, "title": "Other explanations and limits: what else could explain the change?"}, {"id": "pg-cp-e5", "date": "2027-03-23", "mins": 30, "title": "Refreeze decision: keep, change or drop the rounds, and why"}, {"id": "pg-cp-e6", "date": "2027-03-30", "mins": 40, "title": "Write analysis notes you can build slides from"}]}, {"id": "as-obs1", "course": "assess", "kind": "event", "title": "Observation of you assessing a learner (1)", "due": "2027-01-11", "status": "confirmed", "how": "Time and place to confirm with Andrea", "chunks": [{"id": "as-obs1-1", "date": "2027-01-04", "mins": 10, "title": "Confirm learner, time and place for both observations"}, {"id": "as-obs1-2", "date": "2027-01-07", "mins": 40, "title": "Prepare paperwork: assessment plan, observation record, Q&A sheet"}, {"id": "as-obs1-3", "date": "2027-01-08", "mins": 15, "title": "Check the learner is still free and print everything"}, {"id": "as-obs1-4", "date": "2027-01-12", "mins": 20, "title": "Notes from observation 1 while it is fresh"}]}, {"id": "as-obs2", "course": "assess", "kind": "event", "title": "Observation of you assessing a learner (2)", "due": "2027-01-18", "status": "confirmed", "how": "Time and place to confirm with Andrea", "chunks": [{"id": "as-obs2-1", "date": "2027-01-15", "mins": 20, "title": "Prep for observation 2: act on points from the first one"}]}, {"id": "as-l1u2", "course": "assess", "kind": "submission", "title": "Assessment records for learner 1, second unit", "due": "2027-01-25", "status": "confirmed", "how": "Email to Andrea", "chunks": [{"id": "as-l1u2-1", "date": "2027-01-13", "mins": 25, "title": "List unit 2 criteria and the evidence you hold"}, {"id": "as-l1u2-2", "date": "2027-01-19", "mins": 40, "title": "Write up the records from observation 2"}, {"id": "as-l1u2-3", "date": "2027-01-20", "mins": 30, "title": "Fill the gaps: Q&A and feedback records"}, {"id": "as-l1u2-4", "date": "2027-01-22", "mins": 20, "title": "Check, sign and email the records"}]}, {"id": "as-std", "course": "assess", "kind": "submission", "title": "Evidence of attending standardisation meetings", "due": "2027-02-15", "status": "confirmed", "how": "Email to Andrea", "note": "15 February is half term, so the plan sends it the week before.", "chunks": [{"id": "as-std-1", "date": "2027-02-01", "mins": 20, "title": "List the meetings you attended and find minutes or sign-in sheets"}, {"id": "as-std-2", "date": "2027-02-03", "mins": 25, "title": "Short note on each: what was standardised and what you changed after"}, {"id": "as-std-3", "date": "2027-02-09", "mins": 15, "title": "Scan or save everything and email it"}]}, {"id": "as-l2", "course": "assess", "kind": "submission", "title": "Evidence for learner 2 (two whole units)", "due": "2027-03-01", "status": "check", "how": "Email to Andrea", "note": "The schedule says 29/02, which does not exist in 2027. Ask Andrea to confirm the date.", "chunks": [{"id": "as-l2-1", "date": "2027-02-08", "mins": 30, "title": "Plan with learner 2: units, methods and dates", "tip": "Ask Andrea to confirm the due date while you are at it."}, {"id": "as-l2-2", "date": "2027-02-11", "mins": 30, "title": "Unit A: assessment plan agreed and signed"}, {"id": "as-l2-3", "date": "2027-02-16", "mins": 40, "title": "Unit A: records and Q&A"}, {"id": "as-l2-4", "date": "2027-02-18", "mins": 40, "title": "Unit B: assessment plan and first records"}, {"id": "as-l2-5", "date": "2027-02-22", "mins": 40, "title": "Unit B: finish the records"}, {"id": "as-l2-6", "date": "2027-02-24", "mins": 30, "title": "Feedback check across both units"}, {"id": "as-l2-7", "date": "2027-02-26", "mins": 20, "title": "Final check and email"}]}, {"id": "as-pd", "course": "assess", "kind": "event", "title": "Professional discussion with Andrea", "due": null, "status": "nodate", "template": "event", "how": "Agree the date when you send the workbook on 4 January", "chunks": []}, {"id": "pg-m2", "course": "pgce", "kind": "submission", "title": "Module 2 presentation slides uploaded", "due": "2027-05-21", "status": "confirmed", "how": "MS Teams Assignments by 3pm. 20 minutes plus up to 10 minutes of questions, recorded.", "chunks": [{"id": "pg-m2-1", "date": "2027-04-12", "mins": 40, "title": "Plan the slides: what each LO needs", "tip": "LO1 planning and teaching your subject. LO2 subject pedagogy, adaptive teaching and inclusion. LO3 inclusive education. LO4 research, how you used it and its limits."}, {"id": "pg-m2-2", "date": "2027-04-14", "mins": 40, "title": "Draft the slides on your context and the change (LO1 and LO2)"}, {"id": "pg-m2-3", "date": "2027-04-16", "mins": 40, "title": "Draft the slides on impact and inclusion (LO2 and LO3)"}, {"id": "pg-m2-4", "date": "2027-04-20", "mins": 40, "title": "Draft the slides on research and its limits (LO4), with APA 7 references"}, {"id": "pg-m2-5", "date": "2027-04-21", "mins": 15, "title": "Take the draft to the workshop and note the feedback"}, {"id": "pg-m2-6", "date": "2027-04-28", "mins": 15, "title": "Second workshop: list the questions you might be asked"}, {"id": "pg-m2-7", "date": "2027-04-30", "mins": 30, "title": "Full run-through against a 20-minute timer"}, {"id": "pg-m2-8", "date": "2027-05-04", "mins": 20, "title": "Get ready for the peer review on 5 May"}, {"id": "pg-m2-9", "date": "2027-05-06", "mins": 30, "title": "Act on the peer review feedback"}, {"id": "pg-m2-10", "date": "2027-05-13", "mins": 30, "title": "Final edit and the opening slide", "tip": "Module code 7X-710020, module title, name, student number, assignment title, AI statement."}, {"id": "pg-m2-11", "date": "2027-05-18", "mins": 15, "title": "File check", "tip": ".pptx, no password, filename only letters, numbers, hyphens and underscores, under 72 characters."}, {"id": "pg-m2-12", "date": "2027-05-20", "mins": 15, "title": "Upload the slides a day early"}], "dueTime": "15:00", "note": "Marked against LO1 to LO4. AI is allowed for shaping only (AITS 2), and the opening slide needs a short AI statement."}, {"id": "pg-obs6", "course": "pgce", "kind": "target", "title": "Obs 6 (mentor): feedback form and reflection in PebblePad", "due": "2026-11-06", "status": "target", "how": "Feedback form uploaded, 200 to 300 word reflection within two weeks of the observation", "note": "The Obs 6 window closed on 23 October. If it did not go ahead, tell your tutor straight away.", "chunks": [{"id": "pg-obs6-1", "date": "2026-10-29", "mins": 10, "title": "Check Obs 6: is the feedback form uploaded and the reflection written?", "tip": "The reflection should argue with the feedback a little, not just accept it."}]}, {"id": "pg-obs7", "course": "pgce", "kind": "event", "title": "Obs 7 (joint)", "due": null, "status": "nodate", "template": "observation", "how": "Window 2 November to 11 December. The booking deadline was 23 October, so confirm the date with your mentor and tutor now.", "chunks": []}, {"id": "pg-obs8b", "course": "pgce", "kind": "submission", "title": "Book Obs 8 (mentor)", "due": "2026-12-18", "status": "confirmed", "how": "Agree a date with your mentor, then email your tutor. Window 4 January to 5 February.", "chunks": [{"id": "pg-obs8b-1", "date": "2026-12-14", "mins": 10, "title": "Agree the Obs 8 date with your mentor and email your tutor", "tip": "Keep at least two weeks after Obs 10."}]}, {"id": "pg-obs8", "course": "pgce", "kind": "event", "title": "Obs 8 (mentor)", "due": null, "status": "nodate", "template": "observation", "how": "Window 4 January to 5 February. Set the date once it is booked and the planner adds the prep steps.", "chunks": []}, {"id": "pg-obs10", "course": "pgce", "kind": "event", "title": "Obs 10: online microteach", "due": "2027-01-06", "status": "check", "how": "Taught sessions on 6 and 13 January. Check which one is your slot.", "chunks": [{"id": "pg-obs10-1", "date": "2026-12-16", "mins": 5, "title": "Find out whether your microteach is on 6 or 13 January"}, {"id": "pg-obs10-2", "date": "2027-01-04", "mins": 40, "title": "Plan the online microteach and test camera, microphone and screen share"}, {"id": "pg-obs10-3", "date": "2027-01-19", "mins": 30, "title": "Upload the Obs 10 feedback and write the reflection (200 to 300 words)", "tip": "Within two weeks of the microteach."}]}, {"id": "pg-obs9b", "course": "pgce", "kind": "submission", "title": "Book Obs 9 (joint)", "due": "2027-02-12", "status": "confirmed", "how": "Agree a date with your mentor first, then your tutor. Window 22 February to 31 March.", "chunks": [{"id": "pg-obs9b-1", "date": "2027-02-08", "mins": 10, "title": "Agree the Obs 9 date with your mentor and email your tutor", "tip": "Offer your tutor two or three options."}]}, {"id": "pg-obs9", "course": "pgce", "kind": "event", "title": "Obs 9 (joint)", "due": null, "status": "nodate", "template": "observation", "how": "Window 22 February to 31 March. Set the date once it is booked.", "chunks": []}, {"id": "pg-tut2", "course": "pgce", "kind": "event", "title": "Individual tutorial 2 (window 7 to 18 December)", "due": "2026-12-18", "status": "confirmed", "how": "Your slot shows in your Teams calendar", "chunks": [{"id": "pg-tut2-1", "date": "2026-12-04", "mins": 15, "title": "Notes for tutorial 2: wellbeing, placement, mentoring, observations, portfolio"}]}, {"id": "pg-tut3", "course": "pgce", "kind": "event", "title": "Individual tutorial 3 (window 1 to 12 February)", "due": "2027-02-12", "status": "confirmed", "how": "Your slot shows in your Teams calendar", "chunks": [{"id": "pg-tut3-1", "date": "2027-01-29", "mins": 15, "title": "Notes for tutorial 3, including your KSB gap list"}]}, {"id": "pg-tut4", "course": "pgce", "kind": "event", "title": "Individual tutorial 4 (window 22 March to 2 April)", "due": "2027-04-02", "status": "confirmed", "how": "Your slot shows in your Teams calendar", "chunks": [{"id": "pg-tut4-1", "date": "2027-03-19", "mins": 15, "title": "Notes for tutorial 4: change project results and presentation plan"}]}, {"id": "pg-ap2", "course": "pgce", "kind": "submission", "title": "Alternative placement 2: 10 hours, logged, with a reflection", "due": "2027-03-25", "status": "confirmed", "how": "Hours and activities recorded in PebblePad, plus a structured reflection", "note": "Mandatory. One of your two placements should be in a SEND, ESOL, alternative provision, prison or community setting.", "chunks": [{"id": "pg-ap2-1", "date": "2026-11-12", "mins": 10, "title": "Check placement 2 is being arranged with the programme team"}, {"id": "pg-ap2-2", "date": "2026-11-27", "mins": 10, "title": "Placement 2 dates agreed and in your diary"}, {"id": "pg-ap2-3", "date": "2027-02-26", "mins": 15, "title": "Log placement 2 hours and what you did each visit"}, {"id": "pg-ap2-4", "date": "2027-03-03", "mins": 30, "title": "Draft the placement 2 reflection", "tip": "Compare their teaching, assessment and learner support with yours. What will you take back?"}, {"id": "pg-ap2-5", "date": "2027-03-10", "mins": 30, "title": "Finish the reflection, map it to the OS and upload"}]}, {"id": "pg-pres", "course": "pgce", "kind": "event", "title": "Module 2 presentation (week of 24 May)", "due": "2027-05-24", "status": "check", "how": "20 minutes plus up to 10 minutes of questions on MS Teams. Check your slot.", "chunks": [{"id": "pg-pres-1", "date": "2027-05-21", "mins": 20, "title": "One last run-through against the timer"}]}, {"id": "pg-pd", "course": "pgce", "kind": "event", "title": "Module 3 portfolio professional discussion (week of 7 June)", "due": "2027-06-07", "status": "check", "how": "30 minutes online with your mentor and tutor. Every piece of evidence must be in the portfolio first.", "note": "Choose visual storytelling (nine stories) or question and answer (nine questions), one for each occupational duty.", "chunks": [{"id": "pg-pd-1", "date": "2027-02-02", "mins": 15, "title": "Take your KSB gap list to the portfolio workshop (3 February)"}, {"id": "pg-pd-2", "date": "2027-04-23", "mins": 40, "title": "Final KSB check: every KSB has at least one piece of evidence"}, {"id": "pg-pd-3", "date": "2027-05-12", "mins": 15, "title": "Note what came up at the professional discussion speed dating"}, {"id": "pg-pd-4", "date": "2027-06-01", "mins": 30, "title": "Practise duties 1 to 3 out loud"}, {"id": "pg-pd-5", "date": "2027-06-02", "mins": 30, "title": "Practise duties 4 to 6 out loud"}, {"id": "pg-pd-6", "date": "2027-06-03", "mins": 30, "title": "Practise duties 7 to 9 out loud"}, {"id": "pg-pd-7", "date": "2027-06-04", "mins": 20, "title": "Check everything on the portfolio list is uploaded"}]}, {"id": "pg-exit", "course": "pgce", "kind": "event", "title": "Exit tutorial (week of 14 June)", "due": "2027-06-14", "status": "check", "how": "Check your slot on Teams", "chunks": []}], "review": {"start": "2026-10-26", "end": "2027-06-04", "day": 5, "mins": 20, "items": [{"id": "mentor", "title": "Mentor meeting recorded", "tip": "Add this week’s meeting to PebblePad on the Mentor Meeting Record. The handbook suggests about 30 minutes a week. No meeting? Note why."}, {"id": "hours", "title": "Teaching hours log updated", "tip": "Add this week’s lead teaching hours and any remote teaching, then update the numbers below."}, {"id": "obs", "title": "Observation paperwork up to date", "tip": "New feedback form uploaded? A 200 to 300 word reflection is due within two weeks of each observation. Next one booked?"}, {"id": "session", "title": "This week’s taught session", "tip": "Slides saved to the Claude project, and one line in PebblePad on what you will try in class, tagged to a KSB."}, {"id": "ksb", "title": "New evidence mapped to KSBs", "tip": "Tag anything new (lessons, feedback, learner work) to the KSBs it shows. Update the KSB count below."}, {"id": "ap", "title": "Alternative placements", "tip": "Placement 1 (TotalPeople) reflection uploaded? Placement 2 arranged, hours logged, reflection started? Due 25 March.", "until": "2027-03-26"}, {"id": "cp", "title": "Change project evidence filed", "tip": "This week’s round results, the most-missed question and what you retaught.", "from": "2027-01-18", "until": "2027-03-12"}, {"id": "actions", "title": "Feedback actions", "tip": "Tick off anything your mentor or tutor asked you to change. Carry the rest forward."}], "breaks": ["2026-12-21", "2026-12-28", "2027-04-05", "2027-04-12"]}, "portfolio": {"ksbTotal": 51, "hoursTarget": 150, "settingTarget": 250, "remoteTarget": 20, "observations": [{"n": 1, "label": "Obs 1", "kind": "Microteach"}, {"n": 2, "label": "Obs 2", "kind": "Joint"}, {"n": 3, "label": "Obs 3", "kind": "Mentor"}, {"n": 4, "label": "Obs 4", "kind": "Mentor"}, {"n": 5, "label": "Obs 5", "kind": "Joint"}, {"n": 6, "label": "Obs 6", "kind": "Mentor", "window": "Closed 23 Oct"}, {"n": 7, "label": "Obs 7", "kind": "Joint", "window": "2 Nov to 11 Dec"}, {"n": 8, "label": "Obs 8", "kind": "Mentor", "window": "4 Jan to 5 Feb"}, {"n": 9, "label": "Obs 9", "kind": "Joint", "window": "22 Feb to 31 Mar"}, {"n": 10, "label": "Obs 10", "kind": "Online microteach", "window": "6 or 13 Jan"}], "checks": [{"id": "ap1h", "group": "Alternative placements", "title": "Placement 1 (TotalPeople): hours logged"}, {"id": "ap1r", "group": "Alternative placements", "title": "Placement 1: reflection uploaded"}, {"id": "ap2a", "group": "Alternative placements", "title": "Placement 2: arranged"}, {"id": "ap2h", "group": "Alternative placements", "title": "Placement 2: 10 hours logged"}, {"id": "ap2r", "group": "Alternative placements", "title": "Placement 2: reflection uploaded"}, {"id": "safe", "group": "Certificates and records", "title": "Safeguarding certificate uploaded"}, {"id": "prev", "group": "Certificates and records", "title": "Prevent certificate uploaded"}, {"id": "tt", "group": "Certificates and records", "title": "Timetable or log showing 150 lead teaching hours"}, {"id": "levels", "group": "Certificates and records", "title": "Evidence of teaching two levels (for example T Level Year 1 and Year 2)"}], "duties": ["Passion for learning and high expectations", "A focus on outcomes for all students", "Pedagogy, subject, curriculum and industry knowledge", "Evidence-informed teaching, assessment and safe use of technology", "Diversity, equality of opportunity and inclusion", "Professional relationships", "Professional boundaries, legal and ethical standards", "Roles, sustainable practice, resilience and adaptability", "Next steps, progression and information, advice and guidance"], "los": {"Module 2 presentation (7X-710020)": ["LO1: Critically analyse planning and teaching of your subject in the FES sector.", "LO2: Apply a critical approach to developing subject specific pedagogies which support adaptive teaching and promote inclusion.", "LO3: Critically explore and evaluate the inclusive education in relation to subject curriculum and teaching practice.", "LO4: Critically evaluate the significance, application and limitations of relevant educational research."], "Module 3 professional practice (7X-710021)": ["LO1: Plan and teach well-structured lessons that demonstrate good subject knowledge and pedagogy and effective use of assessment and feedback to promote positive outcomes for learners.", "LO2: Manage behaviour and demonstrate high expectations which inspire, motivate and challenge learners of all strengths and abilities.", "LO3: Take responsibility for own conduct and professional development across the FES sector, reflecting on feedback and self-evaluation to develop professional practice.", "LO4: Fulfil the wider professional responsibilities associated with teaching across the FES sector, showing resilience and adaptability."]}}};</script>
 <script>
-/* Cap and Gown, version 3: the Studypath design with your PGCE and Assessor work.
+/* Cap and Gown, version 4: the Studypath design with your PGCE and Assessor work.
    Tabs: Home, Plan, Study, Portfolio, Progress, More. Ask tutor opens your own Claude chat.
+   New in 4: the online library opens inside the app, the Study tab recommends what to study, read,
+   watch and listen to, and the page updates itself from GitHub (raise capgown-page in the head).
    One script for every version:
    - the Android app (window.AndroidApp exists): real alarms, claude.ai inside the app, read aloud
    - the Claude-hosted page (window.claude exists): progress syncs through the artifact database
@@ -346,7 +370,9 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
       // version 2: energy by date, the change log, evening limits set by reflections, reflections by week, missed dates by step
       energy: {}, log: [], weekCap: {}, reflections: {}, missed: {}, logSeen: 0,
       // version 3 (Study): topic mastery, flashcard schedule, mistakes, what works, minutes studied, library, papers
-      mastery: {}, cards: {}, extraCards: [], mistakes: [], formats: {}, study: {}, library: [], favs: {}, papers: {}
+      mastery: {}, cards: {}, extraCards: [], mistakes: [], formats: {}, study: {}, library: [], favs: {}, papers: {},
+      // version 4: what you opened, finished or skipped in the library (by id), and today's For you notes
+      res: {}, fy: null
     };
   }
   function freshPortfolio() {
@@ -360,13 +386,120 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
     if (!s || typeof s !== 'object') return base;
     const out = { ...base, ...s };
     out.settings = { ...DEFAULT_SETTINGS, ...(s.settings || {}) };
-    ['done', 'moved', 'due', 'hidden', 'reviews', 'energy', 'weekCap', 'reflections', 'missed', 'mastery', 'cards', 'formats', 'study', 'favs', 'papers'].forEach((k) => { if (!out[k] || typeof out[k] !== 'object' || Array.isArray(out[k])) out[k] = {}; });
+    ['done', 'moved', 'due', 'hidden', 'reviews', 'energy', 'weekCap', 'reflections', 'missed', 'mastery', 'cards', 'formats', 'study', 'favs', 'papers', 'res'].forEach((k) => { if (!out[k] || typeof out[k] !== 'object' || Array.isArray(out[k])) out[k] = {}; });
     ['custom', 'log', 'extraCards', 'mistakes', 'library'].forEach((k) => { if (!Array.isArray(out[k])) out[k] = []; });
     out.logSeen = Number(out.logSeen) || 0;
+    if (!out.fy || typeof out.fy !== 'object' || Array.isArray(out.fy)) out.fy = null;
+    out.library = out.library.filter((u) => u && typeof u === 'object' && u.id && u.title);
     const p = out.portfolio && typeof out.portfolio === 'object' ? out.portfolio : {};
     out.portfolio = { ...freshPortfolio(), ...p };
     ['nums', 'obs', 'checks', 'duties', 'ksbDone', 'obsInfo', 'placements', 'dutyNotes'].forEach((k) => { if (!out.portfolio[k] || typeof out.portfolio[k] !== 'object' || Array.isArray(out.portfolio[k])) out.portfolio[k] = {}; });
     ['evidence', 'hours', 'meetings'].forEach((k) => { if (!Array.isArray(out.portfolio[k])) out.portfolio[k] = []; });
+    return repair(out);
+  }
+  // Saved data that has been damaged (a hand-edited or half-written backup, a fault in an older version)
+  // must never stop the app opening: anything of the wrong shape is dropped, and everything sound is kept.
+  function repair(out) {
+    const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+    const isDay = (x) => typeof x === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x) && keyOf(parseKey(x)) === x;
+    const isTime = (x) => typeof x === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(x);
+    const isNum = (x) => typeof x === 'number' && isFinite(x);
+    const str = (x) => (typeof x === 'string' ? x : (isNum(x) ? String(x) : ''));
+    const flag = (v) => v === true || (isNum(v) && v > 0) || (typeof v === 'string' && v !== '');
+    const keep = (m, ok) => { Object.keys(m).forEach((k) => { if (!ok(m[k], k)) delete m[k]; }); return m; };
+    const rows = (a, ok) => a.filter((x) => isObj(x) && (!ok || ok(x)));
+    const strs = (o, keys) => keys.forEach((k) => { if (o[k] != null && typeof o[k] !== 'string') o[k] = str(o[k]); });
+    const withId = (x, pre) => { if (typeof x.id !== 'string' || !x.id) x.id = pre + uid(); return x; };
+
+    const s = out.settings;
+    const D = DEFAULT_SETTINGS;
+    if (!isTime(s.evening)) s.evening = D.evening;
+    s.cap = clamp(Number(s.cap) || D.cap, 20, 180);
+    s.scale = clamp(Number(s.scale) || 1, 0.85, 1.4);
+    s.reviewDay = clamp(Math.round(Number(s.reviewDay)) || D.reviewDay, 1, 7);
+    s.alarmLead = clamp(Number(s.alarmLead == null ? D.alarmLead : s.alarmLead) || 0, 0, 60);
+    if (s.course !== 'all' && !COURSES[s.course]) s.course = 'all';
+    ['mode', 'chatStart', 'claudeProject', 'pebblepad'].forEach((k) => { if (typeof s[k] !== 'string') s[k] = D[k]; });
+    out.updatedAt = Number(out.updatedAt) || 0;
+
+    keep(out.done, flag); keep(out.hidden, flag); keep(out.favs, flag);
+    keep(out.moved, isDay); keep(out.due, isDay);
+    keep(out.energy, (v, k) => isDay(k) && typeof v === 'string');
+    keep(out.weekCap, (v) => isNum(v) && v > 0);
+    keep(out.mastery, isNum); keep(out.study, isNum);
+    keep(out.missed, Array.isArray);
+    Object.keys(out.missed).forEach((k) => { out.missed[k] = out.missed[k].filter(isDay); });
+    ['reviews', 'reflections', 'formats', 'res', 'papers'].forEach((k) => keep(out[k], isObj));
+    keep(out.cards, (c) => isObj(c) && isDay(c.due));
+    Object.values(out.cards).forEach((c) => { if (!isNum(c.iv)) c.iv = 0; if (!isNum(c.ease)) c.ease = 2.5; if (!isNum(c.at)) c.at = 0; });
+    Object.values(out.papers).forEach((p) => { if (!isObj(p.answers)) p.answers = {}; });
+    Object.values(out.reflections).forEach((r) => { r.text = str(r.text); r.moods = Array.isArray(r.moods) ? r.moods.filter((x) => typeof x === 'string') : []; if (!isNum(r.at)) r.at = 0; });
+    Object.values(out.formats).forEach((f) => { f.n = Number(f.n) || 0; });
+    if (out.fy && (typeof out.fy.k !== 'string' || (out.fy.quiz != null && !isObj(out.fy.quiz)) || (out.fy.lesson != null && !isObj(out.fy.lesson)))) out.fy = null;
+
+    out.custom = rows(out.custom).map((d) => {
+      withId(d, 'c');
+      d.custom = true;
+      d.title = str(d.title) || 'Untitled';
+      if (!isDay(d.due)) d.due = null;
+      if (d.dueTime != null && !isTime(d.dueTime)) d.dueTime = '09:00';
+      strs(d, ['how', 'note', 'course', 'kind', 'template', 'status']);
+      d.chunks = rows(Array.isArray(d.chunks) ? d.chunks : [], (c) => isDay(c.date)).map((c) => {
+        withId(c, 'c');
+        c.title = str(c.title) || 'Step';
+        if (!isNum(c.mins) || c.mins < 0) c.mins = 30;
+        if (c.time != null && !isTime(c.time)) delete c.time;
+        strs(c, ['tip']);
+        return c;
+      });
+      return d;
+    });
+    out.log = rows(out.log, (e) => isNum(e.at)).map((e) => {
+      withId(e, 'c');
+      e.what = str(e.what); e.why = str(e.why); e.kind = str(e.kind);
+      if (e.lines != null) e.lines = Array.isArray(e.lines) ? e.lines.filter((l) => typeof l === 'string') : [];
+      if (e.undo != null && !isObj(e.undo)) delete e.undo;
+      if (e.undo) ['moved', 'weekCap'].forEach((k) => { if (e.undo[k] != null && !isObj(e.undo[k])) delete e.undo[k]; });
+      return e;
+    });
+    out.extraCards = rows(out.extraCards, (c) => typeof c.f === 'string' && c.f && typeof c.b === 'string').map((c) => { strs(c, ['t']); return withId(c, 'x'); });
+    out.mistakes = rows(out.mistakes, (m) => str(m.q)).map((m) => {
+      ['q', 'your', 'right', 'why', 't'].forEach((k) => { m[k] = str(m[k]); });
+      if (!isDay(m.at)) delete m.at;
+      return m;
+    });
+    out.library = rows(out.library, (u) => str(u.id) && str(u.title)).map((u) => {
+      u.id = str(u.id); u.title = str(u.title);
+      strs(u, ['type', 'kind', 'link', 'c', 't', 'meta', 'note', 'text']);
+      if (u.m != null && !isNum(u.m)) delete u.m;
+      if (u.at != null && !isDay(u.at)) delete u.at;
+      return u;
+    });
+
+    const P = out.portfolio;
+    P.approach = str(P.approach);
+    ['obs', 'checks', 'duties', 'ksbDone'].forEach((k) => keep(P[k], flag));
+    ['obsInfo', 'placements'].forEach((k) => keep(P[k], isObj));
+    keep(P.nums, (v) => v === '' || isNum(v));
+    keep(P.dutyNotes, (v) => typeof v === 'string');
+    P.evidence = rows(P.evidence).map((e) => {
+      withId(e, 'e');
+      ['title', 'type', 'link', 'status', 'notes'].forEach((k) => { e[k] = str(e[k]); });
+      if (!isDay(e.date)) e.date = '';
+      e.ksbs = Array.isArray(e.ksbs) ? e.ksbs.filter((k) => typeof k === 'string') : [];
+      return e;
+    });
+    P.hours = rows(P.hours, (h) => isDay(h.date)).map((h) => {
+      withId(h, 'h');
+      h.group = str(h.group);
+      ['lead', 'other', 'remote'].forEach((k) => { h[k] = Math.max(0, Number(h[k]) || 0); });
+      return h;
+    });
+    P.meetings = rows(P.meetings, (m) => isDay(m.date)).map((m) => {
+      withId(m, 'mt');
+      m.discussed = str(m.discussed); m.actions = str(m.actions); m.none = !!m.none;
+      return m;
+    });
     return out;
   }
   function loadLocal() {
@@ -380,7 +513,8 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
     if (!APP) return null;
     try { const raw = APP.loadState(); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
   }
-  let state = normalise(loadLocal() || loadFromApp());
+  const newest = (a, b) => (!a ? b : !b ? a : ((Number(b.updatedAt) || 0) > (Number(a.updatedAt) || 0) ? b : a));
+  let state = normalise(newest(loadLocal(), loadFromApp()));
   // Six tabs; the other screens open from them (or from More) and have a back button.
   const TABS = ['home', 'plan', 'study', 'portfolio', 'progress', 'more'];
   const ROUTE_NAMES = TABS.concat(['courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'pp']);
@@ -1339,6 +1473,9 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
     if (e === 'low' || e === 'high') out.push(`Energy tonight: ${e === 'low' ? 'low' : 'good'}.`);
     const lastR = Object.entries(state.reflections).sort((a, b) => b[0].localeCompare(a[0]))[0];
     if (lastR && lastR[1].text) out.push(`My last weekly reflection (${weekLabel(lastR[0])}): "${lastR[1].text.slice(0, 300)}"`);
+    const wk = weakTopics(3);
+    out.push(`Weakest topics in my quizzes: ${wk.map((t) => `${t.name} (${t.m == null ? 'not checked yet' : t.m + '%'})`).join(', ')}.`);
+    try { const names = recommend().picks.slice(0, 3).map((p) => `${KIND_VERB[p.it.kind].toLowerCase()} "${p.it.title}"`); if (names.length) out.push(`Suggested from my library tonight: ${names.join('; ')}.`); } catch (e) { /* not essential */ }
     out.push('', 'My question: ');
     return out.join('\n');
   }
@@ -1501,6 +1638,116 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
     { id: 'lb12', type: 'Note', title: 'Observation 5 reflection', c: 'pgce', t: 'reflect', meta: 'Your work', text: 'observation reflection feedback' }
   ];
 
+  /* ---------- the online library ----------
+     HUBS: whole reading lists and collections that open inside the app.
+     ONLINE: single readings, videos and podcasts, each opened and checked on 18 November 2026.
+       kind: Read, Watch or Listen. t: the topics it helps with, best match first.
+       m: minutes. x: true when the source states the length; otherwise m is an estimate for planning.
+     To add one, copy a line, give it a new id and bump the page number in the head of this file. */
+  const HUBS = [
+    { id: 'hub-padlet', main: true, title: 'ITE reading, website and resources list', by: 'LTE Group · Padlet', url: 'https://padlet.com/ltegroup/ite-reading-website-and-resources-list-tagxk7ayowk78d6l', note: 'Your course library: reading, websites and resources, kept up to date by the ITE team.' },
+    { id: 'hub-gravells', main: true, title: 'Ann Gravells reading list', by: 'anngravells.com', url: 'https://www.anngravells.com/information/reading-list', note: 'Textbooks and reading for teaching, assessment and quality assurance qualifications.' },
+    { id: 'hub-gravells-video', title: 'Ann Gravells: videos by topic', by: 'anngravells.com', url: 'https://www.anngravells.com/videos1/index', note: 'Videos for FE and skills practitioners, grouped by qualification and topic.' },
+    { id: 'hub-eef-pod', title: 'Evidence into Action: every episode', by: 'Education Endowment Foundation podcast', url: 'https://evidenceintoaction.podbean.com/', note: 'Each episode page has its own player.' }
+  ];
+  const ONLINE = [
+    // PGCE: retrieval, memory and cognitive load
+    { id: 'on01', kind: 'Read', title: 'Six strategies for effective learning: a summary for teachers', by: 'The Learning Scientists', url: 'https://www.learningscientists.org/blog/2019/11/28-1', t: ['retrieval', 'memory'], m: 6, note: 'Spacing, interleaving, retrieval, concrete examples, elaboration and dual coding on one page.' },
+    { id: 'on02', kind: 'Watch', title: 'Six strategies: short classroom videos', by: 'The Learning Scientists', url: 'https://www.learningscientists.org/videos', t: ['retrieval', 'memory'], m: 6, note: 'Pick the retrieval practice or spaced practice video first.' },
+    { id: 'on03', kind: 'Listen', title: 'Episode 2: Retrieval practice', by: 'The Learning Scientists Podcast', url: 'https://www.learningscientists.org/learning-scientists-podcast/2017/9/6/episode-2-retrieval-practice', t: ['retrieval'], m: 20, note: 'What retrieval practice is, why learners avoid it and how to use it. The page links to the audio.' },
+    { id: 'on04', kind: 'Read', title: 'Revision and study skills: retrieval practice', by: 'SecEd · Helen Webb', url: 'https://www.sec-ed.co.uk/best-practice/revision-and-study-skills-retrieval-practice', t: ['retrieval'], m: 8, note: 'A teacher’s account of using retrieval practice with classes: useful for your Change Template evidence.' },
+    { id: 'on05', kind: 'Listen', title: 'Cognitive science in the classroom', by: 'EEF · Evidence into Action', url: 'https://educationendowmentfoundation.org.uk/news/new-episode-of-evidence-into-action-cognitive-science-in-the-classroom', t: ['memory', 'retrieval'], m: 28, note: 'The authors of the EEF evidence review talk through what holds up in real classrooms. The page says where to listen.' },
+    { id: 'on06', kind: 'Read', title: 'An introduction to cognitive load theory', by: 'The Education Hub', url: 'https://theeducationhub.org.nz/an-introduction-to-cognitive-load-theory-2', t: ['memory'], m: 15, note: 'Working memory, long-term memory and how worked examples cut needless load.' },
+    { id: 'on07', kind: 'Watch', title: 'Clips from the classroom: worked examples to reduce cognitive load', by: 'Durrington Research School', url: 'https://researchschool.org.uk/durrington/news/clips-from-the-classroom-using-worked-examples-to-help-reduce-cognitive-load-in-maths', t: ['memory', 'adaptive'], m: 6, note: 'A teacher models step-by-step worked examples: close to how you would teach an engineering calculation.' },
+    { id: 'on08', kind: 'Read', title: 'Ten principles of instruction (Rosenshine)', by: 'RE:ONLINE research summary', url: 'https://www.reonline.org.uk/research/10-principles-of-instruction', t: ['memory', 'retrieval', 'afl'], m: 6, note: 'A short summary of Rosenshine’s principles, with a link to the full paper.' },
+    // PGCE: leading change
+    { id: 'on09', kind: 'Read', title: 'Change theories', by: 'Structural Learning · Paul Main', url: 'https://www.structural-learning.com/post/change-theories', t: ['change'], m: 15, note: 'Lewin, Kotter, ADKAR, Bridges and more side by side: good for justifying your choice of model.' },
+    { id: 'on10', kind: 'Watch', title: 'Lewin’s change management model', by: 'Mind Tools', url: 'https://prime.mindtools.com/pages/videos/lewins-change-model-transcript.htm', t: ['change'], m: 4, note: 'Unfreeze, change, refreeze, with the transcript underneath.' },
+    { id: 'on11', kind: 'Listen', title: 'Effective professional development in 16-19 settings', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/effective-professional-development-in-16-19-settings/', t: ['change', 'standards'], m: 33, x: true, note: 'How colleges make a change stick with staff: speaks directly to a small change project in FE.' },
+    // PGCE: adaptive teaching and SEND
+    { id: 'on12', kind: 'Read', title: 'Five-a-day for pupils with SEND: a cluster of adaptive approaches', by: 'Education Endowment Foundation', url: 'https://educationendowmentfoundation.org.uk/news/eef-blog-five-a-day-for-pupils-with-send-a-cluster-of-adaptive-approaches', t: ['adaptive'], m: 4, x: true, note: 'Adaptive teaching as a four-step cycle, and where the five approaches fit.' },
+    { id: 'on13', kind: 'Watch', title: 'Voices from the classroom: the Five-a-day approach in practice', by: 'Education Endowment Foundation', url: 'https://educationendowmentfoundation.org.uk/news/eef-blog-new-voices-from-the-classroom-the-five-a-day-approach-in-practice', t: ['adaptive'], m: 5, note: 'A teacher shows small chunks, visual scaffolds and revisiting prior learning.' },
+    { id: 'on14', kind: 'Listen', title: 'SEN in mainstream and adaptive teaching', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/ep-18-special-educational-needs-and-disabilities', t: ['adaptive'], m: 68, x: true, note: 'A long listen: good for a drive. Supporting learners with SEND without separate lessons.' },
+    { id: 'on15', kind: 'Read', title: 'SEND code of practice: 0 to 25 years', by: 'Department for Education', url: 'https://www.gov.uk/government/publications/send-code-of-practice-0-to-25', t: ['adaptive', 'law'], m: 20, note: 'Statutory guidance. Read the further education chapter, which sets out what colleges must do.' },
+    { id: 'on16', kind: 'Listen', title: 'Exploring disadvantage in 16-19 settings', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/exploring-disadvantage-in-16%e2%80%9319-settings/', t: ['adaptive', 'agency'], m: 39, x: true, note: 'What disadvantage looks like in colleges and what teachers can do about it.' },
+    // PGCE: assessment for learning and feedback
+    { id: 'on17', kind: 'Watch', title: 'Dylan Wiliam: formative assessment', by: 'Education Scotland', url: 'https://education.gov.scot/resources/dylan-wiliam-formative-assessment', t: ['afl'], m: 5, note: 'How formative assessment and good feedback move learning on.' },
+    { id: 'on18', kind: 'Watch', title: 'Dylan Wiliam: assessment strategies', by: 'Education Scotland', url: 'https://education.gov.scot/resources/dylan-wiliam-assessment-strategies', t: ['afl'], m: 5, note: 'The five key strategies and who does what: teacher, peers and the learner.' },
+    { id: 'on19', kind: 'Watch', title: 'Dylan Wiliam: self and peer assessment', by: 'Education Scotland', url: 'https://education.gov.scot/resources/dylan-wiliam-self-and-peer-assessment', t: ['afl', 'agency', 'involve'], m: 5, note: 'Getting learners to assess themselves and each other, with questions to reflect on.' },
+    { id: 'on20', kind: 'Read', title: 'Summary of the EEF guidance report: teacher feedback to improve pupil learning', by: 'Durrington Research School', url: 'https://researchschool.org.uk/durrington/news/summary-of-the-eefs-new-guidance-report-teacher-feedback-to-improve-pupil-learning', t: ['afl'], m: 6, note: 'The six recommendations on timing, written and verbal feedback, in plain words.' },
+    // PGCE: learner agency
+    { id: 'on21', kind: 'Listen', title: 'Metacognition: moving forward with new evidence', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/metacognition-moving-forward-with-new-evidence', t: ['agency'], m: 34, x: true, note: 'Putting metacognition and self-regulation into lessons, and what it means for learners.' },
+    { id: 'on22', kind: 'Read', title: 'Metacognition and self-regulated learning: guidance report', by: 'Education Endowment Foundation', url: 'https://educationendowmentfoundation.org.uk/education-evidence/guidance-reports/metacognition', t: ['agency'], m: 15, note: 'The guidance report page, with a short explainer animation and the evidence review.' },
+    // PGCE: Ofsted, standards, reflection
+    { id: 'on23', kind: 'Read', title: 'Further education and skills inspection: toolkit, operating guides and information', by: 'Ofsted', url: 'https://www.gov.uk/government/publications/further-education-and-skills-inspection-toolkit-operating-guide-and-information', t: ['ofsted'], m: 20, note: 'The current inspection toolkit for FE and skills. Start with the inspection information for providers.' },
+    { id: 'on24', kind: 'Read', title: 'Ofsted confirms changes to education inspection and unveils new-look report cards', by: 'Ofsted · press release, 9 September 2025', url: 'https://www.gov.uk/government/news/ofsted-confirms-changes-to-education-inspection-and-unveils-new-look-report-cards', t: ['ofsted'], m: 5, note: 'What changed: report cards, the new grading scale and the focus on inclusion.' },
+    { id: 'on25', kind: 'Read', title: 'Professional Standards for Teachers and Trainers in FE', by: 'Education and Training Foundation', url: 'https://etfoundation.co.uk/professional-standards/teachers/', t: ['standards', 'reflect'], m: 10, note: 'The 20 standards in three groups: values and attributes, knowledge and understanding, skills.' },
+    { id: 'on26', kind: 'Read', title: 'Learning and skills teacher: Level 5 occupational standard', by: 'Skills England', url: 'https://skillsengland.education.gov.uk/apprenticeships/st0149-v1-4', t: ['standards'], m: 10, note: 'The duties and the knowledge, skills and behaviours your Module 3 portfolio is mapped to.' },
+    { id: 'on27', kind: 'Listen', title: 'Teaching: an art or science, part 3', by: 'EEF · Evidence into Action', url: 'https://evidenceintoaction.podbean.com/e/teaching-an-art-or-science-part-3/', t: ['reflect', 'standards'], m: 26, x: true, note: 'Evidence and professional judgement: useful thinking for a reflective account.' },
+    { id: 'on28', kind: 'Read', title: 'Gibbs’ reflective cycle', by: 'University of Edinburgh · Reflection Toolkit', url: 'https://reflection.ed.ac.uk/reflectors-toolkit/reflecting-on-experience/gibbs-reflective-cycle', t: ['reflect'], m: 8, note: 'The six stages with prompt questions and a worked example. Use the questions for an observation reflection.' },
+    { id: 'on29', kind: 'Read', title: 'Reflective practice examples for teachers: Gibbs and Kolb', by: 'Structural Learning', url: 'https://www.structural-learning.com/post/reflective-practice-for-teachers', t: ['reflect'], m: 12, note: 'Gibbs, Kolb, Schön, Brookfield and Driscoll compared, with teaching examples.' },
+    { id: 'on30', kind: 'Read', title: 'Academic Phrasebank: being critical', by: 'University of Manchester', url: 'https://www.phrasebank.manchester.ac.uk/being-critical', t: ['reflect', 'change'], m: 5, note: 'Sentence starters for weighing up sources and theories in your written work.' },
+    // Assessor award
+    { id: 'on31', kind: 'Watch', title: 'VACSR', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/vacsr', t: ['vacsr'], m: 4, x: true, note: 'Valid, authentic, current, sufficient, reliable as an assessor’s checklist. The site may ask you to sign up free to watch.' },
+    { id: 'on32', kind: 'Read', title: 'Principles of assessment', by: 'Agored Cymru', url: 'https://www.agored.cymru/Centres/Assessment/Principles-of-Assessment', t: ['vacsr', 'decisions'], m: 5, note: 'An awarding body’s own wording of the principles, including fair and manageable.' },
+    { id: 'on33', kind: 'Watch', title: 'Functions of assessments', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/functions-of-assessments', t: ['methods', 'vacsr'], m: 4, x: true, note: 'Initial, formative and summative assessment, formal and informal methods, and the assessment cycle.' },
+    { id: 'on34', kind: 'Read', title: 'What are assessment methods?', by: 'Cloud Assess', url: 'https://cloudassess.com/blog/assessment-methods/', t: ['methods'], m: 10, note: 'Each method with its strengths. Written for Australia, so the rule names differ but the methods are the same.' },
+    { id: 'on35', kind: 'Watch', title: 'Planning assessments', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/planning-assessments', t: ['planning', 'involve'], m: 3, x: true, note: 'What to agree with the learner before an assessment: criteria, logistics and feedback.' },
+    { id: 'on36', kind: 'Watch', title: 'Holistic assessments and risk assessments', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/holistic-assessments-and-risk-assessments', t: ['planning', 'methods'], m: 4, x: true, note: 'Assessing several criteria in one real task, and the risks to plan for.' },
+    { id: 'on37', kind: 'Watch', title: 'Making assessment decisions and standardisation in practice', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/making-assessment-decisions-and-standardisation-in-practice', t: ['decisions', 'qa'], m: 3, x: true, note: 'Reaching a fair decision from the evidence, and how standardisation keeps assessors consistent.' },
+    { id: 'on38', kind: 'Read', title: 'The IQA cycle', by: 'ASDAN', url: 'https://asdan.org.uk/media/zggg5srt/asdan-iqa-cycle.pdf', t: ['qa', 'records'], m: 5, note: 'One awarding body’s internal quality assurance cycle, stage by stage. A PDF, so it opens in your browser.' },
+    { id: 'on39', kind: 'Read', title: 'A guide to the data protection principles', by: 'Information Commissioner’s Office', url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/data-protection-principles/a-guide-to-the-data-protection-principles/', t: ['records', 'law'], m: 10, note: 'The seven UK GDPR principles: what they mean for keeping assessment records.' },
+    { id: 'on40', kind: 'Read', title: 'Equality Act 2010: technical guidance on further and higher education', by: 'Equality and Human Rights Commission', url: 'https://www.equalityhumanrights.com/guidance/home/technical-guidance-further-and-higher-education', t: ['law', 'adaptive'], m: 20, note: 'The legal detail behind reasonable adjustments. Dip into the chapter you need.' },
+    { id: 'on41', kind: 'Watch', title: 'Involving learners in assessment', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/involving-learners', t: ['involve'], m: 3, x: true, note: 'How peer and self-assessment make assessment clearer and more shared. May ask for a free sign-up.' },
+    { id: 'on42', kind: 'Watch', title: 'Management of information', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/management-of-information', t: ['records'], m: 3, x: true, note: 'Accurate, secure assessment records that track progress and follow data protection rules. May ask for a free sign-up.' },
+    { id: 'on43', kind: 'Watch', title: 'Quality assurance and appeals', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/quality-assurance-and-appeals-', t: ['qa'], m: 3, x: true, note: 'Where quality assurance sits around your decisions, and what happens when a learner appeals. May ask for a free sign-up.' },
+    { id: 'on44', kind: 'Watch', title: 'Policies, procedures and record keeping', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/policies-procedures-and-record-keeping', t: ['records', 'law'], m: 3, x: true, note: 'The policies an assessor works within and the records to keep. May ask for a free sign-up.' },
+    { id: 'on45', kind: 'Watch', title: 'Inclusive assessment and reasonable adjustments', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/inclusive-assessment-and-reasonable-adjustments', t: ['law', 'adaptive'], m: 3, x: true, note: 'Removing barriers without changing the criteria: neurodiversity, language, culture and technology. May ask for a free sign-up.' },
+    { id: 'on46', kind: 'Watch', title: 'Questioning and professional discussion techniques', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/questioning-and-professional-discussion-techniques', t: ['methods', 'decisions'], m: 2, x: true, note: 'Question types, fair questioning, and how to run and record a professional discussion. May ask for a free sign-up.' },
+    { id: 'on47', kind: 'Watch', title: 'How to conduct professional observations', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/how-to-conduct-professional-observations2', t: ['methods', 'records'], m: 3, x: true, note: 'Planning, running and recording an observation, then feedback that leaves a clear audit trail. May ask for a free sign-up.' },
+    { id: 'on48', kind: 'Listen', title: 'Renewed education inspections', by: 'Ofsted Talks podcast', url: 'https://ofstedtalks.podbean.com/e/renewed-education-inspections/', t: ['ofsted'], m: 30, note: 'Ofsted’s own account of the renewed framework, the main changes and the first pilot inspections, including further education and skills.' }
+  ];
+  // Words that point to a topic, used to file a page you save or add.
+  const TOPIC_WORDS = {
+    retrieval: ['retrieval', 'low-stakes', 'quizz', 'testing effect', 'spaced', 'spacing', 'recall', 'interleav'],
+    memory: ['memory', 'cognitive load', 'cognitive science', 'dual coding', 'rosenshine', 'worked example', 'schema'],
+    change: ['change', 'lewin', 'kotter', 'implementation', 'professional development', 'innovation', 'action research'],
+    adaptive: ['adaptive', 'send', 'inclusion', 'inclusive', 'differentiat', 'scaffold', 'neurodiver', 'dyslexia', 'esol', 'disadvantage', 'special educational'],
+    afl: ['formative', 'feedback', 'assessment for learning', 'questioning', 'wiliam'],
+    agency: ['agency', 'metacognit', 'self-regulat', 'independen', 'motivation', 'autonomy'],
+    ofsted: ['ofsted', 'inspection', 'report card'],
+    standards: ['occupational standard', 'ksb', 'professional standards', 'apprenticeship', 'learning and skills teacher'],
+    reflect: ['reflect', 'gibbs', 'kolb', 'brookfield', 'schon', 'schön', 'academic writing', 'phrasebank', 'referenc'],
+    vacsr: ['vacsr', 'principles of assessment', 'validity', 'authentic', 'sufficien', 'reliab'],
+    methods: ['assessment method', 'observation', 'professional discussion', 'witness', 'simulation'],
+    planning: ['assessment plan', 'planning assessment', 'plan assessment', 'holistic'],
+    involve: ['involving learners', 'self-assessment', 'peer assessment', 'employer'],
+    decisions: ['assessment decision', 'judgement', 'judgment', 'competen'],
+    qa: ['quality assurance', 'iqa', 'eqa', 'sampling', 'standardis', 'verif'],
+    records: ['record', 'tracking', 'audit', 'data protection', 'gdpr'],
+    law: ['equality', 'legislation', 'legal', 'health and safety', 'safeguard', 'reasonable adjust']
+  };
+  // What each deadline is really about, so the Study tab can line reading up with what is due.
+  // The assessor workbook outcomes map one to one: 1 principles, 2 methods, 3 planning, 4 involving
+  // learners, 5 decisions, 6 quality assurance, 7 records, 8 law and good practice.
+  const DEADLINE_TOPICS = [
+    [/^pg-(ctd|ctf|cp)$/, ['change', 'retrieval', 'memory']],
+    [/^pg-(m2|pres)$/, ['change', 'retrieval', 'reflect']],
+    [/^pg-(tp|ap2)$/, ['reflect', 'adaptive']],
+    [/^pg-(osr|pd)$/, ['standards', 'reflect', 'ofsted']],
+    [/^pg-obs/, ['afl', 'adaptive', 'reflect']],
+    [/^pg-(tut|exit)/, ['reflect', 'standards']],
+    [/^as-o12$/, ['vacsr', 'methods']],
+    [/^as-o36$/, ['planning', 'involve', 'decisions', 'qa']],
+    [/^as-o78$/, ['records', 'law']],
+    [/^as-wb$/, ['law', 'records', 'qa', 'decisions']],
+    [/^as-l\d/, ['records', 'decisions', 'planning']],
+    [/^as-obs/, ['methods', 'planning', 'involve', 'decisions']],
+    [/^as-std$/, ['qa', 'decisions']],
+    [/^as-icq/, ['involve', 'planning']],
+    [/^as-pd$/, ['vacsr', 'law', 'qa']]
+  ];
+
   // Key models (the "formulas" of teaching and assessment) and key terms.
   const MODELS = [
     { k: 'Lewin’s change model', f: 'Unfreeze → change → refreeze', t: 'change' },
@@ -1613,7 +1860,9 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
     list: '<path d="M8 6h12M8 12h12M8 18h8"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>',
     folder: '<path d="M3 7.5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
     move: '<path d="M5 12h12M13 7l5 5-5 5"/>',
-    trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>'
+    trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+    book: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 21H20v-3"/>',
+    head: '<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>'
   };
   const ic = (n, s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ''}</svg>`;
   const colOf = (c) => ({ pgce: 'var(--c-pgce)', assess: 'var(--c-assess)' }[c] || 'var(--c-other)');
@@ -1706,6 +1955,260 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
     let m = Number(state.study[k]) || 0;
     allChunks(deadlines()).forEach((c) => { const t = Number(state.done[c.id]); if (t >= start && t < end) m += c.mins || 0; });
     return m;
+  }
+
+  /* ---------- the library catalogue ---------- */
+  const KIND_FMT = { Read: 'Reading', Watch: 'Short video', Listen: 'Podcast', File: 'Reading', Note: 'Reading' };
+  const KIND_VERB = { Read: 'Read', Watch: 'Watch', Listen: 'Listen', File: 'Review', Note: 'Review' };
+  const KIND_ICON = { Read: 'book', Watch: 'play', Listen: 'head', File: 'folder', Note: 'list' };
+  const KIND_NAMES = [['Read', 'Reading'], ['Watch', 'Video'], ['Listen', 'Podcast'], ['Note', 'Note'], ['File', 'File']];
+  const kindOfMine = (u) => (KIND_VERB[u.kind] ? u.kind : ({ Link: 'Read', Note: 'Note' }[u.type] || 'File'));
+  // One list of everything: your own saved pages first, then the online library, then your PGCE project files.
+  function catalogue() {
+    const mine = state.library.map((u) => ({ ...u, kind: kindOfMine(u), ts: [TOPICS[u.t] ? u.t : 'reflect'], t: TOPICS[u.t] ? u.t : 'reflect', src: 'mine', by: u.meta || 'Yours', m: clamp(Number(u.m) || 10, 1, 240) }));
+    const on = ONLINE.map((o) => ({ id: o.id, kind: o.kind, title: o.title, by: o.by, link: o.url, t: o.t[0], ts: o.t, c: TOPICS[o.t[0]].c, m: o.m, x: !!o.x, note: o.note, src: 'online' }));
+    const files = LIBRARY.map((f) => ({ ...f, kind: 'File', ts: [f.t], src: 'project', by: f.meta, m: 15 }));
+    return mine.concat(on, files);
+  }
+  const findRes = (id) => catalogue().find((x) => x.id === id) || null;
+  const resOf = (id) => state.res[id] || {};
+  const resRec = (id) => (state.res[id] = state.res[id] || {});
+  const minsLabel = (it) => `${it.x ? '' : 'about '}${it.m} min`;
+  const reMeta = (w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Files a page under the topic its words point to. Returns null when nothing matches.
+  function guessTopic(text) {
+    const s = String(text || '').toLowerCase();
+    let best = null;
+    let score = 0;
+    Object.entries(TOPIC_WORDS).forEach(([id, words]) => {
+      const n = words.reduce((a, w) => a + (new RegExp('\\b' + reMeta(w) + (w.length <= 4 ? '\\b' : '')).test(s) ? 1 : 0), 0);
+      if (n > score) { score = n; best = id; }
+    });
+    return best;
+  }
+  function guessKind(text) {
+    const s = String(text || '').toLowerCase();
+    if (/youtu\.?be|vimeo|\/videos?\b|\bvideo\b|\bwatch\b|ted\.com/.test(s)) return 'Watch';
+    if (/podcast|podbean|spotify|soundcloud|\bepisode\b|anchor\.fm|\blisten\b/.test(s)) return 'Listen';
+    return 'Read';
+  }
+  const canRead = () => !!(APP && typeof APP.openReader === 'function');
+  // Opens a web page: inside the app where the app can, otherwise in the browser. PDFs always go to the browser.
+  function openLink(url, title) {
+    const u = String(url || '').trim();
+    if (!/^https?:\/\//i.test(u)) { toast('That link does not look right. It should start with https://'); return false; }
+    const file = /\.(pdf|docx?|pptx?|xlsx?)($|[?#])/i.test(u);
+    if (canRead() && /^https:\/\//i.test(u) && !file) { try { if (APP.openReader(u, String(title || ''))) return true; } catch (e) { /* open it outside */ } }
+    // In the app this hands the link to the phone's browser; in a browser it opens a new tab.
+    try {
+      if (APP) window.open(u, '_blank');
+      else window.open(u, '_blank', 'noopener');
+    } catch (e) { toast('That link could not be opened here.'); return false; }
+    return true;
+  }
+  // Pages saved with the reader's Save button come back here and are filed by topic.
+  function takeSavedLinks() {
+    if (!APP || typeof APP.takeSavedLinks !== 'function') return 0;
+    let list = [];
+    try { list = JSON.parse(APP.takeSavedLinks() || '[]'); } catch (e) { list = []; }
+    if (!Array.isArray(list)) return 0;
+    let n = 0;
+    let last = null;
+    list.forEach((x) => {
+      if (!x || !/^https:\/\//i.test(x.url || '') || state.library.some((u) => u.link === x.url)) return;
+      const known = ONLINE.find((o) => o.url === x.url);
+      if (known) { state.favs[known.id] = true; n++; last = known.title; return; }
+      const title = String(x.title || x.url).trim().slice(0, 160);
+      const t = guessTopic(title + ' ' + x.url) || weakTopics(1)[0].id;
+      state.library.push({ id: 'u' + uid(), type: 'Link', kind: guessKind(title + ' ' + x.url), title, link: x.url, c: TOPICS[t].c, t, meta: 'Saved from the online library', note: '', text: '', at: todayKey() });
+      n++; last = title;
+    });
+    if (n) { commit(); render(); toast(n === 1 ? `<b>Saved to your Library:</b> ${esc(last)}` : `<b>${n} pages saved</b> to your Library and filed by topic.`); }
+    return n;
+  }
+
+  /* ---------- the recommendation engine ----------
+     Works out, on the phone, what is most worth studying, reading, watching and listening to right now:
+     how weak a topic is, what is due soon, quiz slips this week, energy, free minutes tonight, and which
+     kind of resource has stuck before. Every pick carries its reason. */
+  const hash01 = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return ((h >>> 0) % 1000) / 1000; };
+  function recentSlips() {
+    const from = addDays(todayKey(), -7);
+    const n = {};
+    state.mistakes.forEach((m) => { if (m.at && m.at >= from && TOPICS[m.t]) n[m.t] = (n[m.t] || 0) + 1; });
+    return n;
+  }
+  function deadlineTopics(d) {
+    for (let i = 0; i < DEADLINE_TOPICS.length; i++) if (DEADLINE_TOPICS[i][0].test(d.id)) return DEADLINE_TOPICS[i][1];
+    const g = guessTopic(d.title + ' ' + (d.chunks || []).map((c) => c.title).join(' '));
+    if (g) return [g];
+    return weakTopics(2, d.course === 'pgce' || d.course === 'assess' ? d.course : undefined).map((t) => t.id);
+  }
+  // How much each topic matters because of what is due: 1 means due within three days.
+  function topicHeat() {
+    const today = todayKey();
+    const heat = {};
+    deadlines().filter((d) => d.due && d.due >= today && !d.complete).forEach((d) => {
+      const n = daysBetween(today, d.due);
+      const w = n <= 3 ? 1 : n <= 7 ? 0.8 : n <= 14 ? 0.55 : n <= 28 ? 0.3 : n <= 56 ? 0.12 : 0;
+      if (!w) return;
+      deadlineTopics(d).forEach((t, i) => { const v = w * (i === 0 ? 1 : 0.8); if (TOPICS[t] && (!heat[t] || v > heat[t].w)) heat[t] = { w: v, d, n }; });
+    });
+    return heat;
+  }
+  function freeTonight() {
+    const today = todayKey();
+    const planned = allChunks(deadlines()).filter((c) => !c.done && c.dateEff === today).reduce((a, c) => a + (c.mins || 30), 0);
+    return Math.max(0, capFor(today) - planned);
+  }
+  const FY_MINS = [10, 20, 30, 45, 60];
+  // What was studied from the For you list today, so the same quiz is not offered twice in a row.
+  function fyToday() {
+    const k = todayKey();
+    if (!state.fy || state.fy.k !== k) state.fy = { k, quiz: {}, lesson: {} };
+    if (!state.fy.quiz) state.fy.quiz = {};
+    if (!state.fy.lesson) state.fy.lesson = {};
+    return state.fy;
+  }
+  function topicNeed(t, ctx) {
+    const m = mastery(t);
+    const need = (m == null ? 0.62 : (100 - m) / 100) * courseUrgency(TOPICS[t].c);
+    const heat = ctx.heat[t] ? ctx.heat[t].w : 0;
+    const slips = Math.min(ctx.slips[t] || 0, 3);
+    return { t, m, slips, heat: ctx.heat[t] || null, v: need * 0.55 + heat * 0.6 + slips * 0.06 };
+  }
+  const dueText = (n) => (n <= 0 ? 'today' : n === 1 ? 'tomorrow' : `in ${n} days`);
+  function topicWhy(b) {
+    const name = TOPICS[b.t].name;
+    const out = [];
+    if (b.heat && b.heat.w >= 0.25) out.push(`Feeds “${b.heat.d.title}”, due ${dueText(b.heat.n)}.`);
+    if (b.slips) out.push(`You slipped on ${plural(b.slips, 'question')} here this week.`);
+    out.push(b.m == null ? `${name} has not been checked yet.` : b.m < 55 ? `${name} is one of your weakest topics (${b.m}%).` : b.m < 75 ? `${name} is still building (${b.m}%).` : `Keeps ${name} fresh (${b.m}%).`);
+    return out;
+  }
+  function scoreRes(it, ctx) {
+    const r = resOf(it.id);
+    if (r.done && ctx.now - r.done < 45 * 86400000) return null;
+    if (r.skip && ctx.now - r.skip < 21 * 86400000) return null;
+    if (!it.link && it.src !== 'project') return null; // your own notes and files without a link are for the Library, not the list
+    let best = null;
+    it.ts.forEach((t, i) => {
+      if (!TOPICS[t]) return;
+      const b = topicNeed(t, ctx);
+      b.v *= i === 0 ? 1 : 0.8;
+      if (!best || b.v > best.v) best = b;
+    });
+    if (!best) return null;
+    let v = best.v;
+    const why = [];
+    const started = r.open && !r.done && ctx.now - r.open < 10 * 86400000;
+    if (started) { v *= 1.2; why.push(`You opened this ${keyOf(new Date(r.open)) === ctx.today ? 'today' : 'on ' + fmt(keyOf(new Date(r.open)), { weekday: 'long' })} and have not finished it.`); }
+    topicWhy(best).forEach((x) => why.push(x));
+    const light = it.kind === 'Listen' || it.kind === 'Watch' || it.m <= 6;
+    if (ctx.energy === 'low') {
+      v *= it.kind === 'Listen' ? 1.25 : it.kind === 'Watch' ? 1.15 : it.m <= 6 ? 1 : 0.75;
+      if (it.m > 20 && it.kind !== 'Listen') v *= 0.7;
+      if (light) why.push('Light enough for a low-energy evening.');
+    } else if (ctx.energy === 'high' && it.kind === 'Read' && it.m >= 10) v *= 1.1;
+    if (it.m > ctx.budget) v *= it.kind === 'Listen' ? 0.85 : 0.6;
+    const fr = formatRate(KIND_FMT[it.kind]);
+    const fn = (state.formats[KIND_FMT[it.kind]] || {}).n || 0;
+    if (fr != null) { v *= 0.85 + 0.3 * (fr / 100); if (fr >= 70 && fn >= 2) why.push(`${KIND_FMT[it.kind]}s tend to stick for you (${fr}%).`); }
+    if (it.src === 'mine') { v *= 1.15; why.push('From the pages you saved.'); }
+    if (it.kind === 'File') v *= 0.9;
+    v *= 1 + 0.06 * hash01(it.id + ctx.today);
+    return { it, v, t: best.t, due: best.heat && best.heat.w >= 0.25 ? best.heat.d.id : '', why: why.slice(0, 2), started };
+  }
+  function studyAction(ctx) {
+    const fy = fyToday();
+    const ranked = Object.keys(TOPICS).map((t) => { const b = topicNeed(t, ctx); if (fy.quiz[t]) b.v *= 0.45; if (fy.lesson[t]) b.v *= 0.7; return b; }).sort((a, b) => b.v - a.v);
+    const top = ranked[0];
+    const name = TOPICS[top.t].name;
+    const due = dueCards();
+    if (due.length >= 6 || (ctx.energy === 'low' && due.length >= 3)) {
+      return { act: 'cards', t: null, m: clamp(Math.ceil(due.length * 0.5), 2, 10), title: `Review ${plural(due.length, 'card')}`, why: ['They are due today. Spaced repetition works when cards come back on time.', ctx.energy === 'low' ? 'Cards are a gentle way to keep going on a low-energy evening.' : ''].filter(Boolean), m0: null };
+    }
+    const qn = QBANK.filter((q) => q.t === top.t).length;
+    if (qn >= 2 && (top.m == null || top.m < 75) && !fy.quiz[top.t]) {
+      return { act: 'quiz', t: top.t, m: 4, title: `Quick check: ${name}`, why: topicWhy(top).slice(0, 2), m0: top.m };
+    }
+    return { act: 'lesson', t: top.t, m: 10, title: `Lesson: ${name}`, why: topicWhy(top).slice(0, 2), m0: top.m };
+  }
+  function recommend() {
+    const today = todayKey();
+    const ctx = { now: now().getTime(), today, heat: topicHeat(), slips: recentSlips(), energy: state.energy[today] || '', free: freeTonight() };
+    const natural = ctx.energy === 'low' ? Math.min(ctx.free, 20) : ctx.free;
+    const auto = FY_MINS.slice().reverse().find((n) => n <= Math.max(10, natural)) || 10;
+    ctx.budget = FY_MINS.includes(Number(sub.fyMins)) ? Number(sub.fyMins) : auto;
+    const scored = catalogue().map((it) => scoreRes(it, ctx)).filter(Boolean).sort((a, b) => b.v - a.v);
+    // One of each kind, and not all on the same topic.
+    const picks = [];
+    const usedTopic = {};
+    const usedDue = {};
+    const slotOf = (k) => (k === 'Watch' ? 'Watch' : k === 'Listen' ? 'Listen' : 'Read');
+    ['Read', 'Watch', 'Listen'].map((slot) => scored.find((s) => slotOf(s.it.kind) === slot)).filter(Boolean).sort((a, b) => b.v - a.v).forEach((first) => {
+      const slot = slotOf(first.it.kind);
+      const pool = scored.filter((s) => slotOf(s.it.kind) === slot && !picks.includes(s));
+      // a second pick on the same topic, or for the same deadline, has to be clearly better to win the slot
+      const pick = pool.map((s) => ({ s, v: s.v * (usedTopic[s.t] ? 0.5 : 1) * (s.due && usedDue[s.due] ? 0.75 : 1) })).sort((a, b) => b.v - a.v)[0];
+      if (pick) { picks.push(pick.s); usedTopic[pick.s.t] = true; if (pick.s.due) usedDue[pick.s.due] = true; }
+    });
+    if (ctx.energy === 'low') picks.sort((a, b) => (a.it.kind === 'Read' ? 1 : 0) - (b.it.kind === 'Read' ? 1 : 0) || b.v - a.v);
+    else picks.sort((a, b) => b.v - a.v);
+    const study = studyAction(ctx);
+    // Fill the time you have; what does not fit is offered as "if you have more time".
+    let total = study.m;
+    picks.forEach((p, i) => { const fits = total + p.it.m <= ctx.budget + 3 || (i === 0 && total + p.it.m <= ctx.budget + 15); p.extra = !fits; if (fits) total += p.it.m; });
+    // next in line: at most two per topic, so the list is not one subject deep
+    const more = [];
+    const perTopic = {};
+    picks.forEach((p) => { perTopic[p.t] = (perTopic[p.t] || 0) + 1; });
+    scored.forEach((s) => { if (more.length >= 5 || picks.includes(s) || (perTopic[s.t] || 0) >= 2) return; perTopic[s.t] = (perTopic[s.t] || 0) + 1; more.push(s); });
+    const line = ctx.energy === 'low' ? 'Your energy is low, so this is short and leans on listening and watching.'
+      : ctx.free <= 0 ? 'Tonight is already full with planned steps, so this is a small top-up.'
+        : `You have about ${ctx.free} free minutes tonight after your planned steps.`;
+    return { ctx, study, picks, more, total, line, auto, scored };
+  }
+  // A short check on one or more topics, used after a reading, video or podcast.
+  function buildTopicQuiz(topics, n) {
+    const ts = (topics || []).filter((t) => TOPICS[t]);
+    const qs = [];
+    ts.forEach((t) => shuffle(QBANK.filter((q) => q.t === t)).forEach((q) => { if (qs.length < n && !qs.includes(q)) qs.push(q); }));
+    if (qs.length < n && ts.length) shuffle(QBANK.filter((q) => TOPICS[q.t].c === TOPICS[ts[0]].c && !qs.includes(q))).slice(0, n - qs.length).forEach((q) => qs.push(q));
+    return { qs, i: 0, picked: null, score: 0, deltas: {}, course: null, topics: ts };
+  }
+  function resOpen(id) {
+    const it = findRes(id);
+    if (!it) return;
+    if (!it.link) {
+      const r = resRec(id); r.open = now().getTime(); r.n = (r.n || 0) + 1; commit();
+      closeSheet(true);
+      ask(`In my PGCE project there is a file called "${it.title}". Summarise its key points in five bullet points, then ask me two questions to check I understand it.`);
+      return;
+    }
+    if (!openLink(it.link, it.title)) return;
+    const r = resRec(id); r.open = now().getTime(); r.n = (r.n || 0) + 1;
+    commit();
+    closeSheet(true);
+    render();
+  }
+  function resDone(id, stuck) {
+    const it = findRes(id);
+    if (!it) return;
+    const r = resRec(id);
+    const first = !r.done;
+    r.done = now().getTime();
+    r.stick = stuck;
+    delete r.skip;
+    const f = KIND_FMT[it.kind];
+    const rec = (state.formats[f] = state.formats[f] || { n: 0 });
+    const key = { Yes: 'yes', Partly: 'partly', No: 'no' }[stuck] || 'partly';
+    rec.n++; rec[key] = (rec[key] || 0) + 1;
+    const m = mastery(it.t);
+    if (m != null) state.mastery[it.t] = clamp(m + ({ Yes: 5, Partly: 2, No: 0 }[stuck] || 0), 0, 100);
+    if (first) addStudy(clamp(it.m, 1, 60));
+    addLog({ kind: 'study', what: `Finished: ${it.title}`, why: `${f} on ${TOPICS[it.t].name}. You said "${stuck}" when asked if it stuck${stuck === 'No' ? ', so that kind of resource moves down your list.' : '.'}` });
+    commit();
   }
 
   /* ---------- portfolio engine ---------- */
@@ -1833,6 +2336,15 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
       html += `<div class="card"><div class="row between"><h3>How's your energy today?</h3>${e === 'low' ? '<span class="pill warn">low</span>' : e === 'high' ? '<span class="pill good">high</span>' : e === 'okay' ? '<span class="pill info">okay</span>' : ''}</div>
         <div class="chips">${[['low', 'Low, keep it light'], ['okay', 'Okay'], ['high', 'Good, push me']].map(([k, l]) => `<button class="chip" data-act="energy" data-id="${k}" aria-pressed="${e === k}">${l}</button>`).join('')}</div></div>`;
     }
+    {
+      const R = recommend();
+      const p = R.picks.find((x) => !x.extra) || R.picks[0];
+      if (p) {
+        html += `<div class="card"><div class="row between"><div class="label">For you ${isWeekday(today) ? 'tonight' : 'today'}</div><button class="small" data-act="fy-open" style="color:var(--accent);font-weight:700">See all</button></div>
+          <div class="list">${resRow(p.it, `<span class="pill kpill k-${esc(p.it.kind)}">${esc(KIND_VERB[p.it.kind])}</span>`)}</div>
+          <div class="small muted">${esc(p.why[0] || '')}</div></div>`;
+      }
+    }
     const mon = mondayOf(today);
     let week = 0;
     for (let d = mon; d <= today; d = addDays(d, 1)) week += studiedOn(d);
@@ -1928,10 +2440,85 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
   let quiz = null;
   let fcFlip = false;
   V.study = () => {
-    const tab = sub.stab || 'quiz';
-    const seg = `<div class="seg">${[['quiz', 'Quiz'], ['cards', 'Cards'], ['mistakes', 'Mistakes'], ['papers', 'Papers']].map(([k, l]) => `<button data-act="stab" data-id="${k}" aria-pressed="${tab === k}">${l}${k === 'cards' ? ` <span class="num">${dueCards(sub.cardTopic).length}</span>` : k === 'mistakes' ? ` <span class="num">${state.mistakes.length}</span>` : ''}</button>`).join('')}</div>`;
-    return seg + ({ quiz: quizView, cards: cardsView, mistakes: mistakesView, papers: papersView }[tab])();
+    const tab = ['foryou', 'quiz', 'cards', 'mistakes', 'papers'].includes(sub.stab) ? sub.stab : 'foryou';
+    const due = dueCards(sub.cardTopic).length;
+    const seg = `<div class="seg five">${[['foryou', 'For you'], ['quiz', 'Quiz'], ['cards', 'Cards'], ['mistakes', 'Mistakes'], ['papers', 'Papers']].map(([k, l]) => `<button data-act="stab" data-id="${k}" aria-pressed="${tab === k}">${l}${k === 'cards' && due ? ` <span class="num">${due}</span>` : k === 'mistakes' && state.mistakes.length ? ` <span class="num">${state.mistakes.length}</span>` : ''}</button>`).join('')}</div>`;
+    return seg + ({ foryou: forYouView, quiz: quizView, cards: cardsView, mistakes: mistakesView, papers: papersView }[tab])();
   };
+  const kindPill = (it) => `<span class="pill kpill k-${esc(it.kind)}">${ic(KIND_ICON[it.kind] || 'link', 12)} ${esc(KIND_VERB[it.kind] || 'Open')}${it.link ? ' · ' + esc(minsLabel(it)) : ''}</span>`;
+  function recCard(s) {
+    const it = s.it;
+    const r = resOf(it.id);
+    const openedToday = r.open && keyOf(new Date(r.open)) === todayKey();
+    return `<div class="card rec"><div class="row between">${kindPill(it)}${r.done ? `<span class="pill good">${ic('check', 12)} Done before</span>` : ''}</div>
+      <h3>${esc(it.title)}</h3><div class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(TOPICS[s.t].name)}</div>
+      <div class="why">${s.why.map((w) => esc(w)).join(' ')}</div>
+      ${openedToday && !r.done ? '<div class="small muted">Opened today. Tap Done when you finish, and the app learns what works for you.</div>' : ''}
+      <div class="btnrow"><button class="btn sm" data-act="res-open" data-id="${esc(it.id)}">${ic(KIND_ICON[it.kind] || 'link', 14)} ${!it.link ? 'Review with tutor' : openedToday ? 'Open again' : 'Open'}</button><button class="btn sm ghost" data-act="res-done" data-id="${esc(it.id)}">${ic('check', 14)} Done</button><button class="btn sm ghost" data-act="res-skip" data-id="${esc(it.id)}">Not for me</button><button class="btn sm ghost" data-act="fav" data-id="${esc(it.id)}" aria-label="${state.favs[it.id] ? 'Remove from favourites' : 'Add to favourites'}" aria-pressed="${!!state.favs[it.id]}"${state.favs[it.id] ? ' style="color:var(--gold)"' : ''}>${ic('star', 14)}</button></div></div>`;
+  }
+  const resRow = (it, right) => `<button class="res li tap" data-act="res" data-id="${esc(it.id)}"><span class="ftype k-${esc(it.kind)}">${ic(KIND_ICON[it.kind] || 'link', 18)}</span><span class="restext"><b>${esc(it.title)}</b><span class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(TOPICS[it.t] ? TOPICS[it.t].name : '')}${it.link ? ' · ' + esc(minsLabel(it)) : ''}</span></span>${right != null ? right : resOf(it.id).done ? `<span class="pill good">${ic('check', 12)} Done</span>` : state.favs[it.id] ? `<span style="color:var(--gold)">${ic('star', 16)}</span>` : `<span class="muted">${ic('fwd', 16)}</span>`}</button>`;
+  function forYouView() {
+    const R = recommend();
+    const st = R.study;
+    const today = todayKey();
+    const done = studiedOn(today);
+    const fit = R.picks.filter((p) => !p.extra);
+    const extra = R.picks.filter((p) => p.extra);
+    const stPill = st.act === 'cards' ? '<span class="pill gold">Due today</span>' : `<span class="pill ${mState(st.m0)[0]} num">${st.m0 == null ? 'Not checked' : st.m0 + '%'}</span>`;
+    const stBtn = { cards: 'Review cards', quiz: 'Start the check', lesson: 'Open the lesson' }[st.act];
+    const hot = Object.entries(R.ctx.heat).sort((a, b) => b[1].w - a[1].w).map(([t]) => t);
+    const weak = weakTopics(4).map((t) => t.id);
+    const browse = [...new Set(hot.concat(weak))].slice(0, 5);
+    let html = `<div class="card"><div class="row between"><div class="label">For you · ${esc(fmt(today, { weekday: 'short', day: 'numeric', month: 'short' }))}</div><button class="linkish" data-act="fy-why" style="white-space:nowrap">Why these?</button></div>
+      <h3 style="font-size:18px">About ${R.total} minutes that count most ${isWeekday(today) ? 'tonight' : 'today'}</h3>
+      <div class="small muted">${esc(R.line)}${done ? ` Studied so far today: ${done} min.` : ''}</div>
+      <div class="field"><span class="flabel">Time I have</span><div class="chips">${FY_MINS.map((n) => `<button class="chip" data-act="fy-mins" data-id="${n}" aria-pressed="${R.ctx.budget === n}">${n} min</button>`).join('')}</div></div></div>
+      <div class="card rec"><div class="row between"><span class="pill info">${ic('study', 12)} Study · ${st.m} min</span>${stPill}</div>
+        <h3>${esc(st.title)}</h3><div class="why">${st.why.map((w) => esc(w)).join(' ')}</div>
+        <div class="btnrow"><button class="btn sm" data-act="fy-study" data-id="${esc(st.act)}" data-t="${esc(st.t || '')}">${ic('play', 14)} ${stBtn}</button>${st.t ? `<button class="btn sm ghost" data-act="lib-topic" data-id="${esc(st.t)}">More on this topic</button>` : ''}</div></div>`;
+    html += fit.map(recCard).join('');
+    if (!R.picks.length) html += '<div class="card small muted">You have worked through everything suggested for now. Browse the Library, open the online library, or add a page of your own, and it joins this list.</div>';
+    if (extra.length) html += `<div class="label">If you have more time</div>` + extra.map(recCard).join('');
+    if (R.more.length) html += `<div class="card"><div class="row between"><h3>Next in line</h3><button class="linkish" data-go="library">Whole library</button></div><div class="list">${R.more.map((s) => resRow(s.it)).join('')}</div></div>`;
+    html += `<div class="card"><h3>Browse by topic</h3><div class="small muted">The topics that matter most right now, from your deadlines and scores.</div><div class="chips wrap">${browse.map((t) => `<button class="chip" data-act="lib-topic" data-id="${esc(t)}">${esc(TOPICS[t].name)}</button>`).join('')}</div>
+      <div class="btnrow">${HUBS.filter((h) => h.main).map((h) => `<button class="btn sm ghost" data-act="hub" data-id="${esc(h.id)}">${ic('out', 14)} ${esc(h.id === 'hub-padlet' ? 'Course reading list' : 'Ann Gravells list')}</button>`).join('')}</div></div>`;
+    return html;
+  }
+  function fyWhySheet() {
+    const R = recommend();
+    const c = R.ctx;
+    const weak = weakTopics(3);
+    const heat = Object.entries(c.heat).sort((a, b) => b[1].w - a[1].w).slice(0, 3);
+    const rate = (n) => { const r = formatRate(n); return r == null ? 'not rated yet' : r + '% stuck'; };
+    sheet(`<h3>How this list is chosen</h3>
+      <div class="small muted">Worked out on your phone from your own record. Nothing is sent anywhere.</div>
+      <div class="list">
+        <div class="li top"><div class="grow"><b class="small">Weakest topics</b><div class="small muted">${weak.map((t) => `${esc(t.name)} (${t.m == null ? 'not checked' : t.m + '%'})`).join(', ')}</div></div></div>
+        <div class="li top"><div class="grow"><b class="small">What is due</b><div class="small muted">${heat.length ? heat.map(([t, h]) => `${esc(h.d.title)}, ${dueText(h.n)}: ${esc(TOPICS[t].name)}`).join('. ') + '.' : 'Nothing due in the next eight weeks.'}</div></div></div>
+        <div class="li top"><div class="grow"><b class="small">Tonight</b><div class="small muted">Energy: ${c.energy === 'low' ? 'low' : c.energy === 'high' ? 'good' : c.energy === 'okay' ? 'okay' : 'not set (set it on Home)'}. Free time after planned steps: ${c.free} min. The list is sized for ${c.budget} min.</div></div></div>
+        <div class="li top"><div class="grow"><b class="small">What sticks for you</b><div class="small muted">Reading: ${rate('Reading')}. Video: ${rate('Short video')}. Podcast: ${rate('Podcast')}. Tap Done on a pick and say if it stuck, and this sharpens.</div></div></div>
+        <div class="li top"><div class="grow"><b class="small">What is left out</b><div class="small muted">Anything you finished in the last six weeks, and anything you marked Not for me in the last three.</div></div></div>
+      </div>
+      <button class="btn ghost block" data-act="close-sheet">Close</button>`);
+  }
+  function resDoneSheet(id) {
+    const it = findRes(id);
+    if (!it) return;
+    sheet(`<h3>Did it stick?</h3><div class="small muted">${esc(it.title)}. Your answer teaches the app which kind of resource to lead with.</div>
+      <div class="btnrow">${['Yes', 'Partly', 'No'].map((a) => `<button class="btn ghost grow" data-act="res-stick" data-id="${esc(id)}" data-v="${a}">${a}</button>`).join('')}</div>
+      <button class="btn ghost block" data-act="close-sheet">Not finished yet</button>`);
+  }
+  function resCheckSheet(id, stuck) {
+    const it = findRes(id);
+    if (!it) return;
+    const n = QBANK.filter((q) => it.ts.includes(q.t)).length;
+    const verb = { Read: 'read', Watch: 'watched', Listen: 'listened to' }[it.kind] || 'reviewed';
+    sheet(`<h3>${stuck === 'No' ? 'Noted. Try it another way?' : 'Lock it in'}</h3>
+      <div class="small muted">${stuck === 'No' ? 'That kind of resource moves down your list. A quick check or a different explanation often does more than a second read.' : 'Testing yourself straight after is what makes it last.'}</div>
+      ${n >= 2 ? `<button class="btn block" data-act="res-check" data-id="${esc(id)}">${ic('study', 16)} 3-question check on ${esc(TOPICS[it.t].name)}</button>` : ''}
+      <button class="btn ghost block" data-act="ask" data-q="${esc(`I have just ${verb} "${it.title}"${it.by ? ' (' + it.by + ')' : ''}${it.link ? ', ' + it.link : ''}. Ask me three questions, one at a time, to check what I took from it. Then show me how it links to ${TOPICS[it.t].name} in my ${courseName(TOPICS[it.t].c)} work.`)}">${ic('spark', 16)} Ask the tutor to test me on it</button>
+      <button class="btn ghost block" data-act="close-sheet">Not now</button>`);
+  }
   function quizView() {
     if (!quiz) {
       const weak = weakTopics(3);
@@ -1946,7 +2533,7 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
       return `<div class="card" style="align-items:center;text-align:center"><div class="ring">${ringSVG((quiz.score / quiz.qs.length) * 100, 96, 9)}<div class="v num">${quiz.score}/${quiz.qs.length}<small>correct</small></div></div><h3>Quiz complete</h3><div class="small muted">Your mastery scores and weak spots have been updated.</div></div>
         <div class="card"><h3>What changed</h3><div class="list">${deltas.map(([t, dl]) => `<div class="li"><div class="grow">${esc(TOPICS[t].name)}</div><span class="pill ${dl >= 0 ? 'good' : 'bad'} num">${mastery(t)}% (${dl >= 0 ? '+' : ''}${dl})</span></div>`).join('')}</div></div>
         <div class="row"><button class="btn grow" data-tab="home">See Home</button><button class="btn ghost grow" data-tab="progress">See Progress</button></div>
-        <button class="btn ghost" data-act="quiz-reset">Another smart quiz</button>`;
+        <button class="btn ghost" data-act="quiz-reset">Another smart quiz</button><button class="btn ghost" data-act="fy-open">Back to For you</button>`;
     }
     const q = quiz.qs[quiz.i];
     const m = mastery(q.t);
@@ -1978,6 +2565,7 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
   function finishQuiz() {
     const d = Object.entries(quiz.deltas).sort((a, b) => a[1] - b[1]);
     addStudy(Math.max(3, quiz.qs.length));
+    Object.keys(quiz.deltas).forEach((t) => { const fy = fyToday(); fy.quiz[t] = (fy.quiz[t] || 0) + 1; });
     const f = (state.formats['Practice quiz'] = state.formats['Practice quiz'] || { n: 0 });
     f.n++;
     if (d.length && d[0][1] < 0) {
@@ -2071,17 +2659,22 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
       const shown = sub.steps || 1;
       body = L.steps.slice(0, shown).map(([h, b]) => `<div class="step"><b>${esc(h)}</b><div>${esc(b)}</div></div>`).join('') + (shown < L.steps.length ? '<button class="btn ghost" data-act="next-step">Show next step</button>' : stick);
     } else if (fmtNow === 'Short video') {
-      body = `<div class="card" style="padding:0;overflow:hidden"><div style="aspect-ratio:16/9;max-width:100%;background:linear-gradient(135deg,var(--accent-soft),var(--surface2));display:grid;place-items:center"><a class="btn" href="https://www.youtube.com/results?search_query=${encodeURIComponent(T.name + ' teaching further education')}" target="_blank" rel="noopener">${ic('play', 16)} Find a short video</a></div><div style="padding:14px" class="small muted">Opens YouTube with a search for "${esc(T.name)}". Pick one under ten minutes from a trusted source.</div></div>${stick}`;
+      const vids = catalogue().filter((x) => x.kind === 'Watch' && x.link && x.ts.includes(topic)).slice(0, 3);
+      body = (vids.length
+        ? `<div class="card"><h3>Videos on this topic</h3><div class="list">${vids.map((x) => resRow(x)).join('')}</div><div class="small muted">Tap one to open it${canRead() ? ' inside the app' : ''}, then come back and say if it stuck.</div></div>`
+        : `<div class="card"><div class="small muted">No video is filed under this topic yet.</div><button class="btn ghost" data-act="open-url" data-url="https://www.youtube.com/results?search_query=${encodeURIComponent(T.name + ' teaching further education')}" data-title="Videos: ${esc(T.name)}">${ic('play', 16)} Search YouTube for one</button><div class="small muted">Pick one under ten minutes from a source you trust. Tap Save at the top to keep it in your Library.</div></div>`) + stick;
     } else if (fmtNow === 'Audio summary') {
       body = `<div class="card"><div class="row"><button class="btn" data-act="speak">${ic('speaker', 16)} Listen · 1 min</button><span class="small muted">Read aloud on your phone</span></div><div class="small" style="line-height:1.6">${esc(L.sum)}</div></div>${stick}`;
     } else {
       const n = allCards().filter((c) => c.t === topic).length;
       body = `<div class="card"><h3>${n} cards on ${esc(T.name)}</h3><div class="small muted">${esc(L.sum)}</div><button class="btn" data-act="cards-topic" data-id="${topic}">Review cards</button></div>`;
     }
+    const libFor = catalogue().filter((x) => x.ts.includes(topic) && (x.link || x.kind === 'File') && !(fmtNow === 'Short video' && x.kind === 'Watch')).sort((x, y) => (resOf(x.id).done ? 1 : 0) - (resOf(y.id).done ? 1 : 0)).slice(0, 4);
     const why = sub.fmt ? 'You picked this format.' : state.energy[todayKey()] === 'low' ? 'Your energy is low, so this starts with audio.' : formatRate(fmtNow) != null ? `Chosen because ${fmtNow.toLowerCase()}s work best for you (${formatRate(fmtNow)}% stuck).` : 'Starting with a worked example. Rate each format and the app learns what works for you.';
     return `<div class="card"><div class="row between"><span class="label">${esc(courseName(T.c))}</span><span class="pill ${mState(m)[0]} num">${m == null ? 'Not checked' : m + '%'}</span></div><h3 style="font-size:19px">${esc(T.name)}</h3><div class="small muted">${esc(why)}</div></div>
       <div class="chips">${fmts.map((f) => `<button class="chip" data-act="fmt" data-id="${f}" aria-pressed="${f === fmtNow}">${f}</button>`).join('')}</div>
       ${body}
+      ${libFor.length ? `<div class="card"><div class="row between"><h3>From your library</h3><button class="linkish" data-act="lib-topic" data-id="${topic}">All on this topic</button></div><div class="list">${libFor.map((x) => resRow(x)).join('')}</div></div>` : ''}
       <button class="btn ghost" data-act="ask" data-q="${esc(`Explain ${T.name} to me in a different way, with one everyday example and one from teaching T Level Engineering in FE. Keep it short and ask me a question at the end to check I understood.`)}">${ic('spark', 14)} Explain it a different way</button>`;
   };
 
@@ -2314,10 +2907,10 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
     const r = portfolioReadiness();
     const parts = portfolioParts();
     const weak = parts.slice().sort((a, b) => a.pct - b.pct).slice(0, 3);
-    const fmtsList = ['Worked example', 'Practice quiz', 'Flashcards', 'Audio summary', 'Short video'].map((n) => [n, state.formats[n] || { n: 0 }]);
+    const fmtsList = ['Worked example', 'Practice quiz', 'Flashcards', 'Audio summary', 'Short video', 'Reading', 'Podcast'].map((n) => [n, state.formats[n] || { n: 0 }]);
     const rated = fmtsList.map(([n, f]) => [n, f, formatRate(n)]).filter(([, f]) => f.n).sort((a, b) => (b[2] || 0) - (a[2] || 0));
     let html = `<div class="card"><div class="label">Portfolio progress · Module 3</div>
-      <div class="row" style="align-items:flex-end;gap:16px"><div><div style="font-family:var(--f-display);font-size:34px;font-weight:700" class="num">${r.pct}%</div><div class="small muted">today</div></div><div style="padding-bottom:6px" class="muted">→</div><div><div style="font-family:var(--f-display);font-size:34px;font-weight:700;color:var(--accent)" class="num">${r.expected}%</div><div class="small muted">expected by now</div></div><span class="pill ${r.band[0]}" style="margin-left:auto;margin-bottom:8px">${r.band[1]}</span></div>
+      <div class="row" style="align-items:flex-end;gap:16px;flex-wrap:wrap"><div><div style="font-family:var(--f-display);font-size:34px;font-weight:700" class="num">${r.pct}%</div><div class="small muted">today</div></div><div style="padding-bottom:6px" class="muted">→</div><div><div style="font-family:var(--f-display);font-size:34px;font-weight:700;color:var(--accent)" class="num">${r.expected}%</div><div class="small muted">expected by now</div></div><span class="pill ${r.band[0]}" style="margin-left:auto;margin-bottom:8px">${r.band[1]}</span></div>
       <div class="small muted">Each of the ${parts.length} parts below counts equally. Expected assumes steady progress from September to the professional discussion on ${esc(shortDate(r.end))}, ${r.days} days away.</div></div>
       <div class="card"><h3>Weak spots</h3><div class="list">${weak.map((x) => `<div class="li"><span class="cdot" style="background:var(--c-review)"></span><div class="grow">${esc(x.label)}<div class="small muted num">${x.have} of ${x.need}</div></div><button class="btn sm ghost" data-act="pp-open" data-id="${x.page}">Fix it</button></div>`).join('')}</div></div>
       <div class="card"><div class="row between"><h3>Portfolio parts</h3><span class="pill info num">${r.pct}%</span></div>
@@ -2358,7 +2951,7 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
     const tiles = [
       ['courses', 'Courses', '2 active'],
       ['learn', 'Learn', 'Today’s lesson'],
-      ['library', 'Library', plural(LIBRARY.length + state.library.length, 'resource')],
+      ['library', 'Library', `Online library · ${plural(catalogue().length, 'resource')}`],
       ['terms', 'Key terms & models', plural(MODELS.length + DECK.length, 'item')],
       ['goals', 'Goals & reflection', state.reflections[mon] ? '3 goals · reflected' : reflectionDue() ? '3 goals · reflection due' : '3 goals'],
       ['log', 'How it adapts', plural(state.log.length, 'decision')],
@@ -2382,39 +2975,73 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
       <div class="btnrow"><button class="btn sm ghost" data-act="deadlines-for" data-id="${k}">Deadlines</button>${k === 'pgce' ? '<button class="btn sm ghost" data-tab="portfolio">Portfolio</button>' : ''}</div></div>`;
   }).join('') + '<button class="btn ghost" data-go="add">+ Add a deadline</button>';
 
+  const LIB_FILTERS = ['All', 'Read', 'Watch', 'Listen', 'Files', 'Mine', 'Favourites', 'Done'];
   V.library = () => {
     const q = (sub.q || '').trim().toLowerCase();
-    const f = sub.lf || 'All';
-    const all = LIBRARY.concat(state.library);
-    const weak = weakTopics(4).map((t) => t.id);
-    let items = all.filter((it) => f === 'All' || (f === 'Favourites' ? state.favs[it.id] : it.type === f));
-    if (q) items = items.filter((it) => (it.title + ' ' + (it.text || '') + ' ' + (TOPICS[it.t] ? TOPICS[it.t].name : '') + ' ' + (it.note || '')).toLowerCase().includes(q));
-    const typeCol = { PDF: 'var(--bad)', Slides: 'var(--gold)', Doc: 'var(--accent)', Link: 'var(--c-assess)', Note: 'var(--c-other)' };
-    const row = (it) => `<div class="res li"><span class="ftype" style="background:color-mix(in srgb,${typeCol[it.type] || 'var(--muted)'} 14%,transparent);color:${typeCol[it.type] || 'var(--muted)'}">${esc(String(it.type).slice(0, 4).toUpperCase())}</span><div style="min-width:0"><b>${esc(it.title)}</b><div class="small muted">${esc(courseShort(it.c))} · ${esc(TOPICS[it.t] ? TOPICS[it.t].name : '')} · ${esc(it.meta || 'Yours')}${state.favs[it.id] ? ' · favourite' : ''}</div></div><button class="iconbtn" data-act="res" data-id="${esc(it.id)}" aria-label="Actions for ${esc(it.title)}">${ic('dots', 18)}</button></div>`;
-    const sugg = all.filter((it) => weak.includes(it.t)).slice(0, 2);
-    return `<div class="search">${ic('search', 18)}<input id="libq" type="search" placeholder="Search your library" value="${esc(sub.q || '')}" autocomplete="off"></div>
-      <div class="chips">${['All', 'Slides', 'Doc', 'PDF', 'Note', 'Link', 'Favourites'].map((x) => `<button class="chip" data-act="lf" data-id="${x}" aria-pressed="${f === x}">${x}</button>`).join('')}</div>
-      ${!q && sugg.length ? `<div class="card"><div class="row between"><h3>Suggested for your weak topics</h3>${ic('spark', 16)}</div><div class="list">${sugg.map(row).join('')}</div></div>` : ''}
-      <div class="card"><div class="label">${q ? plural(items.length, 'match', 'matches') : 'Your files and links'}</div><div class="list">${items.map(row).join('') || '<div class="small muted">No matches.</div>'}</div></div>
-      <div class="small muted">The files marked Taught session, Handbook and Your work live in your PGCE project on Claude. Ask the tutor about one and Claude can read it there.</div>`;
+    const f = LIB_FILTERS.includes(sub.lf) ? sub.lf : 'All';
+    const lt = sub.lt && TOPICS[sub.lt] ? sub.lt : '';
+    const R = recommend();
+    const rank = {};
+    R.scored.forEach((s, i) => { rank[s.it.id] = i; });
+    const all = catalogue();
+    const hay = (it) => [it.title, it.by, it.note, it.text, it.kind, KIND_VERB[it.kind], it.ts.map((t) => (TOPICS[t] ? TOPICS[t].name : '')).join(' ')].join(' ').toLowerCase();
+    let items = all.filter((it) => (f === 'All' ? true : f === 'Favourites' ? !!state.favs[it.id] : f === 'Mine' ? it.src === 'mine' : f === 'Files' ? (it.kind === 'File' || it.kind === 'Note') : f === 'Done' ? !!resOf(it.id).done : it.kind === f));
+    if (lt) items = items.filter((it) => it.ts.includes(lt));
+    if (q) items = items.filter((it) => hay(it).includes(q));
+    // Most useful for you first; finished items sink to the bottom.
+    const order = (it) => (resOf(it.id).done && f !== 'Done' ? 2000 : 0) + (rank[it.id] != null ? rank[it.id] : 1000);
+    items = items.map((it, i) => [it, i]).sort((a, b) => order(a[0]) - order(b[0]) || a[1] - b[1]).map((x) => x[0]);
+    const hubs = HUBS.filter((h) => !q || (h.title + ' ' + h.by + ' ' + h.note).toLowerCase().includes(q));
+    const plain = !q && f === 'All' && !lt;
+    const picked = plain ? R.picks.slice(0, 3) : [];
+    const hubBtn = (h) => `<button class="hubbtn" data-act="hub" data-id="${esc(h.id)}"><span class="ftype k-Read">${ic(h.id === 'hub-eef-pod' ? 'head' : h.id === 'hub-gravells-video' ? 'play' : 'book', 18)}</span><span class="restext"><b>${esc(h.title)}</b><span class="small muted">${esc(h.by)}</span></span><span class="muted">${ic(canRead() ? 'fwd' : 'out', 16)}</span></button>`;
+    const counts = { Read: all.filter((x) => x.kind === 'Read').length, Watch: all.filter((x) => x.kind === 'Watch').length, Listen: all.filter((x) => x.kind === 'Listen').length };
+    return `${hubs.length ? `<div class="card"><div class="row between"><h3>Online library</h3><span class="pill info">Live</span></div>
+        <div class="small muted">${canRead() ? 'Your course reading lists open here, inside the app. Tap Save at the top of any page to keep it in your Library.' : 'Your course reading lists. They open in a new tab.'}</div>
+        ${hubs.map(hubBtn).join('')}</div>` : ''}
+      <div class="search">${ic('search', 18)}<input id="libq" type="search" placeholder="Search readings, videos, podcasts" value="${esc(sub.q || '')}" autocomplete="off" aria-label="Search the library"></div>
+      <div class="chips">${LIB_FILTERS.map((x) => `<button class="chip" data-act="lf" data-id="${x}" aria-pressed="${f === x}">${x}${counts[x] ? ` <span class="num muted">${counts[x]}</span>` : ''}</button>`).join('')}</div>
+      <div class="field"><label class="sr-only" for="lib-topic">Topic</label><select id="lib-topic" data-sub="lt"><option value="">All topics</option>${['pgce', 'assess'].map((c) => `<optgroup label="${esc(courseName(c))}">${topicList(c).map(([id, t]) => `<option value="${id}"${lt === id ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</optgroup>`).join('')}</select></div>
+      ${picked.length ? `<div class="card"><div class="row between"><h3>Picked for you</h3><button class="linkish" data-act="fy-open" style="white-space:nowrap">See why</button></div><div class="list">${picked.map((s) => resRow(s.it)).join('')}</div></div>` : ''}
+      <div class="card"><div class="label">${q || lt || f !== 'All' ? plural(items.length, 'match', 'matches') : plural(items.length, 'resource')}</div><div class="list">${items.map((it) => resRow(it)).join('') || `<div class="small muted">Nothing here yet.${f === 'Mine' ? ' Save a page from the online library, or tap Add.' : f === 'Done' ? ' Tap Done on something you finish and it shows here.' : f === 'Favourites' ? ' Tap the star on anything to keep it here.' : ''}</div>`}</div></div>
+      <div class="small muted">Every online item was opened and checked on 18 November 2026. Files marked Taught session, Handbook and Your work live in your PGCE project on Claude: the tutor reads them there.</div>`;
   };
   function resSheet(id) {
-    const it = LIBRARY.concat(state.library).find((x) => x.id === id);
+    const it = findRes(id);
     if (!it) return;
-    const mine = state.library.some((x) => x.id === id);
-    sheet(`<h3>${esc(it.title)}</h3><div class="small muted">${esc(courseName(it.c))} · ${esc(TOPICS[it.t] ? TOPICS[it.t].name : '')}</div>${it.note ? `<div class="step">${esc(it.note)}</div>` : ''}
-      <button class="btn block" data-act="ask" data-q="${esc(`In my PGCE project there is a file called "${it.title}". Summarise its key points in five bullet points, then ask me two questions to check I understand it.`)}">${ic('spark', 16)} Ask the tutor about it</button>
-      <button class="btn ghost block" data-act="ask" data-q="${esc(`Make me a five-question multiple-choice quiz from the file "${it.title}" in my PGCE project. Ask one question at a time and wait for my answer.`)}">Quiz me on it</button>
-      ${it.link ? `<a class="btn ghost block" href="${esc(it.link)}" target="_blank" rel="noopener">${ic('out', 16)} Open the link</a>` : ''}
-      <div class="row"><button class="btn ghost grow" data-act="fav" data-id="${esc(it.id)}">${state.favs[it.id] ? 'Remove favourite' : 'Favourite'}</button>${mine ? `<button class="btn ghost danger grow" data-act="lib-del" data-id="${esc(it.id)}">Delete</button>` : ''}</div>`);
+    const r = resOf(id);
+    const mine = it.src === 'mine';
+    const names = it.ts.filter((t) => TOPICS[t]).map((t) => TOPICS[t].name).join(' · ');
+    const verb = { Read: 'read', Watch: 'watched', Listen: 'listened to' }[it.kind] || 'reviewed';
+    const online = !!it.link;
+    const tutorQ = online
+      ? `I have just ${verb} "${it.title}"${it.by && !mine ? ' (' + it.by + ')' : ''}, ${it.link}. Ask me three questions, one at a time, to check what I took from it. Then show me how it links to ${TOPICS[it.t].name} in my ${courseName(TOPICS[it.t].c)} work.`
+      : `In my PGCE project there is a file called "${it.title}". Summarise its key points in five bullet points, then ask me two questions to check I understand it.`;
+    const canCheck = QBANK.filter((q) => it.ts.includes(q.t)).length >= 2;
+    sheet(`<div class="row wrap">${kindPill(it)}${r.done ? `<span class="pill good">${ic('check', 12)} Done${r.stick ? ' · stuck: ' + esc(String(r.stick).toLowerCase()) : ''}</span>` : ''}</div>
+      <h3>${esc(it.title)}</h3><div class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(names)}</div>${it.note ? `<div class="step">${esc(it.note)}</div>` : ''}
+      ${online ? `<button class="btn block" data-act="res-open" data-id="${esc(id)}">${ic(KIND_ICON[it.kind] || 'link', 16)} ${esc(KIND_VERB[it.kind] || 'Open')} it now</button>` : ''}
+      <button class="btn ${online ? 'ghost ' : ''}block" data-act="ask" data-q="${esc(tutorQ)}">${ic('spark', 16)} ${online ? 'Ask the tutor to test me on it' : 'Ask the tutor about it'}</button>
+      ${canCheck ? `<button class="btn ghost block" data-act="res-check" data-id="${esc(id)}">${ic('study', 16)} 3-question check on ${esc(TOPICS[it.t].name)}</button>` : ''}
+      ${!online ? `<button class="btn ghost block" data-act="ask" data-q="${esc(`Make me a five-question multiple-choice quiz from the file "${it.title}" in my PGCE project. Ask one question at a time and wait for my answer.`)}">Quiz me on the file</button>` : ''}
+      ${mine ? `<div class="two"><div class="field"><label for="le-kind">Kind</label><select id="le-kind" data-libedit="kind" data-id="${esc(id)}">${KIND_NAMES.map(([k, l]) => `<option value="${k}"${it.kind === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div class="field"><label for="le-topic">Topic</label><select id="le-topic" data-libedit="t" data-id="${esc(id)}">${Object.entries(TOPICS).map(([k, t]) => `<option value="${k}"${it.t === k ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div></div>` : ''}
+      <div class="btnrow"><button class="btn ghost grow" data-act="${r.done ? 'res-undone' : 'res-done'}" data-id="${esc(id)}">${r.done ? 'Mark not done' : 'Done'}</button><button class="btn ghost grow" data-act="fav" data-id="${esc(id)}">${state.favs[id] ? 'Remove favourite' : 'Favourite'}</button>${mine ? `<button class="btn ghost danger grow" data-act="lib-del" data-id="${esc(id)}">Delete</button>` : ''}</div>`);
   }
-  function libAddSheet() {
+  let libGuess = true; // the Add sheet picks the kind and topic from the title and link until you choose yourself
+  function libAddSheet(pre) {
+    const p = pre || {};
+    libGuess = true;
+    const t0 = guessTopic((p.title || '') + ' ' + (p.link || '')) || weakTopics(1)[0].id;
+    const k0 = guessKind((p.title || '') + ' ' + (p.link || ''));
     sheet(`<h3>Add to your library</h3>
-      <div class="field"><label for="l-title">Title</label><input type="text" id="l-title" placeholder="For example: Rosenshine's principles article"></div>
-      <div class="field"><label for="l-link">Link (optional)</label><input type="url" id="l-link" placeholder="https://"></div>
-      <div class="two"><div class="field"><label for="l-type">Type</label><select id="l-type">${['Link', 'Note', 'PDF', 'Slides', 'Doc'].map((t) => `<option>${t}</option>`).join('')}</select></div>
-        <div class="field"><label for="l-topic">Topic</label><select id="l-topic">${Object.entries(TOPICS).map(([k, t]) => `<option value="${k}">${esc(t.name)}</option>`).join('')}</select></div></div>
-      <div class="field"><label for="l-note">Note (searchable)</label><textarea id="l-note" placeholder="Why it is useful, key points"></textarea></div>
+      <div class="small muted">Paste a link to a reading, video or podcast. The app files it by topic and the Study tab starts recommending it.</div>
+      <div class="field"><label for="l-title">Title</label><input type="text" id="l-title" maxlength="160" value="${esc(p.title || '')}" placeholder="For example: Rosenshine's principles article"></div>
+      <div class="field"><label for="l-link">Link (optional)</label><input type="url" id="l-link" maxlength="1000" inputmode="url" value="${esc(p.link || '')}" placeholder="https://"></div>
+      <div class="two"><div class="field"><label for="l-kind">Kind</label><select id="l-kind" data-libpick="1">${KIND_NAMES.map(([k, l]) => `<option value="${k}"${k === k0 ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div class="field"><label for="l-topic">Topic</label><select id="l-topic" data-libpick="1">${Object.entries(TOPICS).map(([k, t]) => `<option value="${k}"${k === t0 ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div></div>
+      <div class="two"><div class="field"><label for="l-mins">Minutes</label><input type="number" id="l-mins" min="1" max="240" inputmode="numeric" value="10"></div><div></div></div>
+      <div class="field"><label for="l-note">Note (searchable)</label><textarea id="l-note" maxlength="600" placeholder="Why it is useful, key points"></textarea></div>
       <div class="btnrow"><button class="btn" data-act="lib-save">Add</button><button class="btn ghost" data-act="close-sheet">Cancel</button></div>`);
   }
 
@@ -2488,6 +3115,7 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
       <div class="field"><label for="f-project">PGCE project link</label><input type="url" id="f-project" value="${esc(s.claudeProject || '')}" data-set="claudeProject" placeholder="https://claude.ai/project/..."><span class="help">If the project does not open, copy its address from claude.ai and paste it here.</span></div>
       ${chatReady() ? '<div class="btnrow"><button class="btn sm ghost" data-act="chat-help">How to sign in</button><button class="btn sm danger" data-act="chat-signout">Sign out of Claude</button></div>' : ''}</div>`;
     html += `<div class="card"><h3>PebblePad</h3><div class="field"><label for="f-pp">Your PebblePad link</label><input type="url" id="f-pp" value="${esc(s.pebblepad || '')}" data-set="pebblepad" placeholder="https://..."><span class="help">The address you use to sign in to PebblePad. Open PebblePad on the Portfolio tab uses it.</span></div></div>`;
+    html += updateCard();
     html += `<div class="card"><h3>Backup</h3><div class="small muted">Your ticks, portfolio and study are saved on this phone, with a copy kept by the app. Save a backup now and then.</div>
       <div class="btnrow"><button class="btn sm ghost" data-act="backup">Save a backup</button><button class="btn sm ghost" data-act="copy-backup">Copy backup text</button><label class="btn sm ghost" for="f-restore">Restore</label><input type="file" id="f-restore" accept="application/json,.json" class="sr-only" data-input="restore"></div>
       ${confirmReset ? '<div class="notice warn"><div><b>Clear every tick, move, portfolio entry and study record?</b><div class="btnrow" style="margin-top:8px"><button class="btn sm danger" data-act="reset">Yes, clear it</button><button class="btn sm ghost" data-act="cancel-reset">Keep everything</button></div></div></div>' : '<button class="btn sm danger" data-act="ask-reset" style="align-self:flex-start">Clear my progress</button>'}</div>
@@ -2515,9 +3143,72 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
       <button class="btn" data-act="alarm-test">Test the alarm</button><div class="small muted">Rings 15 seconds after you tap. Lock the phone to see the full alarm screen.</div>` : ''}</div>`;
   }
 
+  /* ---------- live updates ----------
+     The app looks on GitHub for a newer copy of this page and shows it without a new install.
+     PAGE is this page's number (the capgown-page meta tag in the head): raise it with every change. */
+  const PAGE = Number((document.querySelector('meta[name="capgown-page"]') || {}).content) || 0;
+  const startedAt = Date.now();
+  let lastTouch = 0;
+  let liveMsg = '';
+  let confirmRevert = false;
+  function liveStatus() {
+    if (!APP || typeof APP.liveStatus !== 'function') return null;
+    try { return JSON.parse(APP.liveStatus() || 'null'); } catch (e) { return null; }
+  }
+  // Which update this run of the app has already tried to show. Kept in two places, because a note written to
+  // session storage just before the page reloads does not always survive the reload; the window's name does.
+  const appliedPage = () => {
+    let a = 0;
+    try { a = Number(sessionStorage.getItem('capgown-applied')) || 0; } catch (e) { /* storage can be blocked */ }
+    const m = /^capgown-applied:(\d+)$/.exec(window.name || '');
+    return Math.max(a, m ? Number(m[1]) : 0);
+  };
+  const setApplied = (n) => {
+    try { sessionStorage.setItem('capgown-applied', String(n)); } catch (e) { /* ignore */ }
+    try { window.name = n ? 'capgown-applied:' + n : ''; } catch (e) { /* ignore */ }
+  };
+  // A newer page is on the phone. Show it straight away if you are not in the middle of something.
+  function updateReady(n) {
+    n = Number(n) || 0;
+    if (!(n > PAGE) || !APP || typeof APP.applyUpdate !== 'function') return;
+    if (appliedPage() >= n) return; // tried once this session and it did not come up: wait for the next start
+    const busy = sheetOpen || tutorOpen || (quiz && quiz.i < quiz.qs.length) || (timer && timer.running) || route === 'paper' || route === 'add';
+    // Never reload under a finger: straight after opening only if nothing has been tapped in the last few seconds.
+    const quiet = Date.now() - lastTouch;
+    const idle = (Date.now() - startedAt < 20000 && quiet > 5000) || quiet > 30000;
+    if (!busy && idle) {
+      setApplied(n);
+      try { APP.applyUpdate(); return; } catch (e) { /* offer it instead */ }
+    }
+    toast(`<b>An update is ready.</b> <button class="linkish" data-act="live-apply">Show it now</button>`, 9000);
+  }
+  function liveWaiting() {
+    const st = liveStatus();
+    if (st && Number(st.waiting) > PAGE) updateReady(st.waiting);
+  }
+  // The page checks its own main screens before telling the app it works.
+  function selfTest() {
+    try {
+      ['home', 'plan', 'study', 'progress', 'more', 'library', 'settings', 'courses', 'deadlines'].forEach((r) => { if (typeof V[r] !== 'function' || typeof V[r]() !== 'string') throw new Error(r); });
+      return true;
+    } catch (e) { return false; }
+  }
+  function updateCard() {
+    const st = liveStatus();
+    if (!st) return '';
+    const newer = PAGE > (Number(st.bundled) || 0);
+    const waiting = Number(st.waiting) > PAGE;
+    return `<div class="card" id="updates"><div class="row between"><h3>Updates</h3>${toggle(st.auto !== false, 'live-auto', 'on', 'Update by itself')}</div>
+      <div class="small muted">New library items, deadlines and fixes arrive by themselves when you open the app with a connection. No new install is needed.</div>
+      <div class="small">This is version <b class="num">${PAGE}</b>, ${newer ? 'newer than the one that came with the app' : 'the one that came with the app'}. Last checked: ${st.checked ? esc(fmtStamp(Number(st.checked))) : 'not yet'}.</div>
+      ${liveMsg ? `<div class="small" role="status"><b>${esc(liveMsg)}</b></div>` : ''}
+      <div class="btnrow">${waiting ? `<button class="btn sm" data-act="live-apply">Show version ${Number(st.waiting)} now</button>` : ''}<button class="btn sm ghost" data-act="live-check">${ic('reload', 14)} Check for updates</button>${newer && !confirmRevert ? '<button class="btn sm ghost" data-act="live-revert-ask">Go back to the built-in version</button>' : ''}</div>
+      ${confirmRevert ? '<div class="notice warn"><div><b>Go back to the version that came with the app?</b><p>Your ticks and records stay. This update is not fetched again; the next one is.</p><div class="btnrow" style="margin-top:8px"><button class="btn sm danger" data-act="live-revert">Yes, go back</button><button class="btn sm ghost" data-act="live-revert-cancel">Keep this version</button></div></div></div>' : ''}</div>`;
+  }
+
   /* ---------- What makes it smart ---------- */
   V.about = () => `<div class="notice"><div><b>Can it be smarter than Claude?</b><p>No app can out-think the model it runs on, and the tutor here is Claude, your own account. What the app adds is memory: your deadlines, missed evenings, portfolio gaps, quiz mistakes and what works for you. So it can put the right thing in front of you, and hand Claude your week when you ask.</p></div></div>
-    ${[['Tutor that knows your week', 'Ask tutor opens your Claude account in the app, with your plan ready to go in the message box.'], ['One next step', 'The single best thing to do now: an open review first, then the closest deadline.'], ['Portfolio readiness', 'Eight parts of the Module 3 portfolio, measured from your own records.'], ['Self-healing planner', 'Missed steps move to the next evening with room before their deadline.'], ['Energy check-in', 'Low evenings keep only the most urgent step.'], ['Mistake notebook', 'Wrong answers become review cards.'], ['Spaced repetition', 'Cards come back just before you forget them.'], ['Format that fits', 'Leads with the format that sticks for you.'], ['Real alarms', 'Rings like an alarm clock until the work is ticked off.'], ['Decision log', 'Every change explained, most can be undone.']].map(([a, b]) => `<div class="card"><b>${esc(a)}</b><div class="small muted">${esc(b)}</div></div>`).join('')}`;
+    ${[['Online library, inside the app', 'Your course reading list on Padlet and the Ann Gravells list open in the app. Save any page and it is filed by topic.'], ['A Study tab that picks for you', 'What to study, read, watch and listen to, chosen from your weak topics, what is due, your energy and the time you have. Every pick says why.'], ['Learns what works', 'Tap Done and say if it stuck. Readings, videos and podcasts are ranked by what has worked for you.'], ['Updates by itself', 'New library items, deadlines and fixes arrive without a new install.'], ['Tutor that knows your week', 'Ask tutor opens your Claude account in the app, with your plan ready to go in the message box.'], ['One next step', 'The single best thing to do now: an open review first, then the closest deadline.'], ['Portfolio readiness', 'Eight parts of the Module 3 portfolio, measured from your own records.'], ['Self-healing planner', 'Missed steps move to the next evening with room before their deadline.'], ['Energy check-in', 'Low evenings keep only the most urgent step.'], ['Mistake notebook', 'Wrong answers become review cards.'], ['Spaced repetition', 'Cards come back just before you forget them.'], ['Format that fits', 'Leads with the format that sticks for you.'], ['Real alarms', 'Rings like an alarm clock until the work is ticked off.'], ['Decision log', 'Every change explained, most can be undone.']].map(([a, b]) => `<div class="card"><b>${esc(a)}</b><div class="small muted">${esc(b)}</div></div>`).join('')}`;
 
   /* ---------- Deadlines and Add ---------- */
   function filterChips() {
@@ -2540,7 +3231,7 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
       ${d.chunks.length ? `<div class="bar"><i style="width:${pct}%;background:${colOf(d.course)}"></i></div><div class="small muted">${d.doneCount} of ${d.chunks.length} steps done · ${esc(mins(d.chunks.reduce((a, c) => a + (c.done ? 0 : c.mins || 0), 0)))} left</div>
         <details><summary class="small" style="color:var(--accent);font-weight:700;cursor:pointer">Steps</summary><div class="list" style="margin-top:6px">${d.chunks.slice().sort((a, b) => a.dateEff.localeCompare(b.dateEff)).map((c) => `<div class="li"><button class="check ${c.done ? 'on' : ''}" data-act="tick" data-id="${esc(c.id)}" aria-label="${c.done ? 'Mark not done' : 'Mark done'}">${ic('check', 14)}</button><div class="grow tap" data-act="step" data-id="${esc(c.id)}"><b class="small" style="${c.done ? 'text-decoration:line-through;opacity:.6' : ''}">${esc(c.title)}</b><div class="small muted">${esc(shortDate(c.dateEff))} · ${c.mins || 30} min${!c.done && c.dateEff < today ? ' · <span style="color:var(--bad)">behind</span>' : ''}</div></div>${c.done ? '' : `<button class="iconbtn" data-act="move" data-id="${esc(c.id)}" aria-label="Move to the next free evening">${ic('move', 16)}</button>`}</div>`).join('')}</div></details>` : ''}
       <div class="btnrow">${d.due ? `<a class="btn sm ghost" href="${esc(deadlineGcal(d))}" target="_blank" rel="noopener">${ic('cal', 14)} Calendar</a>` : ''}<button class="btn sm ghost" data-act="edit-due" data-id="${esc(d.id)}">${d.due ? 'Change date' : 'Set a date'}</button>${d.custom ? `<button class="btn sm danger" data-act="ask-delete" data-id="${esc(d.id)}">Delete</button>` : ''}</div>
-      ${editing ? `<form class="row" data-form="due" data-id="${esc(d.id)}"><input type="date" value="${esc(d.due || '')}" required style="flex:1"><button class="btn sm" type="submit">Save</button><button class="btn sm ghost" type="button" data-act="cancel-due">Cancel</button></form>` : ''}
+      ${editing ? `<form class="row" style="flex-wrap:wrap" data-form="due" data-id="${esc(d.id)}"><input type="date" value="${esc(d.due || '')}" required style="flex:1 1 130px;min-width:0"><button class="btn sm" type="submit">Save</button><button class="btn sm ghost" type="button" data-act="cancel-due">Cancel</button></form>` : ''}
       ${deleting ? `<div class="notice warn"><div><b>Delete this and its steps?</b><div class="btnrow" style="margin-top:8px"><button class="btn sm danger" data-act="delete" data-id="${esc(d.id)}">Yes, delete</button><button class="btn sm ghost" data-act="cancel-delete">Keep it</button></div></div></div>` : ''}</div>`;
   }
   V.deadlines = () => {
@@ -2639,7 +3330,7 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
     if (!silent) positionChat();
   }
   let toastT = null;
-  function toast(html) {
+  function toast(html, ms) {
     if (tutorOpen && chatReady() && !sheetOpen && typeof APP.toast === 'function') {
       const tmp = document.createElement('div'); tmp.innerHTML = html;
       try { APP.toast(tmp.textContent); return; } catch (e) { /* show it on the page */ }
@@ -2648,7 +3339,7 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
     const t = $('#toast');
     t.innerHTML = `${ic('spark', 18)}<div>${html}</div>`;
     t.hidden = false;
-    toastT = setTimeout(() => { t.hidden = true; }, 3400);
+    toastT = setTimeout(() => { t.hidden = true; }, ms || 3400);
   }
   function celebrate(d) { toast(`<b>Every step done</b> for "${esc(d.title)}". Cap in the air.`); }
   function copyText(text, okMsg) {
@@ -2880,6 +3571,7 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
         rec.n++; rec[{ Yes: 'yes', Partly: 'partly', No: 'no' }[id]] = (rec[{ Yes: 'yes', Partly: 'partly', No: 'no' }[id]] || 0) + 1;
         const t = sub.topic && TOPICS[sub.topic] ? sub.topic : weakTopics(1)[0].id;
         const m = mastery(t);
+        fyToday().lesson[t] = 1;
         state.mastery[t] = clamp((m == null ? 50 : m) + ({ Yes: 6, Partly: 3, No: 0 })[id], 0, 100);
         addStudy(10);
         addLog({ kind: 'study', what: `Noted what works: ${f}`, why: `You said "${id}" after a ${f.toLowerCase()} on ${TOPICS[t].name}.${id === 'No' ? ' Next time this topic starts with a different format.' : ''}` });
@@ -2970,13 +3662,70 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
       case 'lib-add': libAddSheet(); break;
       case 'lib-save': {
         const title = (($('#l-title') || {}).value || '').trim();
+        let link = (($('#l-link') || {}).value || '').trim();
         if (!title) { toast('Give it a title first.'); break; }
-        const t = ($('#l-topic') || {}).value || 'retrieval';
-        state.library.push({ id: 'u' + uid(), type: ($('#l-type') || {}).value || 'Link', title, link: (($('#l-link') || {}).value || '').trim(), c: TOPICS[t] ? TOPICS[t].c : 'pgce', t, meta: 'Yours', note: (($('#l-note') || {}).value || '').trim(), text: '' });
-        commit(); closeSheet(true); render(); toast(`<b>Added</b> and filed under ${esc(TOPICS[t].name)}.`);
+        if (link && !/^https?:\/\//i.test(link)) {
+          if (/^[\w-]+(\.[\w-]+)+(\/|$)/.test(link)) link = 'https://' + link;
+          else { toast('That link does not look right. It should start with https://'); break; }
+        }
+        if (link && (state.library.some((x) => x.link === link) || ONLINE.some((o) => o.url === link))) { toast('That link is already in your Library.'); break; }
+        const tv = ($('#l-topic') || {}).value;
+        const t = TOPICS[tv] ? tv : weakTopics(1)[0].id;
+        const kv = ($('#l-kind') || {}).value;
+        const kind = KIND_VERB[kv] ? kv : 'Read';
+        const m = clamp(Math.round(Number(($('#l-mins') || {}).value)) || 10, 1, 240);
+        state.library.push({ id: 'u' + uid(), type: link ? 'Link' : kind === 'Note' ? 'Note' : 'Doc', kind, title, link, c: TOPICS[t].c, t, m, meta: 'Yours', note: (($('#l-note') || {}).value || '').trim(), text: '', at: todayKey() });
+        commit(); closeSheet(true); render(); toast(`<b>Added</b> and filed under ${esc(TOPICS[t].name)}.${link ? ' It can now show up in For you.' : ''}`);
         break;
       }
       case 'lib-del': state.library = state.library.filter((x) => x.id !== id); commit(); closeSheet(true); render(); break;
+      // Online library and For you
+      case 'hub': { const h = HUBS.find((x) => x.id === id); if (h) openLink(h.url, h.title); break; }
+      case 'open-url': openLink(el.dataset.url, el.dataset.title || ''); break;
+      case 'res-open': resOpen(id); break;
+      case 'res-done': resDoneSheet(id); break;
+      case 'res-stick': {
+        const v = ['Yes', 'Partly', 'No'].includes(el.dataset.v) ? el.dataset.v : 'Partly';
+        resDone(id, v); render(); resCheckSheet(id, v);
+        toast(v === 'No' ? '<b>Noted.</b> That kind of resource moves down your list.' : '<b>Logged.</b> Your study time and what works for you are updated.');
+        break;
+      }
+      case 'res-undone': { const r = resRec(id); delete r.done; delete r.stick; commit(); closeSheet(true); render(); break; }
+      case 'res-skip': { const r = resRec(id); r.skip = now().getTime(); commit(); render(); toast(`Hidden from For you for three weeks. It stays in your Library. <button class="linkish" data-act="res-unskip" data-id="${esc(id)}">Undo</button>`, 7000); break; }
+      case 'res-unskip': { const r = resRec(id); delete r.skip; commit(); render(); toast('Back in your list.'); break; }
+      case 'res-check': {
+        const it = findRes(id);
+        if (!it) break;
+        const qz = buildTopicQuiz(it.ts, 3);
+        if (!qz.qs.length) { toast('There are no questions on that topic yet.'); break; }
+        quiz = qz; sub.stab = 'quiz'; go('study');
+        break;
+      }
+      case 'fy-open': sub.stab = 'foryou'; go('study'); break;
+      case 'fy-mins': sub.fyMins = Number(id); render(); break;
+      case 'fy-why': fyWhySheet(); break;
+      case 'fy-study': {
+        const t = el.dataset.t;
+        if (id === 'cards') { sub.cardTopic = null; sub.stab = 'cards'; fcFlip = false; render(); $('#screen').scrollTop = 0; }
+        else if (id === 'quiz' && TOPICS[t]) { const qz = buildTopicQuiz([t], 3); if (qz.qs.length) { quiz = qz; sub.stab = 'quiz'; render(); $('#screen').scrollTop = 0; } }
+        else if (TOPICS[t]) { fyToday().lesson[t] = 1; saveLocal(); sub.topic = t; sub.stepId = null; sub.fmt = null; sub.steps = 1; go('learn'); }
+        break;
+      }
+      case 'lib-topic': sub.lt = TOPICS[id] ? id : ''; sub.lf = 'All'; sub.q = ''; go('library'); break;
+      // Live updates
+      case 'live-check':
+        if (APP && typeof APP.checkUpdate === 'function') { liveMsg = 'Checking…'; render(); try { APP.checkUpdate(); } catch (err) { liveMsg = 'Could not check.'; render(); } }
+        break;
+      case 'live-apply':
+        if (APP && typeof APP.applyUpdate === 'function') { setApplied(0); try { APP.applyUpdate(); } catch (err) { toast('Close the app and open it again to see the update.'); } }
+        break;
+      case 'live-auto': { const st = liveStatus(); if (st && typeof APP.setAutoUpdate === 'function') { try { APP.setAutoUpdate(st.auto === false); } catch (err) { /* ignore */ } render(); } break; }
+      case 'live-revert-ask': confirmRevert = true; render(); break;
+      case 'live-revert-cancel': confirmRevert = false; render(); break;
+      case 'live-revert':
+        confirmRevert = false;
+        if (APP && typeof APP.revertUpdate === 'function') { try { APP.revertUpdate(); } catch (err) { toast('That did not work. Install the app again from GitHub to reset it.'); } }
+        break;
       // Goals and reflection
       case 'mood': { if (!reflectDraft) break; const i = reflectDraft.moods.indexOf(id); if (i >= 0) reflectDraft.moods.splice(i, 1); else reflectDraft.moods.push(id); render(); break; }
       case 'reflect-plan': if (reflectDraft) { reflectDraft.plan = id; render(); } break;
@@ -3139,6 +3888,31 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
       setTimeout(() => { const x = $('#preview'); if (x) x.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30);
     }
   });
+  // The library's topic filter, the Add sheet's smart filing, and edits to your own items.
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    const d = el.dataset || {};
+    if (d.sub === 'lt') { sub.lt = TOPICS[el.value] ? el.value : ''; render(); return; }
+    if (d.libpick) { libGuess = false; return; }
+    if (d.libedit) {
+      const u = state.library.find((x) => x.id === d.id);
+      if (!u) return;
+      if (d.libedit === 't' && TOPICS[el.value]) { u.t = el.value; u.c = TOPICS[el.value].c; }
+      if (d.libedit === 'kind' && KIND_VERB[el.value]) u.kind = el.value;
+      commit(); render(); toast('Saved.');
+    }
+  });
+  document.addEventListener('input', (e) => {
+    const el = e.target;
+    if ((el.id === 'l-title' || el.id === 'l-link') && libGuess) {
+      const text = (($('#l-title') || {}).value || '') + ' ' + (($('#l-link') || {}).value || '');
+      const t = guessTopic(text);
+      if (t && $('#l-topic')) $('#l-topic').value = t;
+      if ($('#l-kind')) $('#l-kind').value = guessKind(text);
+    }
+  });
+  document.addEventListener('pointerdown', () => { lastTouch = Date.now(); }, true);
+  document.addEventListener('keydown', () => { lastTouch = Date.now(); }, true);
   $('#fab').addEventListener('click', () => openTutor());
 
   /* ---------- start ---------- */
@@ -3152,7 +3926,7 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
     syncAlarms();
     if (!loadLocal()) saveLocal();
     window.__capgownGo = (v) => { if (ROUTE_NAMES.includes(routeOf(v))) go(v); };
-    window.__capgownResume = () => { lastDay = todayKey(); heal(); syncAlarms(); render(); };
+    window.__capgownResume = () => { lastDay = todayKey(); heal(); syncAlarms(); render(); takeSavedLinks(); setTimeout(liveWaiting, 1500); };
     window.__capgownBack = () => {
       if (sheetOpen) { closeSheet(); return true; }
       if (tutorOpen) { closeTutor(); return true; }
@@ -3162,6 +3936,20 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
     };
     window.__capgownChatEvent = (type, url) => { CHAT.type = type || ''; CHAT.url = url || ''; const x = $('#chat-sub'); if (x) x.textContent = chatSubText(); };
     window.__capgownChatInserted = (ok) => toast(ok ? 'Your question is in the message box. Check it, then tap send.' : 'Copied. Tap the message box, hold, then Paste.');
+    window.__capgownUpdateReady = (n) => updateReady(n);
+    window.__capgownUpdateResult = (st, n) => {
+      liveMsg = st === 'ready' ? `Version ${Number(n)} is ready.` : st === 'none' ? 'You have the latest version.' : st === 'busy' ? 'Already checking.' : 'Could not check. Are you online?';
+      if (route === 'settings') render();
+      if (st === 'ready') { setApplied(0); toast(`<b>Version ${Number(n)} is ready.</b> <button class="linkish" data-act="live-apply">Show it now</button>`, 9000); } else toast(esc(liveMsg));
+    };
+    // Tell the app this page works, so it keeps it. If a downloaded page fails its own check, go back to the built-in one.
+    try {
+      const st = liveStatus();
+      if (selfTest()) { if (typeof APP.pageReady === 'function') APP.pageReady(PAGE); }
+      else if (st && PAGE > (Number(st.bundled) || 0) && typeof APP.revertUpdate === 'function') APP.revertUpdate();
+    } catch (e) { /* an older app without live updates */ }
+    takeSavedLinks();
+    setTimeout(liveWaiting, 4000);
   }
   // The keyboard: hide the tabs and Ask tutor while typing, and keep the chat lined up.
   let fullH = window.innerHeight;
@@ -3177,7 +3965,7 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
   document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); });
 
   // Exposed for testing only
-  window.__planner = { deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, get route() { return route; }, get state() { return state; } };
+  window.__planner = { deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, ONLINE, HUBS, TOPICS, PAGE, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
 })();
 
 </script>
