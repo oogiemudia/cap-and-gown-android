@@ -8,7 +8,6 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.speech.tts.TextToSpeech;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -17,8 +16,11 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.Toast;
+
+import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -26,20 +28,20 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 /**
  * Shows the planner (bundled in the app) and links it to the alarms through the AndroidApp bridge.
  * The Chat tab's claude.ai view (ChatPane) sits in the same frame, on top of the planner.
  */
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements ReadAloud.Listener {
 
     static final String HOST = "appassets.androidplatform.net";
     static final String START = "https://" + HOST + "/index.html";
     static final int REQ_FILE = 11;
     static final int REQ_NOTIFY = 12;
     static final int REQ_MIC = 13;
+    static final int REQ_DICTATE = 14;
 
     private FrameLayout root;
     private WebView web;
@@ -47,9 +49,7 @@ public class MainActivity extends Activity {
     private ValueCallback<Uri[]> fileCallback;
     private PermissionRequest pendingMedia;
     private boolean loaded;
-    private TextToSpeech tts;
-    private boolean ttsReady;
-    private String pendingSpeech;
+    private Dictation dictation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +75,8 @@ public class MainActivity extends Activity {
 
         String view = getIntent().getStringExtra("view");
         web.loadUrl(START + (view != null ? "#" + view : ""));
+        ReadAloud.init(this);
+        ReadAloud.addListener(this);
         handleIntent(getIntent());
         askForNotificationsOnce();
         Alarms.scheduleNext(this);
@@ -94,18 +96,20 @@ public class MainActivity extends Activity {
     void reloadPage() {
         runOnUiThread(() -> {
             if (web == null) return;
+            if (dictation != null) dictation.cancel();
             if (chat != null) chat.hide();
             loaded = false;
             web.loadUrl(START);
         });
     }
 
-    /** Opens a web page in the in-app reader. */
-    void openReader(String url, String title) {
+    /** Opens a web page in the in-app reader. With listen, the reader starts reading it aloud once it has loaded. */
+    void openReader(String url, String title, boolean listen) {
         try {
             startActivity(new Intent(this, ReaderActivity.class)
                     .putExtra(ReaderActivity.EXTRA_URL, url)
-                    .putExtra(ReaderActivity.EXTRA_TITLE, title == null ? "" : title));
+                    .putExtra(ReaderActivity.EXTRA_TITLE, title == null ? "" : title)
+                    .putExtra(ReaderActivity.EXTRA_LISTEN, listen));
         } catch (Exception e) {
             openOutside(Uri.parse(url));
         }
@@ -132,47 +136,55 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onPause() {
+        // The microphone is never left on once the app is off the screen. What was heard is kept.
+        if (dictation != null) dictation.cancel();
         if (chat != null) chat.pause();
         super.onPause();
     }
 
-    /** Reads lesson text aloud with the phone's own voice (Learn, Audio summary). */
-    void speak(String text) {
+    /* ---------- Listen: the page's player follows what ReadAloud is doing ---------- */
+
+    @Override
+    public void onListenState(String json) {
+        if (loaded) js("window.__capgownListen && window.__capgownListen(" + json + ")");
+    }
+
+    /* ---------- Speak: speech to text for the page's writing boxes ---------- */
+
+    void startDictation() {
         runOnUiThread(() -> {
-            if (tts == null) {
-                pendingSpeech = text;
-                tts = new TextToSpeech(this, status -> {
-                    ttsReady = status == TextToSpeech.SUCCESS;
-                    if (!ttsReady) {
-                        toastNative("Read aloud is not available on this phone.");
-                        return;
-                    }
-                    tts.setLanguage(Locale.UK);
-                    if (pendingSpeech != null) {
-                        tts.speak(pendingSpeech, TextToSpeech.QUEUE_FLUSH, null, "capgown");
-                        pendingSpeech = null;
-                    }
-                });
+            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_DICTATE);
                 return;
             }
-            if (ttsReady) tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "capgown");
-            else pendingSpeech = text;
+            beginDictation();
         });
     }
 
-    void stopSpeaking() {
+    private void beginDictation() {
+        if (dictation == null) dictation = new Dictation(this, this::tellDictation);
+        ReadAloud.pause(); // so the phone does not write down its own voice
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        dictation.start();
+    }
+
+    void stopDictation() {
         runOnUiThread(() -> {
-            if (tts != null) tts.stop();
+            if (dictation != null) dictation.stop();
         });
+    }
+
+    private void tellDictation(String kind, String text) {
+        if ("end".equals(kind)) getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if (web != null && loaded) {
+            js("window.__capgownDictate && window.__capgownDictate(" + JSONObject.quote(kind) + "," + JSONObject.quote(text) + ")");
+        }
     }
 
     @Override
     protected void onDestroy() {
-        if (tts != null) {
-            tts.stop();
-            tts.shutdown();
-            tts = null;
-        }
+        ReadAloud.removeListener(this);
+        if (dictation != null) dictation.cancel();
         if (chat != null) chat.destroy();
         if (web != null) {
             web.destroy();
@@ -202,6 +214,36 @@ public class MainActivity extends Activity {
             } catch (Exception ignored) { }
             intent.removeExtra("stopAlarm");
         }
+        handleShared(intent);
+    }
+
+    /**
+     * "Share" from another app (a web page from the browser, or words you selected) reads it aloud here.
+     * A link opens in the reader and is read from there; anything else is read as it is.
+     */
+    private void handleShared(Intent intent) {
+        if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction())) return;
+        if ((intent.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0) return;
+        String text = null;
+        String subject = null;
+        try {
+            CharSequence t = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
+            text = t == null ? null : t.toString().trim();
+            subject = intent.getStringExtra(Intent.EXTRA_SUBJECT);
+        } catch (Exception ignored) { }
+        intent.setAction(Intent.ACTION_MAIN); // handled once, not again when the screen is rebuilt
+        intent.removeExtra(Intent.EXTRA_TEXT);
+        if (text == null || text.isEmpty()) return;
+        if (text.length() > 600_000) text = text.substring(0, 600_000);
+        String title = subject == null || subject.trim().isEmpty() ? "Shared with Cap and Gown" : subject.trim();
+        // A browser shares a page as its address, sometimes with the title in front of it.
+        String link = text.substring(text.lastIndexOf(' ') + 1).trim();
+        if (text.length() < 2100 && text.indexOf('\n') < 0 && ReaderActivity.canOpen(link)
+                && (link.length() == text.length() || text.length() - link.length() < 200)) {
+            openReader(link, subject == null ? "" : subject.trim(), true);
+            return;
+        }
+        if (!ReadAloud.play(this, title, text)) toastNative("There were no words to read in what was shared.");
     }
 
     void js(String code) {
@@ -266,6 +308,11 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_DICTATE) {
+            boolean ok = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            if (ok) beginDictation();
+            else tellDictation("end", "denied");
+        }
         if (requestCode == REQ_MIC && pendingMedia != null) {
             boolean ok = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
             if (ok) pendingMedia.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});

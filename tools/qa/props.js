@@ -3,7 +3,7 @@
 const { chromium, open, overflow } = require('./lib');
 const { rich } = require('./seed');
 
-const ROUTES = ['home', 'plan', 'study', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper'];
+const ROUTES = ['home', 'plan', 'study', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice'];
 const STABS = ['foryou', 'quiz', 'cards', 'mistakes', 'papers'];
 const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placements', 'records', 'pd'];
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -146,7 +146,7 @@ async function walk(browser, problems) {
 
 // One long sitting: hundreds of random taps and entries with nothing reset in between, the clock moving on,
 // so the saved data fills up the way real use fills it. Returns that data.
-const SEL = '#appbar [data-act], #appbar [data-go], #nav button, #screen [data-act], #screen [data-go], #screen [data-tab], #layer .sheet [data-act], #toast [data-act]';
+const SEL = '#appbar [data-act], #appbar [data-go], #nav button, #screen [data-act], #screen [data-go], #screen [data-tab], #layer .sheet [data-act], #toast [data-act], #player [data-act]';
 async function sitting(browser, problems, seed, steps) {
   const rnd = rng(seed);
   const { ctx, page, errors } = await open(browser, { app: true, width: 360, now: '2026-11-09T19:30:00', state: rich });

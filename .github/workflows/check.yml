@@ -45,6 +45,9 @@ jobs:
       - name: Behaviour checks
         run: node tools/qa/logic.js
 
+      - name: Listen to this page (the reader's word collector)
+        run: node tools/qa/reader.js
+
       - name: Small phones and large text
         run: node tools/qa/bigtext.js
 

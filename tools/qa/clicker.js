@@ -4,19 +4,22 @@ const { chromium, open, overflow } = require('./lib');
 const { rich } = require('./seed');
 
 const SCREENS = [];
-['home', 'plan', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper'].forEach((r) => SCREENS.push({ name: r, route: r, sub: {} }));
+['home', 'plan', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice'].forEach((r) => SCREENS.push({ name: r, route: r, sub: {} }));
 ['foryou', 'quiz', 'cards', 'mistakes', 'papers'].forEach((t) => SCREENS.push({ name: 'study/' + t, route: 'study', sub: { stab: t } }));
 ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placements', 'records', 'pd'].forEach((p) => SCREENS.push({ name: 'portfolio/' + p, route: 'portfolio', sub: { ppage: p } }));
 [['learn/video', { topic: 'afl', fmt: 'Short video' }], ['learn/video-none', { topic: 'ofsted', fmt: 'Short video' }], ['learn/audio', { topic: 'vacsr', fmt: 'Audio summary' }], ['learn/cards', { topic: 'qa', fmt: 'Flashcards' }]].forEach(([n, s]) => SCREENS.push({ name: n, route: 'learn', sub: s }));
 [['library/watch', { lf: 'Watch' }], ['library/mine', { lf: 'Mine' }], ['library/topic', { lt: 'vacsr' }], ['library/search', { q: 'podcast' }], ['library/none', { q: 'zzzz' }]].forEach(([n, s]) => SCREENS.push({ name: n, route: 'library', sub: s }));
 
-const SEL = '#appbar [data-act], #appbar [data-go], #screen [data-act], #screen [data-go], #screen [data-tab], #layer .sheet [data-act], #toast [data-act]';
+const SEL = '#appbar [data-act], #appbar [data-go], #screen [data-act], #screen [data-go], #screen [data-tab], #layer .sheet [data-act], #toast [data-act], #player [data-act]';
 
 async function setup(page, seedJson, sc) {
   await page.evaluate(([seed, s]) => {
     const P = window.__planner;
     document.querySelectorAll('[data-act="close-sheet"]').forEach((x, i) => { if (i === 0) x.click(); });
     const ct = document.querySelector('[data-act="close-tutor"]'); if (ct) ct.click();
+    // nothing left reading or listening from the tap before
+    if (P.DICT.on) { window.__dictating = false; P.dictEvent('end', ''); }
+    if (window.__listen && window.__listen.state !== 'idle') { window.__listen.state = 'idle'; P.listenState({ state: 'idle' }, true); } else if (P.LS.state !== 'idle') P.listenCmd('stop');
     const st = P.state;
     Object.keys(st).forEach((k) => delete st[k]);
     Object.assign(st, JSON.parse(seed));

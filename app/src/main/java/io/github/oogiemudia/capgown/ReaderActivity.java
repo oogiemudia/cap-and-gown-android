@@ -9,6 +9,8 @@ import android.graphics.Bitmap;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -28,16 +30,45 @@ import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 
 /**
  * The online library, inside the app: the Padlet reading list, the Ann Gravells reading list, and every
  * reading, video and podcast the Study tab recommends open here, with the app one tap away.
- * "Save" keeps the page you are on in the app's Library.
+ * "Save" keeps the page you are on in the app's Library. "Listen to this page" reads it aloud (ReadAloud),
+ * and carries on when you leave the page or turn the screen off.
  */
-public class ReaderActivity extends Activity {
+public class ReaderActivity extends Activity implements ReadAloud.Listener {
 
     static final String EXTRA_URL = "url";
     static final String EXTRA_TITLE = "title";
+    static final String EXTRA_LISTEN = "listen";
+    private static final double[] SPEEDS = {0.8, 1, 1.25, 1.5, 2};
+
+    /**
+     * Collects the words of the page for reading aloud: what you have selected, or else the headings and
+     * paragraphs of the article, leaving out menus, footers, forms and cookie notices.
+     */
+    private static final String GRAB = "(function(){try{"
+            + "var sel=String(window.getSelection?window.getSelection():'');"
+            + "if(sel&&sel.trim().length>40)return JSON.stringify({t:document.title||'',x:sel.slice(0,600000),sel:true});"
+            + "var SKIP='nav,aside,form,button,script,style,noscript,[aria-hidden=true],[role=navigation],[role=dialog],[aria-modal=true],[id*=cookie i],[class*=cookie i],[id*=consent i],[class*=consent i]';"
+            + "var BLOCK='h1,h2,h3,h4,h5,h6,p,li,blockquote,figcaption,dt,dd,pre,td,th';"
+            + "function grab(root){var out=[],nodes=root.querySelectorAll(BLOCK);"
+            + "for(var i=0;i<nodes.length&&out.length<20000;i++){var el=nodes[i];"
+            + "var c=el.closest(SKIP);if(c&&c!==document.body&&c!==document.documentElement&&!c.contains(root))continue;"
+            + "var edge=el.closest('header,footer');if(edge&&!edge.closest('article'))continue;"
+            + "if(el.querySelector(BLOCK))continue;"
+            + "if(!el.getClientRects().length)continue;"
+            + "var t=(el.innerText||'').replace(/\\s+/g,' ').trim();if(!t)continue;"
+            + "out.push(/[.!?:;\\u2026][\"'\\u201d\\u2019)\\]]*$/.test(t)?t:t+'.');}"
+            + "return out.join('\\n');}"
+            + "var root=document.querySelector('article')||document.querySelector('main')||document.querySelector('[role=main]')||document.body;"
+            + "var x=grab(root);"
+            + "if(x.length<400&&root!==document.body)x=grab(document.body);"
+            + "if(x.length<400){var b=(document.body.innerText||'').trim();if(b.length>x.length)x=b;}"
+            + "return JSON.stringify({t:document.title||'',x:x.slice(0,600000),sel:false});"
+            + "}catch(e){return JSON.stringify({t:'',x:'',sel:false});}})()";
     private static final String KEY_SAVED = "readerSaved";
     private static final int BAR = 0xFF14121F;
 
@@ -50,6 +81,14 @@ public class ReaderActivity extends Activity {
     private View fullView;
     private WebChromeClient.CustomViewCallback fullCallback;
     private boolean shownSomething;
+    private boolean listenWhenLoaded;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private LinearLayout listenControls;
+    private TextView listenIdle;
+    private TextView listenText;
+    private TextView listenToggle;
+    private TextView listenSpeed;
+    private double listenRate = 1;
 
     static boolean canOpen(String url) {
         return url != null && url.startsWith("https://") && url.length() < 2000;
@@ -129,8 +168,127 @@ public class ReaderActivity extends Activity {
             if (!shownSomething) finish();
         });
         page.addView(web, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        page.addView(listenBar(), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         setContentView(root);
+        listenWhenLoaded = savedInstanceState == null && getIntent().getBooleanExtra(EXTRA_LISTEN, false);
+        ReadAloud.addListener(this);
+        onListenState(ReadAloud.status());
         web.loadUrl(url);
+    }
+
+    /* ---------- Listen ---------- */
+
+    /** The strip under the page: "Listen to this page", or the player while something is being read. */
+    private View listenBar() {
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.VERTICAL);
+        bar.setBackgroundColor(BAR);
+        bar.setPadding(dp(4), dp(2), dp(4), dp(2));
+
+        listenText = new TextView(this);
+        listenText.setTextColor(0xB3FFFFFF);
+        listenText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        listenText.setSingleLine(true);
+        listenText.setEllipsize(TextUtils.TruncateAt.END);
+        listenText.setPadding(dp(10), dp(4), dp(10), 0);
+        listenText.setVisibility(View.GONE);
+        bar.addView(listenText);
+
+        listenIdle = button("Listen to this page", v -> listenToPage(true));
+        bar.addView(listenIdle, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        listenControls = new LinearLayout(this);
+        listenControls.setOrientation(LinearLayout.HORIZONTAL);
+        listenControls.setGravity(Gravity.CENTER_VERTICAL);
+        listenToggle = button("Pause", v -> ReadAloud.toggle());
+        listenSpeed = button("1x", v -> nextSpeed());
+        TextView[] controls = {
+            button("Back", v -> ReadAloud.skip(-1)),
+            listenToggle,
+            button("Next", v -> ReadAloud.skip(1)),
+            listenSpeed,
+            button("Stop", v -> ReadAloud.stop())
+        };
+        for (TextView b : controls) {
+            // Five across a narrow phone: one line each, and the letters shrink before they would be cut off.
+            b.setPadding(dp(2), dp(8), dp(2), dp(8));
+            b.setMinWidth(0);
+            b.setMaxLines(1);
+            b.setAutoSizeTextTypeUniformWithConfiguration(9, 14, 1, TypedValue.COMPLEX_UNIT_SP);
+            listenControls.addView(b, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        }
+        listenSpeed.setContentDescription("Reading speed");
+        listenControls.setVisibility(View.GONE);
+        bar.addView(listenControls, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return bar;
+    }
+
+    private void nextSpeed() {
+        int at = 0;
+        for (int i = 0; i < SPEEDS.length; i++) {
+            if (Math.abs(SPEEDS[i] - listenRate) < Math.abs(SPEEDS[at] - listenRate)) at = i;
+        }
+        ReadAloud.setRate(SPEEDS[(at + 1) % SPEEDS.length]);
+    }
+
+    private static String speedLabel(double r) {
+        String s = String.valueOf(Math.round(r * 100) / 100.0);
+        if (s.endsWith(".0")) s = s.substring(0, s.length() - 2);
+        return s + "x";
+    }
+
+    /** Reads the page you are on aloud. With asked, it says so when the page has nothing it can read. */
+    private void listenToPage(boolean asked) {
+        if (web == null) return;
+        web.evaluateJavascript(GRAB, value -> {
+            if (web == null || isFinishing()) return;
+            String text = "";
+            String title = "";
+            try {
+                Object v = new JSONTokener(value == null ? "\"\"" : value).nextValue();
+                JSONObject o = new JSONObject(String.valueOf(v));
+                text = o.optString("x", "").trim();
+                title = o.optString("t", "").trim();
+            } catch (Exception ignored) { }
+            if (title.isEmpty() || title.startsWith("http")) title = String.valueOf(titleView.getText());
+            if (text.length() < 200) {
+                if (asked || text.isEmpty()) {
+                    Toast.makeText(this, "There are not enough words on this page to read aloud. Videos, pictures and PDF files cannot be read.", Toast.LENGTH_LONG).show();
+                }
+                if (text.isEmpty()) return;
+            }
+            if (!ReadAloud.play(this, title, text)) {
+                Toast.makeText(this, "There are no words on this page to read aloud.", Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    @Override
+    public void onListenState(String json) {
+        if (listenControls == null) return;
+        JSONObject o;
+        try {
+            o = new JSONObject(json);
+        } catch (Exception e) {
+            o = new JSONObject();
+        }
+        String state = o.optString("state", "idle");
+        boolean on = !"idle".equals(state);
+        listenRate = o.optDouble("rate", 1);
+        listenIdle.setVisibility(on ? View.GONE : View.VISIBLE);
+        listenControls.setVisibility(on ? View.VISIBLE : View.GONE);
+        listenText.setVisibility(on ? View.VISIBLE : View.GONE);
+        if (on) {
+            boolean playing = "playing".equals(state);
+            listenToggle.setText(playing ? "Pause" : "Play");
+            listenToggle.setContentDescription(playing ? "Pause" : "Play");
+            listenSpeed.setText(speedLabel(listenRate));
+            int n = o.optInt("n", 0);
+            listenText.setText((playing ? "Reading" : "Paused") + (n > 0 ? ", part " + o.optInt("i", 1) + " of " + n : "") + ": " + o.optString("title", ""));
+        } else {
+            String error = o.optString("error", "");
+            if (!error.isEmpty() && hasWindowFocus()) Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+        }
     }
 
     private TextView button(String label, View.OnClickListener on) {
@@ -254,6 +412,8 @@ public class ReaderActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        ReadAloud.removeListener(this);
+        handler.removeCallbacksAndMessages(null);
         if (fullView != null) hideFull();
         if (web != null) {
             if (page != null) page.removeView(web);
@@ -312,6 +472,11 @@ public class ReaderActivity extends Activity {
 
         @Override
         public void onPageFinished(WebView view, String url) {
+            if (listenWhenLoaded) {
+                // Opened with Listen: give the page a moment to fill in, then start reading.
+                listenWhenLoaded = false;
+                handler.postDelayed(() -> listenToPage(true), 1500);
+            }
             shownSomething = true;
             progress.setVisibility(View.INVISIBLE);
             String t = view.getTitle();

@@ -22,6 +22,16 @@ function bridgeScript(opts) {
     let native = o.nativeState || '';
     const rec = (name) => (...a) => { window.__calls.push([name].concat(a.map((x) => (typeof x === 'string' && x.length > 200 ? x.slice(0, 200) : x)))); };
     window.__live = live;
+    // Listen (ReadAloud.java) and Speak (Dictation.java): stand-ins that keep the state and report it the way
+    // the phone does. A test finishes a reading with __listenEnd(done, error) and speaks with __say(words).
+    const L = { state: 'idle', title: '', i: 0, n: 0, rate: 1, done: false, resumed: false, error: '' };
+    const tellListen = () => setTimeout(() => { if (window.__capgownListen) window.__capgownListen(JSON.parse(JSON.stringify(L))); }, 0);
+    const tellSpeak = (kind, text) => setTimeout(() => { if (window.__capgownDictate) window.__capgownDictate(kind, text || ''); }, 0);
+    window.__listen = L;
+    window.__listenEnd = (done, error) => { Object.assign(L, { state: 'idle', done: !!done, error: error || '' }); tellListen(); };
+    window.__dictating = false;
+    window.__say = (words, kind) => { if (window.__capgownDictate) window.__capgownDictate(kind || 'final', words); };
+    window.__dictateEnd = (why) => { window.__dictating = false; if (window.__capgownDictate) window.__capgownDictate('end', why || ''); };
     window.AndroidApp = {
       version: () => '1.0.5',
       saveState: (j) => { native = j; },
@@ -32,9 +42,34 @@ function bridgeScript(opts) {
       fix: rec('fix'),
       saveFile: (...a) => { rec('saveFile')(...a); return true; },
       chatShow: rec('chatShow'), chatHide: rec('chatHide'), chatGo: rec('chatGo'), chatReload: rec('chatReload'),
-      chatPasteLink: () => 'empty', chatInsert: rec('chatInsert'), chatOpenBrowser: rec('chatOpenBrowser'), chatSignOut: rec('chatSignOut'),
+      chatPasteLink: () => 'empty', chatInsert: (t) => { window.__lastInsert = String(t); rec('chatInsert')(t); }, chatOpenBrowser: rec('chatOpenBrowser'), chatSignOut: rec('chatSignOut'),
       copyText: (t) => { window.__lastCopy = String(t); rec('copyText')(t); return true; },
       speak: rec('speak'), stopSpeaking: rec('stopSpeaking'), toast: rec('toast'),
+      listenStart: (title, text) => {
+        rec('listenStart')(title, text);
+        window.__lastListen = String(text);
+        if (!/[A-Za-z0-9]/.test(String(text))) return false;
+        Object.assign(L, { state: 'playing', title: String(title), i: o.listenResumed ? 4 : 1, n: Math.max(o.listenResumed ? 9 : 1, Math.ceil(String(text).length / 280)), done: false, resumed: !!o.listenResumed, error: '' });
+        tellListen();
+        return true;
+      },
+      listenPause: () => { rec('listenPause')(); if (L.state === 'playing') { L.state = 'paused'; tellListen(); } },
+      listenResume: () => { rec('listenResume')(); if (L.state === 'paused') { L.state = 'playing'; L.resumed = false; tellListen(); } },
+      listenStop: () => { rec('listenStop')(); if (L.state !== 'idle') { L.state = 'idle'; tellListen(); } },
+      listenSkip: (by) => { rec('listenSkip')(by); if (L.state !== 'idle') { L.i = Math.max(1, Math.min(L.n, L.i + by)); L.resumed = false; tellListen(); } },
+      listenRate: (r) => { rec('listenRate')(r); L.rate = r; tellListen(); },
+      listenRestart: () => { rec('listenRestart')(); if (L.state !== 'idle') { L.i = 1; L.resumed = false; tellListen(); } },
+      listenStatus: () => JSON.stringify(L),
+      listenTo: (u, t) => { rec('listenTo')(u, t); return /^https:\\/\\//.test(u); },
+      dictateAvailable: () => !o.noRecogniser,
+      dictateStart: () => {
+        rec('dictateStart')();
+        if (o.micDenied) { tellSpeak('end', 'denied'); return; }
+        if (o.noRecogniser) { tellSpeak('end', 'none'); return; }
+        window.__dictating = true;
+        tellSpeak('ready');
+      },
+      dictateStop: () => { rec('dictateStop')(); if (window.__dictating) { window.__dictating = false; tellSpeak('end', ''); } },
       openReader: (u, t) => { rec('openReader')(u, t); return /^https:\\/\\//.test(u); },
       takeSavedLinks: () => { const s = saved; saved = '[]'; return s; },
       liveStatus: () => JSON.stringify(live),
@@ -44,6 +79,8 @@ function bridgeScript(opts) {
       setAutoUpdate: (on) => { live.auto = !!on; rec('setAutoUpdate')(on); },
       revertUpdate: rec('revertUpdate')
     };
+    // app4: the app as it was before Listen and Speak (it still has the reader and live updates).
+    if (o.oldApp || o.app4) ['listenStart', 'listenPause', 'listenResume', 'listenStop', 'listenSkip', 'listenRate', 'listenRestart', 'listenStatus', 'listenTo', 'dictateAvailable', 'dictateStart', 'dictateStop'].forEach((k) => { delete window.AndroidApp[k]; });
     if (o.oldApp) ['openReader', 'takeSavedLinks', 'liveStatus', 'checkUpdate', 'applyUpdate', 'pageReady', 'setAutoUpdate', 'revertUpdate'].forEach((k) => { delete window.AndroidApp[k]; });
   })();`;
 }
@@ -61,6 +98,7 @@ async function open(browser, opts = {}) {
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|net::ERR/.test(m.text())) errors.push('console: ' + m.text()); });
   await page.route('**/*', (r) => (r.request().url().startsWith('file:') ? r.continue() : r.abort()));
   await page.addInitScript(bridgeScript(opts));
+  if (opts.init) await page.addInitScript(opts.init); // a test's own stand-ins (the browser's voice and speech recognition)
   const font = opts.font || process.env.FONT || '';
   if (font) {
     // Letters are wider or narrower from one phone to the next. FONT="DejaVu Sans" (a wide one) shows what
