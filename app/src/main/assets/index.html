@@ -263,7 +263,9 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0;min-height:0;b
 /* narrow screens and large text: a long label beside a heading wraps instead of running off the edge */
 .row.between>.pill{white-space:normal;text-align:right}
 .chips.wrap .chip{flex:0 1 auto;max-width:100%;white-space:normal;text-align:left}
-.seg.five{overflow-x:auto;scrollbar-width:none}
+.seg{grid-auto-columns:minmax(0,1fr)}
+.seg button{min-width:0;overflow-wrap:anywhere}
+.seg.five{grid-auto-columns:1fr;overflow-x:auto;scrollbar-width:none}
 </style>
 
 <div class="app" id="app">

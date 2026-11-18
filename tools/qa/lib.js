@@ -61,6 +61,12 @@ async function open(browser, opts = {}) {
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|net::ERR/.test(m.text())) errors.push('console: ' + m.text()); });
   await page.route('**/*', (r) => (r.request().url().startsWith('file:') ? r.continue() : r.abort()));
   await page.addInitScript(bridgeScript(opts));
+  const font = opts.font || process.env.FONT || '';
+  if (font) {
+    // Letters are wider or narrower from one phone to the next. FONT="DejaVu Sans" (a wide one) shows what
+    // still fits when they are wide. Machines without that font fall back to their own.
+    await page.addInitScript(`document.addEventListener('DOMContentLoaded', () => { const st = document.createElement('style'); st.textContent = 'html body, html body *{font-family:${JSON.stringify(font).replace(/'/g, '')},sans-serif!important}'; document.head.appendChild(st); });`);
+  }
   if (opts.zoom && opts.zoom !== 1) {
     // Android makes the app's text bigger when the phone's font size is turned up. This does the same here:
     // every text size in the page's styles, and every one set on an element, is multiplied.

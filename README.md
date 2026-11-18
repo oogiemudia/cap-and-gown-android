@@ -57,7 +57,7 @@ The catalogue is the `ONLINE` list in `index.html`. Copy a line, give it a new `
 - `smoke.js` opens every screen in the app, in a browser and in an older app, at two phone widths.
 - `logic.js` checks behaviour: the recommendations, the library, saved pages, live updates, old and damaged data, different dates, dark and dyslexia display.
 - `clicker.js` taps every button on every screen, and whatever each tap reveals.
-- `bigtext.js` checks nothing runs off the edge on a small phone with the phone's text size turned up and the dyslexia-friendly font.
+- `bigtext.js` checks nothing runs off the edge on a small phone with the phone's text size turned up, the dyslexia-friendly font and wide letters. `FONT="DejaVu Sans"` in front of any of the tests runs it with wide letters, which is what the checks on GitHub use.
 - `props.js` goes deeper into the planner itself: 52 clock and time-zone settings (midnight, the clocks changing, new year, leap day, after the course ends), 300 days of use played forward, four long sittings of random taps with nothing reset in between, 240 damaged copies of the saved data, and a backup that is saved, wrecked and restored.
 
 To run them: `cd tools/qa && npm install --no-save playwright && npx playwright install chromium`, then `node smoke.js`, `node logic.js`, `node bigtext.js`, `node props.js`, `node clicker.js app` and `node clicker.js browser`.
