@@ -40,6 +40,15 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     ok('library: Padlet opens in the in-app reader', await page.evaluate(() => window.__calls.some((c) => c[0] === 'openReader' && c[1].startsWith('https://padlet.com/ltegroup/'))));
     await click(page, '[data-act="hub"][data-id="hub-gravells"]');
     ok('library: Ann Gravells list opens in the in-app reader', await page.evaluate(() => window.__calls.some((c) => c[0] === 'openReader' && c[1] === 'https://www.anngravells.com/information/reading-list')));
+    // the course Padlet's items are in the library, filterable, and say where they come from
+    const pad = await page.evaluate(() => { const P = window.__planner; const on = P.ONLINE.filter((o) => o.p); return { n: on.length, ok: on.every((o) => o.kind && o.t.every((t) => P.TOPICS[t]) && o.note), ids: on.map((o) => o.id) }; });
+    ok('padlet: at least 100 of its items are in the library, each with topics and a note', pad.n >= 100 && pad.ok, pad.n);
+    await page.evaluate(() => { window.__planner.sub.lf = 'Padlet'; window.__planner.sub.q = ''; window.__planner.go('library'); });
+    ok('padlet: the Padlet filter shows exactly its items', await page.evaluate((n) => document.querySelectorAll('#screen .card .list [data-act="res"]').length === n, pad.n));
+    await click(page, '#screen [data-act="res"][data-id="pd01"]');
+    ok('padlet: a library book says it needs the college sign-in', await page.evaluate(() => /On your course Padlet\. A book in the college library/.test((document.querySelector('#layer .sheet') || {}).textContent || '')));
+    await page.evaluate(() => { const c = document.querySelector('[data-act="close-sheet"]'); if (c) c.click(); window.__planner.sub.lf = 'All'; window.__planner.sub.q = 'keeping children safe'; window.__planner.go('library'); });
+    ok('padlet: search finds Keeping children safe in education', await page.evaluate(() => /Keeping children safe in education/.test(document.querySelector('#screen').textContent)));
     // a PDF goes to the browser, not the reader
     await page.evaluate(() => { window.__calls.length = 0; window.__opened.length = 0; window.__planner.sub.lf = 'All'; window.__planner.sub.q = 'IQA cycle'; window.__planner.go('library'); });
     await click(page, '#screen [data-act="res"][data-id="on38"]');
