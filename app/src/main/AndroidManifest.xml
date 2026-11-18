@@ -15,6 +15,13 @@
     <!-- Only asked for when you tap the microphone in the Chat tab -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <!-- Lets the app find the phone's text-to-speech engine for read aloud (Android 11 and later) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

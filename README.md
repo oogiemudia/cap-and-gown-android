@@ -2,16 +2,17 @@
 
 The Cap and Gown study planner as an Android app, with real alarms and Claude inside the app.
 
-## Version 2: the Studypath layout
+## Version 3: the Studypath design
 
-Five tabs: **Home, Plan, Chat, Portfolio, More**. Home has the cap and your evening; More holds Deadlines, Add a deadline, Weekly reflection, How it adapts and Settings.
+Six tabs: **Home, Plan, Study, Portfolio, Progress, More**, plus an **Ask tutor** button.
 
-- **One next step.** Home shows the single best thing to do now: an open PebblePad review first, then the step tonight with the closest deadline. Done, Not tonight and Why this? are on the card.
-- **Energy check-in.** Low keeps only the most urgent step tonight and moves the rest to evenings with room. Good pulls one step forward from later in the week. Changing your answer undoes it.
-- **Self-healing planner.** A step you miss moves to the first weekday evening with room before its deadline, closest deadline first, and the alarm rings for it there. Steps whose deadline has passed are not moved; Home lists them under Check these. Re-plan (on the Plan tab) evens out evenings that are over your limit. Can be turned off in Settings.
-- **Weekly reflection.** On review day: a few lines, how the week felt, and whether next week should be lighter, usual or fuller. Lighter caps next week's evenings and moves the least urgent steps. The app also notes patterns from your ticks and reflections.
-- **How it adapts.** Every change the planner makes, with the reason. Energy, Re-plan and reflection changes can be undone for a week.
-- **Chat.** claude.ai inside the app, signed in to your own Claude account, so your chats and the PGCE project are there. Sign in once with Continue with email (Google sign-in does not work inside apps). The list button puts this week's plan into the message box. Attaching files, the microphone and downloads work.
+- **Home:** portfolio readiness ring, your one next step, energy check-in, streak / cards due / time this week, today's plan, next deadlines.
+- **Plan:** the week's evenings with times. "I'll miss it" moves a step to the next evening with room before its deadline; Re-plan evens out busy evenings.
+- **Study:** smart quiz from your weakest PGCE and Assessor topics, spaced-repetition cards, a mistake notebook, and practice papers (assessor workbook, professional discussion, Module 2) reviewed with your tutor.
+- **Portfolio:** a workbook like your PebblePad one: weekly review, KSB evidence (all 51 KSBs, tag evidence to them), teaching hours log, observations with reflections and word counts, mentor meetings, placements, records, and the nine duties for the professional discussion. It does not sync with PebblePad; upload there, then mark it here.
+- **Progress:** portfolio progress across eight parts, weak spots, topic mastery, time studied, what works for you.
+- **More:** Courses, Learn, Library, Key terms & models, Goals & reflection, How it adapts, Settings, What makes it smart.
+- **Ask tutor:** your own Claude account (claude.ai) inside the app. Suggestions and tutor buttons put your week and the question into the message box; nothing is sent until you tap send. Sign in once with Continue with email.
 
 ## Alarms (unchanged)
 
@@ -28,5 +29,5 @@ A new version installs over the old one and keeps your ticks, because every buil
 ## Where things are
 
 - `app/src/main/assets/index.html` is the planner page (dates and steps are in `window.STUDY_DATA` at the top of the script).
-- `app/src/main/java/.../` is the Android side: `Alarms` (sets the next alarm), `AlarmService` (sound, vibration, auto snooze), `AlarmActivity` (the alarm screen), `MainActivity` and `Bridge` (the planner and what it can ask the phone to do), `ChatPane` (claude.ai in the Chat tab) and `Files` (saving to Downloads).
+- `app/src/main/java/.../` is the Android side: `Alarms` (sets the next alarm), `AlarmService` (sound, vibration, auto snooze), `AlarmActivity` (the alarm screen), `MainActivity` and `Bridge` (the planner and what it can ask the phone to do), `ChatPane` (claude.ai behind Ask tutor) and `Files` (saving to Downloads).
 - The build log and the last app file are also saved to the `ci` branch after each build.

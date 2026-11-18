@@ -185,6 +185,17 @@ public class Bridge {
         return text != null && text.length() <= 200_000 && ChatPane.copy(activity, text);
     }
 
+    /** Read aloud (Learn, Audio summary). */
+    @JavascriptInterface
+    public void speak(String text) {
+        if (text != null && !text.isEmpty() && text.length() <= 4000) activity.speak(text);
+    }
+
+    @JavascriptInterface
+    public void stopSpeaking() {
+        activity.stopSpeaking();
+    }
+
     /** A phone toast, used while the chat covers the page. */
     @JavascriptInterface
     public void toast(String message) {

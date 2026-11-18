@@ -8,6 +8,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -22,6 +23,7 @@ import android.widget.Toast;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Locale;
 
 /**
  * Shows the planner (bundled in the app) and links it to the alarms through the AndroidApp bridge.
@@ -41,6 +43,9 @@ public class MainActivity extends Activity {
     private ValueCallback<Uri[]> fileCallback;
     private PermissionRequest pendingMedia;
     private boolean loaded;
+    private TextToSpeech tts;
+    private boolean ttsReady;
+    private String pendingSpeech;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,8 +98,43 @@ public class MainActivity extends Activity {
         super.onPause();
     }
 
+    /** Reads lesson text aloud with the phone's own voice (Learn, Audio summary). */
+    void speak(String text) {
+        runOnUiThread(() -> {
+            if (tts == null) {
+                pendingSpeech = text;
+                tts = new TextToSpeech(this, status -> {
+                    ttsReady = status == TextToSpeech.SUCCESS;
+                    if (!ttsReady) {
+                        toastNative("Read aloud is not available on this phone.");
+                        return;
+                    }
+                    tts.setLanguage(Locale.UK);
+                    if (pendingSpeech != null) {
+                        tts.speak(pendingSpeech, TextToSpeech.QUEUE_FLUSH, null, "capgown");
+                        pendingSpeech = null;
+                    }
+                });
+                return;
+            }
+            if (ttsReady) tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "capgown");
+            else pendingSpeech = text;
+        });
+    }
+
+    void stopSpeaking() {
+        runOnUiThread(() -> {
+            if (tts != null) tts.stop();
+        });
+    }
+
     @Override
     protected void onDestroy() {
+        if (tts != null) {
+            tts.stop();
+            tts.shutdown();
+            tts = null;
+        }
         if (chat != null) chat.destroy();
         if (web != null) {
             web.destroy();

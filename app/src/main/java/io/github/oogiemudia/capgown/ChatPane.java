@@ -175,6 +175,11 @@ final class ChatPane {
     /** Puts text in the message box (and on the clipboard, in case the page has changed). */
     void insert(String text) {
         copy(activity, text);
+        insertTry(text, 0);
+    }
+
+    /** claude.ai may still be loading, so try for a few seconds before falling back to the clipboard. */
+    private void insertTry(String text, int attempt) {
         if (web == null) {
             activity.js("window.__capgownChatInserted && window.__capgownChatInserted(false)");
             return;
@@ -192,8 +197,15 @@ final class ChatPane {
                 + "if(ev.defaultPrevented)return true;"
                 + "return document.execCommand('insertText',false,t);"
                 + "}catch(e){return false;}})(" + JSONObject.quote(text) + ")";
-        web.evaluateJavascript(js, v -> activity.js("window.__capgownChatInserted && window.__capgownChatInserted("
-                + ("true".equals(v) ? "true" : "false") + ")"));
+        web.evaluateJavascript(js, v -> {
+            if ("true".equals(v)) {
+                activity.js("window.__capgownChatInserted && window.__capgownChatInserted(true)");
+            } else if (attempt < 10 && web != null) {
+                web.postDelayed(() -> insertTry(text, attempt + 1), 800);
+            } else {
+                activity.js("window.__capgownChatInserted && window.__capgownChatInserted(false)");
+            }
+        });
     }
 
     void pause() {
