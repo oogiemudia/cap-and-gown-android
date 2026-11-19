@@ -31,6 +31,16 @@ const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placem
     }
     await page.evaluate(() => { const P = window.__planner; P.sub.cq = null; P.go('coach'); document.querySelector('#screen [data-act="co-how"]').click(); });
     await check('coach help sheet');
+    // PebblePad: the sheet on its own, carrying a reflection across, and as an older app words it
+    await page.evaluate(() => { const P = window.__planner; P.go('home'); P.sub.cq = null; P.sub.ppage = 'obs'; P.go('portfolio'); document.querySelector('#appbar [data-act="pebblepad"]').click(); });
+    await check('PebblePad sheet');
+    await page.evaluate(() => { const P = window.__planner; document.querySelector('[data-act="close-sheet"]').click(); P.state.portfolio.obsInfo[2].refl = 'The starter went well. Next time I will shorten the plenary.'; document.querySelector('#screen [data-act="obs"][data-id="2"]').click(); document.querySelector('#layer [data-act="pp-take"]').click(); });
+    await check('PebblePad sheet, taking a reflection across');
+    await page.evaluate(() => { const P = window.__planner; const keep = { has: window.AndroidApp.hasPebblePad, open: window.AndroidApp.openPebblePad }; delete window.AndroidApp.hasPebblePad; delete window.AndroidApp.openPebblePad; document.querySelector('[data-act="close-sheet"]').click(); P.state.portfolio.obsInfo[2].refl = ''; document.querySelector('#appbar [data-act="pebblepad"]').click(); window.__keepPP = keep; });
+    await check('PebblePad sheet, older app');
+    await page.evaluate(() => { document.querySelector('[data-act="close-sheet"]').click(); window.__planner.go('settings'); });
+    await check('settings, older app without the PebblePad link');
+    await page.evaluate(() => { window.AndroidApp.hasPebblePad = window.__keepPP.has; window.AndroidApp.openPebblePad = window.__keepPP.open; window.__planner.go('home'); });
     // the rows that only show after a tap: change a date, delete, a step's sheet, a library item, the add sheet, updates
     const taps = [['deadlines', '[data-act="edit-due"]'], ['deadlines', '[data-act="ask-delete"]'], ['home', '[data-act="step"]'], ['plan', '[data-act="step"]'], ['library', '[data-act="res"]'], ['library', '[data-act="lib-add"]'], ['study', '[data-act="fy-why"]'], ['settings', '[data-act="live-revert-ask"]'], ['settings', '[data-act="ask-reset"]'], ['goals', '[data-act]'], ['portfolio', '[data-act="ev-new"]']];
     for (const [r, sel] of taps) {

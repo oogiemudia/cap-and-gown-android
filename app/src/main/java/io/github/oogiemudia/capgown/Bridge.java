@@ -127,6 +127,42 @@ public class Bridge {
         return true;
     }
 
+    /* ---------- PebblePad's own phone app (PebblePocket) ---------- */
+
+    /** The PebblePad app's name on Google Play. The manifest lists it too, so that Android lets this app see it. */
+    static final String PEBBLEPAD_APP = "pebblepad.PebblePocket.android";
+
+    /** True when the PebblePad app is on this phone. */
+    @JavascriptInterface
+    public boolean hasPebblePad() {
+        try {
+            return activity.getPackageManager().getLaunchIntentForPackage(PEBBLEPAD_APP) != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Opens the PebblePad app. False when it is not on this phone: the page then shows it in the Play Store. */
+    @JavascriptInterface
+    public boolean openPebblePad() {
+        final Intent open;
+        try {
+            open = activity.getPackageManager().getLaunchIntentForPackage(PEBBLEPAD_APP);
+        } catch (Exception e) {
+            return false;
+        }
+        if (open == null) return false;
+        open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        activity.runOnUiThread(() -> {
+            try {
+                activity.startActivity(open);
+            } catch (Exception e) {
+                activity.toastNative("The PebblePad app could not be opened.");
+            }
+        });
+        return true;
+    }
+
     /* ---------- the Chat tab (claude.ai inside the app) ---------- */
 
     /** Shows the chat between the planner's top bar and tab bar. Sizes are in the page's CSS pixels. */

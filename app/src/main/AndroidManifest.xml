@@ -15,8 +15,10 @@
     <!-- Only asked for when you tap the microphone: Speak (speech to text) or the Chat tab -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!-- Lets the app find the phone's voice for Listen and its speech recogniser for Speak (Android 11 and later) -->
+    <!-- Lets the app find the phone's voice for Listen and its speech recogniser for Speak (Android 11 and later),
+         and see whether the PebblePad app (PebblePocket) is installed, so that it can open it -->
     <queries>
+        <package android:name="pebblepad.PebblePocket.android" />
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />
         </intent>

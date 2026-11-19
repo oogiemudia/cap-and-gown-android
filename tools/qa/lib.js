@@ -133,6 +133,9 @@ function bridgeScript(opts) {
         tellSpeak('ready');
       },
       dictateStop: () => { rec('dictateStop')(); if (window.__dictating) { window.__dictating = false; tellSpeak('end', ''); } },
+      // The PebblePad app (PebblePocket): on this phone unless noPebble
+      hasPebblePad: () => !o.noPebble,
+      openPebblePad: () => { rec('openPebblePad')(); return !o.noPebble; },
       openReader: (u, t) => { rec('openReader')(u, t); return /^https:\\/\\//.test(u); },
       takeSavedLinks: () => { const s = saved; saved = '[]'; return s; },
       liveStatus: () => JSON.stringify(live),
@@ -142,6 +145,8 @@ function bridgeScript(opts) {
       setAutoUpdate: (on) => { live.auto = !!on; rec('setAutoUpdate')(on); },
       revertUpdate: rec('revertUpdate')
     };
+    // app6: the app as it was before it could open the PebblePad app (page 44).
+    if (o.oldApp || o.app4 || o.app5 || o.app6) ['hasPebblePad', 'openPebblePad'].forEach((k) => { delete window.AndroidApp[k]; });
     // app5: the app as it was before podcasts played inside it (page 42).
     if (o.oldApp || o.app4 || o.app5) ['podFeed', 'podPlay', 'podPause', 'podResume', 'podStop', 'podSkip', 'podSeek', 'podRate', 'podStatus', 'podPlaces'].forEach((k) => { delete window.AndroidApp[k]; });
     // app4: the app as it was before Listen and Speak (it still has the reader and live updates).
