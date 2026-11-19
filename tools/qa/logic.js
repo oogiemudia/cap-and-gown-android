@@ -1043,6 +1043,139 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     await ctx.close();
   }
 
+  // ---------- K. PebblePad: its phone app (PebblePocket) and its website ----------
+  {
+    const STORE = 'https://play.google.com/store/apps/details?id=pebblepad.PebblePocket.android';
+    const LINK = 'https://v3.pebblepad.co.uk/login/example';
+    const REFL = 'The starter went well. Next time I will shorten the plenary.';
+    const mk = () => { const st = JSON.parse(JSON.stringify(rich)); st.settings.pebblepad = LINK; st.portfolio.obsInfo = { 2: { date: '2026-11-12', spoken: '', targets: '', refl: REFL } }; return st; };
+    {
+      // the newest app, with the PebblePad app on the phone
+      const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-18T19:30:00', state: mk() });
+      const P = (fn, arg) => page.evaluate(fn, arg);
+      const type = (sel, text) => P(([s, t]) => { const el = document.querySelector(s); if (!el) return false; el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); return true; }, [sel, text]);
+      const opened = () => P(() => ({ app: window.__calls.filter((c) => c[0] === 'openPebblePad').length, out: window.__opened.slice(), sheet: document.querySelector('#layer').textContent, toast: document.querySelector('#toast').textContent, copy: window.__lastCopy || '' }));
+      const reset = () => P(() => { window.__calls.length = 0; window.__opened.length = 0; window.__lastCopy = ''; });
+      await P(() => { window.__planner.sub.ppage = 'overview'; window.__planner.go('portfolio'); });
+      await click(page, '#appbar [data-act="pebblepad"]');
+      let o = await opened();
+      ok('PebblePad: the button offers the app and the website', /Open the PebblePad app/.test(o.sheet) && /Open PebblePad on the web/.test(o.sheet) && !/Play Store/.test(o.sheet) && !/not on this phone/.test(o.sheet) && /cannot swap data/.test(o.sheet), o.sheet);
+      await click(page, '#layer [data-act="pp-app"]');
+      o = await opened();
+      ok('PebblePad: the app opens in one tap, nothing goes through the browser, and the sheet closes', o.app === 1 && o.out.length === 0 && o.sheet === '', o);
+      await reset();
+      await click(page, '#screen [data-act="pebblepad"]');
+      await click(page, '#layer [data-act="pp-web"]');
+      o = await opened();
+      ok('PebblePad: the website opens with the saved link', o.app === 0 && o.out.join() === LINK && o.sheet === '', o);
+
+      // a reflection: copied, taken across, then marked as uploaded
+      await reset();
+      await P(() => { window.__planner.go('home'); window.__planner.sub.ppage = 'obs'; window.__planner.go('portfolio'); });
+      await click(page, '#screen [data-act="obs"][data-id="3"]');
+      await click(page, '#layer [data-act="pp-take"][data-k="obs"]');
+      o = await opened();
+      ok('PebblePad: an empty reflection is not taken across', /Write the reflection first/.test(o.toast) && o.copy === '' && /Your reflection/.test(o.sheet) && !/Open the PebblePad app/.test(o.sheet), o);
+      await click(page, '[data-act="close-sheet"]');
+      await click(page, '#screen [data-act="obs"][data-id="2"]');
+      await click(page, '#layer [data-act="pp-take"][data-k="obs"]');
+      o = await opened();
+      ok('PebblePad: a reflection is copied and the way across is offered', o.copy === REFL && /Your reflection on observation 2: copied/.test(o.sheet) && /hold a finger in the box and tap Paste/.test(o.sheet) && /It is in: mark the reflection as uploaded/.test(o.sheet) && /Copied\./.test(o.toast), o);
+      await P(() => { window.__lastCopy = ''; });
+      await click(page, '#layer [data-act="pp-copy"]');
+      await click(page, '#layer [data-act="pp-app"]');
+      o = await opened();
+      ok('PebblePad: it can be copied again, and the sheet waits while I am in PebblePad', o.copy === REFL && o.app === 1 && /mark the reflection as uploaded/.test(o.sheet), o);
+      await click(page, '#layer [data-act="pp-done"]');
+      ok('PebblePad: back here, one tap marks the reflection as uploaded', await P(() => { const p = window.__planner.state.portfolio; return p.obs.r2 > 0 && !p.obs.f2 && document.querySelector('#layer').textContent === '' && /Marked as in PebblePad/.test(document.querySelector('#toast').textContent); }));
+      await click(page, '#screen [data-act="obs"][data-id="2"]');
+      await click(page, '#layer [data-act="pp-take"][data-k="obs"]');
+      ok('PebblePad: what is already marked is not offered for marking again', await P(() => /Your reflection on observation 2: copied/.test(document.querySelector('#layer').textContent) && !document.querySelector('#layer [data-act="pp-done"]')));
+      await click(page, '#layer [data-act="pp-web"]');
+      ok('PebblePad: with nothing left to mark, the sheet closes as PebblePad opens', await P((l) => document.querySelector('#layer').textContent === '' && window.__opened.join() === l, LINK));
+
+      // a piece of evidence: saved first, then its note goes across
+      await reset();
+      await P(() => { window.__planner.go('home'); window.__planner.sub.ppage = 'ksb'; window.__planner.go('portfolio'); });
+      await click(page, '#screen [data-act="ev-new"]');
+      await click(page, '#layer [data-act="pp-take"][data-k="ev"]');
+      o = await opened();
+      ok('PebblePad: evidence with no title is not saved or taken across', /Give it a title first/.test(o.toast) && o.copy === '' && await P(() => window.__planner.state.portfolio.evidence.length === 1), o);
+      await click(page, '[data-act="close-sheet"]');
+      await click(page, '#screen [data-act="ev-edit"][data-id="e1"]');
+      await type('#ev-notes', 'The plan shows how I sequenced the theory before the practical.');
+      await click(page, '#layer [data-act="pp-take"][data-k="ev"]');
+      o = await opened();
+      ok('PebblePad: evidence is saved, and its title, KSBs and note are copied', o.copy === 'Lesson plan week 6\nLesson plan, Sunday 1 November\nKSBs: K1, S2\nWhat it shows: The plan shows how I sequenced the theory before the practical.' && /Your evidence note: copied/.test(o.sheet) && /mark this as In PebblePad/.test(o.sheet) && await P(() => { const e = window.__planner.state.portfolio.evidence; return e.length === 1 && e[0].notes === 'The plan shows how I sequenced the theory before the practical.' && e[0].status === 'draft'; }), o);
+      await click(page, '#layer [data-act="pp-done"]');
+      ok('PebblePad: one tap marks the evidence as In PebblePad', await P(() => window.__planner.state.portfolio.evidence[0].status === 'uploaded' && /In PebblePad/.test(document.querySelector('#screen [data-act="ev-edit"][data-id="e1"]').textContent)));
+
+      // the coach's two lines for a KSB
+      await reset();
+      await P(() => { const p = window.__planner; p.go('home'); Object.assign(p.sub, { cq: null, cpath: 'ksb', ck: 'K5' }); p.go('coach'); });
+      await click(page, '#screen [data-act="pp-take"][data-k="ksb"]');
+      o = await opened();
+      ok('PebblePad: the coach asks for the two lines before taking them across', /Write your two lines first/.test(o.toast) && o.copy === '' && o.sheet === '', o);
+      await type('#co-k-K5', 'My scheme of work adapts each task for two learners with support plans.');
+      await click(page, '#screen [data-act="pp-take"][data-k="ksb"]');
+      o = await opened();
+      const k5 = await P(() => window.__planner.KSBS.K5);
+      ok('PebblePad: the coach’s two lines go across with the KSB’s wording', o.copy === `K5: ${k5}\n\nMy scheme of work adapts each task for two learners with support plans.` && /Your two lines for K5: copied/.test(o.sheet) && /mark K5 as evidenced in PebblePad/.test(o.sheet), o);
+      await click(page, '#layer [data-act="pp-done"]');
+      ok('PebblePad: marking it closes the KSB gap', await P(() => { const p = window.__planner; return p.state.portfolio.ksbDone.K5 > 0 && !p.ksbGaps().includes('K5'); }));
+
+      // Settings says what it found
+      await reset();
+      await P(() => window.__planner.go('settings'));
+      ok('PebblePad in Settings: the app is found on the phone', await P(() => { const t = document.querySelector('#pp-card').textContent; return /On this phone\. The PebblePad buttons open it in one tap/.test(t) && /Your PebblePad link \(the website\)/.test(t) && !/Play Store/.test(t); }));
+      await click(page, '#pp-card [data-act="pp-app"]');
+      o = await opened();
+      ok('PebblePad in Settings: Open tries it', o.app === 1 && o.out.length === 0, o);
+      await page.waitForTimeout(750);
+      ok('PebblePad: what was marked is in the saved copy', await P(() => { const s = JSON.parse(window.AndroidApp.loadState()); return s.portfolio.obs.r2 > 0 && s.portfolio.evidence[0].status === 'uploaded' && s.portfolio.ksbDone.K5 > 0; }));
+      ok('PebblePad: no script errors', errors.length === 0, errors);
+      await ctx.close();
+    }
+    {
+      // the newest app, but the PebblePad app is not on the phone, and no link is saved
+      const st = mk(); st.settings.pebblepad = '';
+      const { ctx, page, errors } = await open(browser, { app: true, noPebble: true, now: '2026-11-18T19:30:00', state: st });
+      await page.evaluate(() => { window.__planner.sub.ppage = 'overview'; window.__planner.go('portfolio'); });
+      await click(page, '#appbar [data-act="pebblepad"]');
+      ok('PebblePad not installed: the sheet says so', await page.evaluate(() => { const t = document.querySelector('#layer').textContent; return /It is not on this phone yet/.test(t) && /Add your link first/.test(t); }));
+      await click(page, '#layer [data-act="pp-app"]');
+      ok('PebblePad not installed: it is shown in the Play Store', await page.evaluate((s) => window.__calls.some((c) => c[0] === 'openPebblePad') && window.__opened.join() === s && /not on this phone yet\. Here it is in the Play Store/.test(document.querySelector('#toast').textContent), STORE));
+      await click(page, '#screen [data-act="pebblepad"]');
+      await click(page, '#layer [data-act="pp-web"]');
+      await page.waitForTimeout(120);
+      ok('PebblePad: with no link saved, the website button asks for it in Settings', await page.evaluate(() => window.__planner.route === 'settings' && /Add your PebblePad link first/.test(document.querySelector('#toast').textContent) && document.activeElement && document.activeElement.id === 'f-pp' && window.__opened.length === 1));
+      ok('PebblePad not installed: Settings says so', await page.evaluate(() => /Not on this phone yet\. The button takes you to it in the Play Store/.test(document.querySelector('#pp-card').textContent)));
+      ok('PebblePad not installed: no script errors', errors.length === 0, errors);
+      await ctx.close();
+    }
+    for (const who of [{ name: 'the app before this', o: { app: true, app6: true } }, { name: 'a browser', o: { app: false } }]) {
+      const { ctx, page, errors } = await open(browser, Object.assign({ now: '2026-11-18T19:30:00', state: mk() }, who.o));
+      await page.evaluate(() => { window.__planner.sub.ppage = 'overview'; window.__planner.go('portfolio'); });
+      await click(page, '#appbar [data-act="pebblepad"]');
+      const sheetText = await page.evaluate(() => document.querySelector('#layer').textContent);
+      ok(`PebblePad in ${who.name}: the sheet says how the app will open`, who.o.app ? /opens through its Play Store page: tap Open there\. One more install of Cap and Gown opens it in one tap/.test(sheetText) && await page.evaluate(() => !!document.querySelector('#layer [data-act="get-app"]')) : !/One more install/.test(sheetText), sheetText);
+      await click(page, '#layer [data-act="pp-app"]');
+      ok(`PebblePad in ${who.name}: the app is reached through its Play Store page`, await page.evaluate((s) => window.__opened.join() === s && !window.__calls.some((c) => c[0] === 'openPebblePad'), STORE));
+      await page.evaluate(() => { window.__opened.length = 0; });
+      await click(page, '#screen [data-act="pebblepad"]');
+      await click(page, '#layer [data-act="pp-web"]');
+      ok(`PebblePad in ${who.name}: the website still opens`, await page.evaluate((l) => window.__opened.join() === l, LINK));
+      await page.evaluate(() => { window.__planner.go('home'); window.__planner.sub.ppage = 'obs'; window.__planner.go('portfolio'); });
+      await click(page, '#screen [data-act="obs"][data-id="2"]');
+      await click(page, '#layer [data-act="pp-take"][data-k="obs"]');
+      await click(page, '#layer [data-act="pp-done"]');
+      await page.evaluate(() => window.__planner.go('settings'));
+      ok(`PebblePad in ${who.name}: taking a reflection across and marking it still work`, await page.evaluate((app) => window.__planner.state.portfolio.obs.r2 > 0 && (app ? /Opens through its Play Store page for now/.test(document.querySelector('#pp-card').textContent) : /On a phone, this opens the app or its Play Store page/.test(document.querySelector('#pp-card').textContent)), who.o.app));
+      ok(`PebblePad in ${who.name}: no script errors`, errors.length === 0, errors);
+      await ctx.close();
+    }
+  }
+
   // ---------- H. looks: dark, dyslexia display, small and large phones ----------
   for (const look of [{ name: 'dark', dark: true, width: 360 }, { name: 'dys', width: 360, dys: true }, { name: 'wide', width: 430 }, { name: 'narrow', width: 320 }]) {
     const state = JSON.parse(JSON.stringify(rich));

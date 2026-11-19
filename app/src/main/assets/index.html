@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Cap and Gown</title>
-<meta name="capgown-page" content="44">
+<meta name="capgown-page" content="45">
 <meta name="capgown-min-app" content="0">
 <meta name="theme-color" content="#3454D9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2995,7 +2995,21 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
         <div class="small muted">Skills</div><div class="ksbpick">${pick('S')}</div>
         <div class="small muted">Behaviours</div><div class="ksbpick">${pick('B')}</div></div>
       <div class="field"><label for="ev-notes">What it shows (your own words)</label><textarea id="ev-notes" data-ev="notes" placeholder="One or two lines on how this shows each KSB">${esc(d.notes || '')}</textarea></div>
-      <div class="btnrow"><button class="btn" data-act="ev-save">Save</button>${found ? '<button class="btn ghost danger" data-act="ev-delete">Delete</button>' : ''}<button class="btn ghost" data-act="close-sheet">Cancel</button></div>`);
+      <div class="btnrow"><button class="btn" data-act="ev-save">Save</button>${found ? '<button class="btn ghost danger" data-act="ev-delete">Delete</button>' : ''}<button class="btn ghost" data-act="close-sheet">Cancel</button></div>
+      <button class="btn sm ghost" data-act="pp-take" data-k="ev" style="align-self:flex-start">${ic('out', 14)} Save and take it to PebblePad</button>`);
+  }
+
+  // Saves the evidence being edited. Returns it, or null when it has no title yet.
+  function evSave() {
+    const p = state.portfolio;
+    if (!evDraft) return null;
+    if (!String(evDraft.title || '').trim()) { toast('Give it a title first.'); return null; }
+    evDraft.ksbs.sort((x, y) => KSB_IDS.indexOf(x) - KSB_IDS.indexOf(y));
+    if (evDraft.id) { const i = p.evidence.findIndex((x) => x.id === evDraft.id); if (i >= 0) p.evidence[i] = evDraft; else p.evidence.push(evDraft); } else { evDraft.id = 'e' + uid(); p.evidence.push(evDraft); }
+    const saved = evDraft;
+    evDraft = null;
+    commit();
+    return saved;
   }
 
   PP.hours = () => {
@@ -3035,7 +3049,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       <div class="btnrow"><button class="btn sm ghost" data-act="obs-use-spoken" data-id="${o.n}">${ic('mic', 14)} Start from my spoken notes</button><button class="btn sm ghost" data-act="ask-shape" data-id="${o.n}">${ic('spark', 14)} Ask tutor to help me build it</button></div>
       <div class="li" style="border:0;padding:0"><div class="grow"><b class="small">Feedback form uploaded</b></div>${toggle(p.obs['f' + o.n], 'obs-tick', 'f' + o.n, 'Feedback form uploaded')}</div>
       <div class="li" style="border:0;padding:0"><div class="grow"><b class="small">Reflection uploaded</b></div>${toggle(p.obs['r' + o.n], 'obs-tick', 'r' + o.n, 'Reflection uploaded')}</div>
-      <div class="btnrow"><button class="btn sm ghost" data-act="ask-refl" data-id="${o.n}">${ic('spark', 14)} Ask tutor to check it</button><button class="btn sm ghost" data-act="copy-obs" data-id="${o.n}">Copy reflection</button></div>
+      <div class="btnrow"><button class="btn sm ghost" data-act="ask-refl" data-id="${o.n}">${ic('spark', 14)} Ask tutor to check it</button><button class="btn sm ghost" data-act="copy-obs" data-id="${o.n}">Copy reflection</button><button class="btn sm ghost" data-act="pp-take" data-k="obs" data-id="${o.n}">${ic('out', 14)} Take it to PebblePad</button></div>
       <button class="btn block" data-act="close-sheet">Done</button>`);
   }
 
@@ -3311,7 +3325,10 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       <div class="field"><span class="flabel">Ask tutor opens</span><div class="seg">${[['project', 'PGCE project'], ['new', 'New chat']].map(([k, l]) => `<button data-act="chat-start" data-id="${k}" aria-pressed="${(s.chatStart || 'project') === k}">${l}</button>`).join('')}</div></div>
       <div class="field"><label for="f-project">PGCE project link</label><input type="url" id="f-project" value="${esc(s.claudeProject || '')}" data-set="claudeProject" placeholder="https://claude.ai/project/..."><span class="help">If the project does not open, copy its address from claude.ai and paste it here.</span></div>
       ${chatReady() ? '<div class="btnrow"><button class="btn sm ghost" data-act="chat-help">How to sign in</button><button class="btn sm danger" data-act="chat-signout">Sign out of Claude</button></div>' : ''}</div>`;
-    html += `<div class="card"><h3>PebblePad</h3><div class="field"><label for="f-pp">Your PebblePad link</label><input type="url" id="f-pp" value="${esc(s.pebblepad || '')}" data-set="pebblepad" placeholder="https://..."><span class="help">The address you use to sign in to PebblePad. Open PebblePad on the Portfolio tab uses it.</span></div></div>`;
+    const ppOn = ppOnPhone();
+    html += `<div class="card" id="pp-card"><h3>PebblePad</h3>
+      <div class="li" style="border:0;padding:0"><div class="grow" style="min-width:0"><b class="small">The PebblePad app (PebblePocket)</b><div class="small muted">${ppOn === 'yes' ? 'On this phone. The PebblePad buttons open it in one tap.' : ppOn === 'no' ? 'Not on this phone yet. The button takes you to it in the Play Store.' : APP ? `Opens through its Play Store page for now: tap Open there. One more install of Cap and Gown opens it in one tap. ${GET_APP}` : 'On a phone, this opens the app or its Play Store page.'}</div></div><button class="btn sm ghost" data-act="pp-app">${ic('out', 14)} Open</button></div>
+      <div class="field"><label for="f-pp">Your PebblePad link (the website)</label><input type="url" id="f-pp" value="${esc(s.pebblepad || '')}" data-set="pebblepad" placeholder="https://..."><span class="help">The address you use to sign in to PebblePad on the web, where your workbook is. The PebblePad buttons offer both.</span></div></div>`;
     html += updateCard();
     html += `<div class="card"><h3>Backup</h3><div class="small muted">Your ticks, portfolio and study are saved on this phone, with a copy kept by the app. Save a backup now and then.</div>
       <div class="btnrow"><button class="btn sm ghost" data-act="backup">Save a backup</button><button class="btn sm ghost" data-act="copy-backup">Copy backup text</button><label class="btn sm ghost" for="f-restore">Restore</label><input type="file" id="f-restore" accept="application/json,.json" class="sr-only" data-input="restore"></div>
@@ -3558,6 +3575,80 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
      one short part at a time. LS is what the player bar shows. */
   const APP_FILE = 'https://github.com/oogiemudia/cap-and-gown-android/releases/download/latest/CapAndGown.apk';
   const GET_APP = '<button class="linkish" data-act="get-app">Get the newest app</button>';
+
+  /* ---------- PebblePad: its phone app (PebblePocket) and its website ----------
+     PebblePad gives other apps no way to read or write a portfolio, so nothing is synced. The link is a way
+     across: one tap from here to the PebblePad app or the website, with your words already copied where there
+     are some, and a tick here once it is in. Opening the app in one tap needs the Android side
+     (Bridge.openPebblePad). An older app goes through the app's Play Store page, which has an Open button. */
+  const PP_APP_ID = 'pebblepad.PebblePocket.android';
+  const PP_STORE = `https://play.google.com/store/apps/details?id=${PP_APP_ID}`;
+  const canOpenPP = () => !!(APP && typeof APP.openPebblePad === 'function');
+  const ppLink = () => (/^https?:\/\//.test(state.settings.pebblepad || '') ? state.settings.pebblepad : '');
+  // 'yes' or 'no', or '' when this app cannot tell (an older app, or a browser)
+  function ppOnPhone() {
+    if (!APP || typeof APP.hasPebblePad !== 'function') return '';
+    try { return APP.hasPebblePad() ? 'yes' : 'no'; } catch (e) { return ''; }
+  }
+  function openOut(url) {
+    try { window.open(url, '_blank', APP ? undefined : 'noopener'); } catch (e) { toast('That link could not be opened here.'); }
+  }
+  function openPPApp() {
+    if (canOpenPP()) {
+      let ok = false;
+      try { ok = !!APP.openPebblePad(); } catch (e) { ok = false; }
+      if (ok) return;
+      toast('The PebblePad app (PebblePocket) is not on this phone yet. Here it is in the Play Store.', 6000);
+    }
+    openOut(PP_STORE);
+  }
+  function openPPWeb() {
+    const u = ppLink();
+    if (u) { openOut(u); return; }
+    closeSheet(true);
+    go('settings');
+    setTimeout(() => { const x = $('#f-pp'); if (x) { x.scrollIntoView({ block: 'center' }); x.focus(); } }, 60);
+    toast('Add your PebblePad link first.');
+  }
+  // What is being taken across, if anything: { what, text, done: { kind, id, label } }
+  let ppCarry = null;
+  function ppSheet(carry) {
+    ppCarry = carry || null;
+    const on = ppOnPhone();
+    const row = (act, icon, title, sub) => `<button data-act="${act}">${ic(icon)}<span style="min-width:0"><span style="display:block">${title}</span><span class="small muted" style="display:block;font-weight:500">${sub}</span></span></button>`;
+    sheet(`<h3>PebblePad</h3>
+      ${carry ? `<div class="notice"><div><b>${esc(carry.what)}: copied</b><p>In PebblePad, open the page or start the asset it belongs in, hold a finger in the box and tap Paste.</p><button class="linkish" data-act="pp-copy">Copy it again</button></div></div>` : ''}
+      <div class="menu">
+        ${row('pp-app', 'out', 'Open the PebblePad app', `PebblePocket: a quick note, reflection, photo or video, even with no signal.${on === 'no' ? ' It is not on this phone yet.' : ''}`)}
+        ${row('pp-web', 'link', 'Open PebblePad on the web', ppLink() ? 'Your workbook, your assets and your feedback.' : 'Your workbook, your assets and your feedback. Add your link first.')}
+      </div>
+      ${carry && carry.done ? `<button class="btn sm ghost" data-act="pp-done" style="align-self:flex-start">${ic('check', 14)} ${esc(carry.done.label)}</button>` : ''}
+      ${APP && !canOpenPP() ? `<div class="small muted">For now the PebblePad app opens through its Play Store page: tap Open there. One more install of Cap and Gown opens it in one tap. ${GET_APP}</div>` : ''}
+      <div class="small muted">The two apps cannot swap data, because PebblePad gives no other app a way in. So add it there, then mark it here.</div>
+      <button class="btn ghost block" data-act="close-sheet">Close</button>`);
+  }
+  // Copy what is on this screen, then offer the way across.
+  function ppTake(kind, id) {
+    const p = state.portfolio;
+    let carry = null;
+    if (kind === 'obs') {
+      const info = p.obsInfo[id] || {};
+      if (!String(info.refl || '').trim()) { toast('Write the reflection first.'); return; }
+      carry = { what: `Your reflection on observation ${id}`, text: String(info.refl).trim(), done: p.obs['r' + id] ? null : { kind, id, label: 'It is in: mark the reflection as uploaded' } };
+    } else if (kind === 'ev') {
+      const e = evSave();
+      if (!e) return;
+      render();
+      carry = { what: 'Your evidence note', text: [e.title.trim(), `${e.type || 'Evidence'}${e.date ? ', ' + fmtLong(e.date) : ''}`, e.ksbs.length ? `KSBs: ${e.ksbs.join(', ')}` : '', String(e.notes || '').trim() ? `What it shows: ${String(e.notes).trim()}` : ''].filter(Boolean).join('\n'), done: e.status === 'draft' ? { kind, id: e.id, label: 'It is in: mark this as In PebblePad' } : null };
+    } else if (kind === 'ksb' && KSBS[id]) {
+      const n = String(ksbU(id).n || '').trim();
+      if (!n) { toast('Write your two lines first.'); return; }
+      carry = { what: `Your two lines for ${id}`, text: `${id}: ${KSBS[id]}\n\n${n}`, done: p.ksbDone[id] ? null : { kind, id, label: `It is in: mark ${id} as evidenced in PebblePad` } };
+    }
+    if (!carry) return;
+    ppSheet(carry);
+    copyText(carry.text, `<b>Copied.</b> Now open PebblePad and paste it in.`);
+  }
   const canListen = () => !!(APP && typeof APP.listenStart === 'function');
   const listenOn = () => state.settings.readAloud !== false;
   const RATES = [0.8, 1, 1.25, 1.5, 2];
@@ -4951,6 +5042,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
           <div class="btnrow" style="margin-top:8px"><button class="btn sm ghost" data-act="ev-new" data-id="${k}">${ic('plus', 14)} Add new evidence</button></div></div>
         <div class="step"><b>3. Two lines: how does it show ${k}?</b><textarea id="co-k-${k}" data-input="cok" data-id="${k}" maxlength="4000" style="margin-top:8px" aria-label="How my evidence shows ${k}" placeholder="What I did, and what it shows">${esc(u.n || '')}</textarea></div>
         <div class="li" style="border:0;padding:0"><div class="grow"><b class="small">The evidence is in PebblePad</b><div class="small muted">Turn this on once it is uploaded there.</div></div>${toggle(state.portfolio.ksbDone[k], 'ksb-done', k, 'Already evidenced in PebblePad')}</div>
+        <button class="btn sm ghost" data-act="pp-take" data-k="ksb" data-id="${k}" style="align-self:flex-start">${ic('out', 14)} Take my two lines to PebblePad</button>
         <div class="btnrow">${u.d === today ? '<span class="pill good">Done for today</span>' : `<button class="btn sm" data-act="co-ksb-done" data-id="${k}">${ic('check', 14)} Done for today</button>`}${K.gaps.length > 1 ? `<button class="btn sm ghost" data-act="co-ksb-next" data-id="${k}">Pick another</button>` : ''}</div></div>`;
     }
     if (K.parked.length) html += `<div class="card"><h3>Worked on, evidence still to go in</h3><div class="chips wrap">${K.parked.map((x) => `<button class="chip" data-act="co-ksb-pick" data-id="${x}" aria-pressed="${x === k}">${x}</button>`).join('')}</div></div>`;
@@ -5352,12 +5444,10 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       }
       case 'ev-status': if (evDraft) { evDraft.status = id; el.parentElement.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === el))); } break;
       case 'ev-save': {
-        if (!evDraft) break;
-        if (!evDraft.title.trim()) { toast('Give it a title first.'); break; }
-        evDraft.ksbs.sort((x, y) => KSB_IDS.indexOf(x) - KSB_IDS.indexOf(y));
-        if (evDraft.id) { const i = p.evidence.findIndex((x) => x.id === evDraft.id); if (i >= 0) p.evidence[i] = evDraft; } else { evDraft.id = 'e' + uid(); p.evidence.push(evDraft); }
-        const n = evDraft.ksbs.length;
-        evDraft = null; commit(); closeSheet(true); render();
+        const saved = evSave();
+        if (!saved) break;
+        const n = saved.ksbs.length;
+        closeSheet(true); render();
         toast(`<b>Evidence saved</b>${n ? `, tagged to ${plural(n, 'KSB')}` : ''}.`);
         break;
       }
@@ -5423,7 +5513,23 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       case 'pcheck': { if (p.checks[id]) delete p.checks[id]; else p.checks[id] = Date.now(); commit(); render(); break; }
       case 'pduty': { if (p.duties[id]) delete p.duties[id]; else p.duties[id] = Date.now(); commit(); render(); break; }
       case 'approach': p.approach = id; commit(); render(); break;
-      case 'pebblepad': if (s.pebblepad && /^https?:\/\//.test(s.pebblepad)) { if (APP) { try { window.open(s.pebblepad, '_blank'); } catch (err) { /* ignore */ } } else window.open(s.pebblepad, '_blank', 'noopener'); } else { go('settings'); setTimeout(() => { const x = $('#f-pp'); if (x) { x.scrollIntoView({ block: 'center' }); x.focus(); } }, 60); toast('Add your PebblePad link first.'); } break;
+      case 'pebblepad': ppSheet(); break;
+      // The sheet stays open while something is waiting to be marked as in, so the tick is there on the way back.
+      case 'pp-app': if (!(ppCarry && ppCarry.done)) closeSheet(true); openPPApp(); break;
+      case 'pp-web': if (!(ppCarry && ppCarry.done)) closeSheet(true); openPPWeb(); break;
+      case 'pp-take': ppTake(el.dataset.k, id); break;
+      case 'pp-copy': if (ppCarry) copyText(ppCarry.text, 'Copied.'); break;
+      case 'pp-done': {
+        const d = ppCarry && ppCarry.done;
+        if (!d) break;
+        if (d.kind === 'obs') p.obs['r' + d.id] = Date.now();
+        else if (d.kind === 'ev') { const e = p.evidence.find((x) => x.id === d.id); if (e) e.status = 'uploaded'; }
+        else if (d.kind === 'ksb' && KSBS[d.id]) p.ksbDone[d.id] = Date.now();
+        ppCarry = null;
+        commit(); closeSheet(true); render();
+        toast('<b>Marked as in PebblePad.</b>');
+        break;
+      }
       // Library
       case 'lf': sub.lf = id; render(); break;
       case 'res': resSheet(id); break;

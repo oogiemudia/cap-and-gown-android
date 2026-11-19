@@ -2,6 +2,14 @@
 
 The Cap and Gown study planner as an Android app, with real alarms and Claude inside the app.
 
+## Version 7: the PebblePad app, one tap away
+
+- **PebblePad buttons offer both.** The PebblePad button on Portfolio (and in Settings) opens a short sheet: **Open the PebblePad app** (PebblePocket, for a quick note, reflection, photo or video, even with no signal) or **Open PebblePad on the web** (the workbook, with the link saved in Settings).
+- **Take it to PebblePad.** A reflection on an observation, a piece of evidence and the coach's two lines for a KSB each have a button that copies your words and opens that sheet. Paste them in PebblePad, come back, and one tap marks it here as uploaded.
+- **What it cannot do.** The two apps cannot swap data: PebblePad gives no other app a way to read or write a portfolio. So nothing is sent or fetched by itself. It is still: add it there, mark it here.
+
+Opening the PebblePad app in one tap needs the app build that came with page 45 (`Bridge.openPebblePad`, and the app is named in the manifest so that Android lets Cap and Gown see it). An older app showing the newer page opens PebblePocket's Play Store page, which has an Open button, and offers the download. If PebblePocket is not on the phone, the Play Store page is where to get it.
+
 ## Page 44: the coach, a small step every day
 
 A page change only: it arrives by itself, with no new install (see Live updates below).
@@ -61,7 +69,7 @@ Each push to `main` builds a signed app file. The newest one is under **Releases
 On the phone: download it, open it, allow installs from that app if Android asks, then tap Install.
 A new version installs over the old one and keeps your ticks, because every build uses the same signing key.
 
-A new install is only needed when the Android side changes (alarms, the reader, the chat, listen and speak, the podcast player). Changes to the planner page arrive by themselves, as below.
+A new install is only needed when the Android side changes (alarms, the reader, the chat, listen and speak, the podcast player, opening the PebblePad app). Changes to the planner page arrive by themselves, as below.
 
 ## Live updates: changing the app without a new install
 
@@ -88,7 +96,7 @@ For a podcast, add `pod:` with the show's key in `SHOWS` so it plays in the app.
 `tools/qa/` is a test robot (Playwright, headless Chromium) with a stand-in for the phone:
 
 - `smoke.js` opens every screen in the app, in a browser and in an older app, at two phone widths.
-- `logic.js` checks behaviour: the recommendations, the library, saved pages, live updates, old and damaged data, different dates, dark and dyslexia display, Listen and Speak (the player bar, speech into each kind of box, spoken notes into a reflection, a refused microphone, an older app, a plain browser), and podcasts (each library podcast finds its own episode, Play from For you and Home, the bar's buttons and slider, carrying on from a saved place, the end of an episode, a lost connection, a show that cannot be reached, an older app, a browser, a 320-pixel phone), and the coach (every lesson has its parts, checks, checklist and real sources; the plan for today under normal, low and good energy; learn, check, plan and write for a question; nothing counted twice; hand-ins from the planner and by hand; the briefs given to Claude and that each says not to write the work; KSB evidence tagged in one tap; the change project's five minutes and notes; damaged data; an older app; a browser).
+- `logic.js` checks behaviour: the recommendations, the library, saved pages, live updates, old and damaged data, different dates, dark and dyslexia display, Listen and Speak (the player bar, speech into each kind of box, spoken notes into a reflection, a refused microphone, an older app, a plain browser), and podcasts (each library podcast finds its own episode, Play from For you and Home, the bar's buttons and slider, carrying on from a saved place, the end of an episode, a lost connection, a show that cannot be reached, an older app, a browser, a 320-pixel phone), and the coach (every lesson has its parts, checks, checklist and real sources; the plan for today under normal, low and good energy; learn, check, plan and write for a question; nothing counted twice; hand-ins from the planner and by hand; the briefs given to Claude and that each says not to write the work; KSB evidence tagged in one tap; the change project's five minutes and notes; damaged data; an older app; a browser), and PebblePad (the app opened in one tap, the website, the PebblePad app missing from the phone, a reflection, a piece of evidence and a KSB's two lines copied across and marked as in, an older app going through the Play Store page, a browser).
 - `reader.js` takes the script that collects a web page's words for **Listen to this page** out of `ReaderActivity.java` and runs it on made-up pages: menus, cookie notices and footers must be left out.
 - `clicker.js` taps every button on every screen, and whatever each tap reveals.
 - `bigtext.js` checks nothing runs off the edge on a small phone with the phone's text size turned up, the dyslexia-friendly font and wide letters. `FONT="DejaVu Sans"` in front of any of the tests runs it with wide letters, which is what the checks on GitHub use.
