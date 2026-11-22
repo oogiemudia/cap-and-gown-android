@@ -2,6 +2,17 @@
 
 The Cap and Gown study planner as an Android app, with real alarms and Claude inside the app.
 
+## Page 46: the KSB reset baseline
+
+A page change only: it arrives by itself, with no new install.
+
+- **Reset baseline on the KSB page.** Portfolio, KSB evidence has a Reset baseline card: where the evidence for each of the 51 KSBs stood on 22 November 2026, when the portfolio was restarted (31 Strong, 14 Partial, 6 Gap). The Gap and Partial KSBs are buttons, and **What the evidence codes mean** explains P1, TL3 and the rest.
+- **On each KSB.** A KSB's sheet shows its baseline: strength, the evidence behind it, the next step and what it was mapped to in PebblePad before the reset.
+- **It never ticks anything.** The KSB map still counts only what you tag here or mark as already in PebblePad, so the reset starts clean.
+- **New planner steps.** "KSB reset and T Level bridge set-up" (your own target, 1 December): paste the PGCE link into the T Level project, add the Drive line to the PGCE project and run the catch-up once, review the KSB Coverage Reset, then the quick wins.
+
+The baseline is `ksbBaseline` in `window.STUDY_DATA` (one entry per KSB: `s` strength, `ev` evidence, `pp` mapped before the reset, `next`). Its master copy is `claude/ksb-coverage-reset.md` in the PGCE Claude project.
+
 ## Version 7: the PebblePad app, one tap away
 
 - **PebblePad buttons offer both.** The PebblePad button on Portfolio (and in Settings) opens a short sheet: **Open the PebblePad app** (PebblePocket, for a quick note, reflection, photo or video, even with no signal) or **Open PebblePad on the web** (the workbook, with the link saved in Settings).
