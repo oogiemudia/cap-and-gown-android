@@ -3,7 +3,7 @@
 const ts = Date.parse('2026-11-10T20:00:00');
 module.exports.rich = {
   v: 1, updatedAt: 1, done: { 'as-o12-1': ts, 'as-o12-2': ts, 'as-o12-3': ts, 'pg-ctf-1': ts, 'pg-ctf-2': ts }, moved: {}, due: {}, hidden: {}, custom: [], reviews: {},
-  settings: { cap: 60, evening: '19:00', alarmSetupSeen: true, chatTipSeen: true, remindersSeen: true },
+  settings: { cap: 60, evening: '19:00', alarmSetupSeen: true, chatTipSeen: true, remindersSeen: true, baseCount: false },
   energy: { '2026-11-18': 'okay' }, log: [{ id: 'l1', at: ts, kind: 'study', what: 'Strong quiz', why: '4 of 5 right.' }], weekCap: {}, reflections: {}, missed: {}, logSeen: 0,
   mastery: { retrieval: 42, memory: 80, change: 55, afl: 68, vacsr: 35, methods: 90 },
   cards: { d0: { iv: 2, ease: 2.5, first: '2026-11-10', due: '2026-11-12', at: ts } },

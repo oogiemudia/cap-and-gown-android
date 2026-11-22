@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Cap and Gown</title>
-<meta name="capgown-page" content="47">
+<meta name="capgown-page" content="48">
 <meta name="capgown-min-app" content="0">
 <meta name="theme-color" content="#3454D9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -358,7 +358,8 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     pebblepad: '',
     readAloud: true,
     dictate: true,
-    listenRate: 1
+    listenRate: 1,
+    baseCount: true
   };
   const REVIEW = DATA.review || null;
   const PORT = DATA.portfolio || null;
@@ -475,6 +476,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     if (s.course !== 'all' && !COURSES[s.course]) s.course = 'all';
     ['mode', 'chatStart', 'claudeProject', 'pebblepad'].forEach((k) => { if (typeof s[k] !== 'string') s[k] = D[k]; });
     s.listenRate = clamp(Number(s.listenRate) || 1, 0.5, 2.5);
+    if (typeof s.baseCount !== 'boolean') s.baseCount = D.baseCount;
     out.voicePad = str(out.voicePad).slice(0, 20000);
     out.updatedAt = Number(out.updatedAt) || 0;
 
@@ -2404,8 +2406,16 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const p = state.portfolio;
     const set = new Set(Object.keys(p.ksbDone).filter((k) => p.ksbDone[k]));
     p.evidence.forEach((e) => (e.ksbs || []).forEach((k) => set.add(k)));
+    KSB_IDS.forEach((k) => { if (baseCounts(k)) set.add(k); });
     return set;
   }
+  // A Strong KSB on the reset baseline counts as evidenced while the switch on the baseline card is on.
+  function baseCounts(k) {
+    const it = KSB_BASE && KSB_BASE.items[k];
+    return !!(it && it.s === 'Strong' && state.settings.baseCount !== false);
+  }
+  // Counted only because of the baseline: nothing tagged here and not marked as in PebblePad.
+  const baseOnly = (k) => baseCounts(k) && !evidenceFor(k).length && !state.portfolio.ksbDone[k];
   const evidenceFor = (k) => state.portfolio.evidence.filter((e) => (e.ksbs || []).includes(k));
   function hoursTotals() {
     const p = state.portfolio;
@@ -2918,6 +2928,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const late = overdueReviews();
     const recent = state.portfolio.evidence.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 3);
     return `${late.length ? `<div class="notice warn"><span class="ic">${ic('bell', 16)}</span><div><b>Weekly review still open for ${esc(weekLabel(late[0].mon))}</b><p>${late[0].done} of ${late[0].total} checked. It stays at the top until it is done.</p><button class="linkish" data-act="ppage" data-id="review">Finish it</button></div></div>` : ''}
+      ${KSB_BASE ? ksbBaseNotice() : ''}
       <div class="card"><h3>Portfolio parts</h3><div style="display:flex;flex-direction:column;gap:10px">${parts.map((x) => `<button class="tap" data-act="ppage" data-id="${x.page}" style="text-align:left"><div class="row between small"><span>${esc(x.label)}</span><span class="row" style="gap:6px"><span class="pill ${pctState(x.pct)[0]}">${pctState(x.pct)[1]}</span><b class="num">${x.have}/${x.need}</b></span></div><div class="bar" style="margin-top:4px"><i style="width:${x.pct}%;background:${x.pct >= 100 ? 'var(--good)' : 'var(--accent)'}"></i></div></button>`).join('')}</div></div>
       <button class="btn" data-act="ev-new">${ic('plus', 16)} Add evidence</button>
       ${rw ? `<div class="card tap" data-act="ppage" data-id="review"><div class="row between"><h3>Weekly review</h3><span class="pill ${rw.complete ? 'good' : rw.state === 'tonight' ? 'warn' : 'info'}">${rw.complete ? 'Done' : rw.state === 'tonight' ? 'Tonight' : 'Due ' + esc(fmt(rw.day, { weekday: 'short' }))}</span></div><div class="small muted">${esc(weekLabel(rw.mon))} · ${rw.done} of ${rw.total} checked · about ${(REVIEW.mins || 20)} min</div></div>` : ''}
@@ -2958,9 +2969,9 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const p = state.portfolio;
     const ev = p.evidence.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     return `<div class="card"><div class="row between"><h3>KSB map</h3><span class="pill ${pctState(Math.round((covered.size / 51) * 100))[0]} num">${covered.size}/51</span></div>
-        <div class="small muted">Green means at least one piece of evidence. One piece can cover several KSBs. Tap a KSB for its wording and evidence.${Number(p.nums.ksb) && !p.evidence.length && !Object.keys(p.ksbDone).length ? ` Your old count was ${esc(p.nums.ksb)}: tap those KSBs and mark them as already in PebblePad.` : ''}</div>
+        <div class="small muted">Green means at least one piece of evidence${KSB_BASE && state.settings.baseCount !== false ? ', including the Strong KSBs on your reset baseline' : ''}. One piece can cover several KSBs. Tap a KSB for its wording and evidence.${Number(p.nums.ksb) && !p.evidence.length && !Object.keys(p.ksbDone).length ? ` Your old count was ${esc(p.nums.ksb)}: tap those KSBs and mark them as already in PebblePad.` : ''}</div>
         <div class="chips">${[['all', 'All'], ['K', 'Knowledge'], ['S', 'Skills'], ['B', 'Behaviours'], ['gaps', 'Gaps']].map(([k, l]) => `<button class="chip" data-act="ksb-filter" data-id="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
-        <div class="ksbgrid">${ids.map((k) => { const n = evidenceFor(k).length; return `<button class="ksb${covered.has(k) ? ' on' : ''}" data-act="ksb" data-id="${k}">${k}<small>${n ? n + ' item' + (n === 1 ? '' : 's') : p.ksbDone[k] ? 'in PP' : '–'}</small></button>`; }).join('') || '<div class="small muted">No gaps. Every KSB has evidence.</div>'}</div></div>
+        <div class="ksbgrid">${ids.map((k) => { const n = evidenceFor(k).length; return `<button class="ksb${covered.has(k) ? ' on' : ''}" data-act="ksb" data-id="${k}">${k}<small>${n ? n + ' item' + (n === 1 ? '' : 's') : p.ksbDone[k] ? 'in PP' : baseCounts(k) ? 'Strong' : '–'}</small></button>`; }).join('') || '<div class="small muted">No gaps. Every KSB has evidence.</div>'}</div></div>
       ${KSB_BASE ? ksbBaseCard() : ''}
       <button class="btn" data-act="ev-new">${ic('plus', 16)} Add evidence</button>
       <div class="card"><div class="row between"><h3>Evidence log</h3><span class="small muted">${plural(ev.length, 'item')}</span></div>${ev.length ? ev.map(evRow).join('') : '<div class="small muted">Nothing logged yet.</div>'}</div>`;
@@ -2973,11 +2984,18 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const list = (s) => KSB_IDS.filter((k) => b.items[k] && b.items[k].s === s);
     const btns = (ids) => ids.map((k) => `<button class="chip" data-act="ksb" data-id="${k}">${k}</button>`).join('') || '<span class="small muted">None.</span>';
     return `<div class="card"><div class="row between"><h3>Reset baseline</h3><span class="small muted">${esc(shortDate(b.date))}</span></div>
-      <div class="small muted">Where your evidence stood when you restarted the portfolio. It does not tick anything here: tag evidence as you rebuild it in PebblePad. From your ${esc(b.doc || 'KSB Coverage Reset')}.</div>
+      <div class="small muted">Where your evidence stood when you restarted the portfolio. From your ${esc(b.doc || 'KSB Coverage Reset')}.</div>
+      <div class="li" style="border:0;padding:0"><div class="grow"><b class="small">Count the ${Number(c.Strong) || 0} Strong KSBs as evidenced</b><div class="small muted">They show green and count in your progress. Partial and Gap KSBs still need evidence tagged.</div></div>${toggle(state.settings.baseCount !== false, 'base-count', 'on', 'Count the Strong KSBs as evidenced')}</div>
       <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill good num">${Number(c.Strong) || 0} Strong</span><span class="pill warn num">${Number(c.Partial) || 0} Partial</span><span class="pill bad num">${Number(c.Gap) || 0} Gap</span></div>
       <div class="label">Gaps on the baseline</div><div class="chips">${btns(list('Gap'))}</div>
       <div class="label">Partial on the baseline</div><div class="chips">${btns(list('Partial'))}</div>
       <details><summary class="small" style="color:var(--accent);font-weight:700;cursor:pointer">What the evidence codes mean</summary><div class="list" style="margin-top:6px">${(b.sources || []).map((s) => `<div class="li"><b class="small" style="min-width:64px">${esc(s[0])}</b><div class="grow small">${esc(s[1])}</div></div>`).join('')}</div></details></div>`;
+  }
+  // A short notice on the Portfolio overview, so the reset is seen where progress is read.
+  function ksbBaseNotice() {
+    const c = KSB_BASE.counts || {};
+    const on = state.settings.baseCount !== false;
+    return `<div class="notice"><span class="ic">${ic('spark', 16)}</span><div><b>KSB reset baseline, ${esc(shortDate(KSB_BASE.date))}</b><p>${Number(c.Strong) || 0} Strong, ${Number(c.Partial) || 0} Partial, ${Number(c.Gap) || 0} Gap. ${on ? 'The Strong ones count in KSBs with evidence below.' : 'The Strong ones are not counted below (the switch is off).'}</p><button class="linkish" data-act="ppage" data-id="ksb">Open KSB evidence</button></div></div>`;
   }
   // The baseline for one KSB, shown at the top of its sheet.
   function ksbBaseBox(k) {
@@ -2993,7 +3011,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const p = state.portfolio;
     const ev = evidenceFor(k);
     const duties = DUTY_KSBS.map((list, i) => (list.includes(k) ? i : -1)).filter((i) => i >= 0);
-    sheet(`<div class="row between"><span class="pill info" style="font-family:var(--f-mono)">${k}</span>${ksbCovered().has(k) ? '<span class="pill good">Evidenced</span>' : '<span class="pill bad">Gap</span>'}</div>
+    sheet(`<div class="row between"><span class="pill info" style="font-family:var(--f-mono)">${k}</span>${baseOnly(k) ? '<span class="pill good">Evidenced (baseline)</span>' : ksbCovered().has(k) ? '<span class="pill good">Evidenced</span>' : '<span class="pill bad">Gap</span>'}</div>
       <h3 style="font-size:16px">${esc(KSBS[k])}</h3>
       ${duties.length ? `<div class="small muted">Part of duty ${duties.map((i) => i + 1).join(', ')}: ${duties.map((i) => esc(PORT.duties[i])).join('; ')}.</div>` : ''}
       ${ksbBaseBox(k)}
@@ -5459,6 +5477,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       case 'review-unskip': if (state.reviews[id]) delete state.reviews[id].__skip; commit(); render(); break;
       case 'ksb-filter': sub.ksbFilter = id; render(); break;
       case 'ksb': ksbSheet(id); break;
+      case 'base-count': state.settings.baseCount = state.settings.baseCount === false; commit(); render(); break;
       case 'ksb-done': { if (p.ksbDone[id]) delete p.ksbDone[id]; else p.ksbDone[id] = Date.now(); commit(); el.setAttribute('aria-checked', String(!!p.ksbDone[id])); render(); break; }
       case 'ev-new': closeSheet(true); evSheet(null, id); break;
       case 'ev-edit': evSheet(id); break;

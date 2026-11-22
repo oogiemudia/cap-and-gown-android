@@ -778,7 +778,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     let pl = await plan();
     ok('coach plan: the outcomes whose hand-in is still ahead come first', pl.order.slice(0, 7).join(' ') === '7.1 7.2 8.1 8.2 8.3 8.4 1.1', pl.order);
     ok('coach plan: 50 short sittings spread to the planner’s own aim for the workbook', pl.sit === 50 && pl.end === '2026-12-18' && pl.days === 31 && pl.per === 2 && pl.quota === 2, pl);
-    ok('coach plan: today is learn 7.1, write 7.1, one KSB and five minutes on the change project', pl.todo.join() === '7.1 learn,7.1 write' && pl.today.join() === 'aw:7.1,aw:7.1,ksb:K5,cp:', pl);
+    ok('coach plan: today is learn 7.1, write 7.1, one KSB (the first gap after the Strong baseline) and five minutes on the change project', pl.todo.join() === '7.1 learn,7.1 write' && pl.today.join() === 'aw:7.1,aw:7.1,ksb:S18,cp:', pl);
     await P(() => { window.__planner.state.energy['2026-11-18'] = 'low'; });
     pl = await plan();
     ok('coach plan: low energy keeps one light step', pl.quota === 1 && pl.todo.join() === '7.1 learn', pl);
@@ -875,7 +875,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     const wr = await P(() => { const p = window.__planner; return { u: p.state.coach.aw['7.1'], days: p.state.coach.days['2026-11-18'], study: p.state.study['2026-11-18'], text: document.querySelector('#screen').textContent, next: (document.querySelector('#screen .notice [data-act="co-open"]') || { dataset: {} }).dataset.id }; });
     ok('coach write: marking it written counts the second sitting and offers the next question', wr.u.w === '2026-11-18' && wr.days === 2 && wr.study === 30 && /Written on Wed 18 Nov/.test(wr.text) && wr.next === '7.2', wr);
     pl = await plan();
-    ok('coach plan: today’s workbook steps are done, and the rest is spread again', pl.done === 2 && pl.todo.length === 0 && pl.sit === 48 && pl.today.join() === 'ksb:K5,cp:', pl);
+    ok('coach plan: today’s workbook steps are done, and the rest is spread again', pl.done === 2 && pl.todo.length === 0 && pl.sit === 48 && pl.today.join() === 'ksb:S18,cp:', pl);
     await click(page, '#screen [data-act="co-unwrite"]');
     ok('coach write: "Not finished yet" takes the mark off but keeps the words', await P((m) => { const u = window.__planner.state.coach.aw['7.1']; return !u.w && u.a === m; }, mine));
     await click(page, '#screen [data-act="co-written"]');
@@ -908,7 +908,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     await click(page, '#screen [data-act="co-live"][data-k="week"]');
     await page.waitForTimeout(400);
     const week = await P(() => window.__lastInsert || '');
-    ok('coach workbook: Plan my week tells Claude where I am', /1 of 25 questions written/.test(week) && /I want to finish by Friday 18 December/.test(week) && /Still to do, in order: 7\.2 learn, 7\.2 write, 8\.1 learn/.test(week) && /0 of 51 KSBs evidenced/.test(week) && /Change project: my next step is "Note what you took from the change project workshop"/.test(week) && /Plan my next seven days/.test(week), week);
+    ok('coach workbook: Plan my week tells Claude where I am', /1 of 25 questions written/.test(week) && /I want to finish by Friday 18 December/.test(week) && /Still to do, in order: 7\.2 learn, 7\.2 write, 8\.1 learn/.test(week) && /31 of 51 KSBs evidenced/.test(week) && /Change project: my next step is "Note what you took from the change project workshop"/.test(week) && /Plan my next seven days/.test(week), week);
     await click(page, '[data-act="close-tutor"]');
     await click(page, '#screen [data-act="co-how"]');
     ok('coach: the help sheet says plainly what the app does and what Claude does', await P(() => { const t = document.querySelector('#layer').textContent; return /The coach never writes it for you/.test(t) && /you tap Send in Claude yourself/.test(t); }));
@@ -1194,6 +1194,45 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     if (ov.length) bad.push(`why sheet: ${ov.join(' | ')}`);
     ok(`looks ${look.name} ${look.width}px: nothing off the side`, bad.length === 0, bad);
     ok(`looks ${look.name}: no script errors`, errors.length === 0, errors);
+    await ctx.close();
+  }
+
+  // The KSB reset baseline (page 46 to 48): read from the planner data, Strong KSBs count unless switched off.
+  {
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-23T19:30:00', state: null });
+    const P = (fn, arg) => page.evaluate(fn, arg);
+    const B = await P(() => { const d = window.STUDY_DATA.ksbBaseline; const ids = Object.keys(d.items); const n = (s) => ids.filter((k) => d.items[k].s === s).length; return { ids: ids.length, all: ids.every((k) => window.__planner.KSBS[k]), strong: n('Strong'), partial: n('Partial'), gap: n('Gap'), counts: d.counts, fields: ids.every((k) => ['s', 'ev', 'pp', 'next'].every((f) => typeof d.items[k][f] === 'string' && d.items[k][f])) }; });
+    ok('baseline: one entry for each of the 51 KSBs, each with strength, evidence, mapping and next step', B.ids === 51 && B.all && B.fields, B);
+    ok('baseline: the counts match the entries (31 Strong, 14 Partial, 6 Gap)', B.strong === 31 && B.partial === 14 && B.gap === 6 && B.counts.Strong === 31 && B.counts.Partial === 14 && B.counts.Gap === 6, B);
+    ok('baseline: on a new phone the Strong KSBs count as evidenced', await P(() => { const p = window.__planner; return p.state.settings.baseCount === true && p.ksbCovered().size === 31 && p.ksbCovered().has('K1') && !p.ksbCovered().has('K8') && !p.ksbCovered().has('K6'); }));
+    await P(() => { const p = window.__planner; p.sub.ppage = 'overview'; p.go('portfolio'); });
+    ok('baseline: the Portfolio overview shows the notice and 31/51 KSBs with evidence', await P(() => { const t = document.querySelector('#screen').textContent; return /KSB reset baseline/.test(t) && /31 Strong, 14 Partial, 6 Gap/.test(t) && /The Strong ones count in KSBs with evidence below/.test(t) && /KSBs with evidence/.test(t) && /31\/51/.test(t); }));
+    await click(page, '#screen .notice [data-act="ppage"][data-id="ksb"]');
+    ok('baseline: Open KSB evidence goes to the KSB page with the baseline card', await P(() => window.__planner.sub.ppage === 'ksb' && /Reset baseline/.test(document.querySelector('#screen').textContent)));
+    ok('baseline: the KSB map labels a baseline-only KSB as Strong and leaves a gap empty', await P(() => { const lab = (k) => document.querySelector(`#screen .ksbgrid [data-id="${k}"] small`).textContent; return lab('K1') === 'Strong' && lab('K8') === '–' && document.querySelector('#screen .ksbgrid [data-id="K1"]').classList.contains('on') && !document.querySelector('#screen .ksbgrid [data-id="K8"]').classList.contains('on'); }));
+    await click(page, '#screen [data-act="ksb"][data-id="K1"]');
+    ok('baseline: a Strong KSB sheet says it is evidenced by the baseline and shows the next step', await P(() => { const t = document.querySelector('#layer').textContent; return /Evidenced \(baseline\)/.test(t) && /Reset baseline, /.test(t) && /Next step:/.test(t) && /Mapped in PebblePad before the reset: P1/.test(t); }));
+    await click(page, '[data-act="close-sheet"]');
+    await P(() => { const p = window.__planner; p.sub.ppage = 'ksb'; p.go('portfolio'); });
+    await click(page, '#screen [data-act="base-count"]');
+    ok('baseline: the switch turns the count off and is saved', await P(() => { const p = window.__planner; const saved = JSON.parse(window.AndroidApp.loadState()); return p.state.settings.baseCount === false && p.ksbCovered().size === 0 && saved.settings.baseCount === false && document.querySelector('#screen [data-act="base-count"]').getAttribute('aria-checked') === 'false'; }));
+    await P(() => { const p = window.__planner; p.sub.ppage = 'overview'; p.go('portfolio'); });
+    ok('baseline: with the switch off the overview says so and counts 0/51', await P(() => { const t = document.querySelector('#screen').textContent; return /not counted below \(the switch is off\)/.test(t) && /0\/51/.test(t); }));
+    await P(() => { const p = window.__planner; p.sub.ppage = 'ksb'; p.go('portfolio'); });
+    await click(page, '#screen [data-act="base-count"]');
+    ok('baseline: switching it back on counts 31 again', await P(() => window.__planner.ksbCovered().size === 31 && window.__planner.state.settings.baseCount === true));
+    await P(() => { const p = window.__planner; p.state.portfolio.evidence.push({ id: 'eb1', date: '2026-11-23', title: 'Both versions of one activity', type: 'Resource', link: '', ksbs: ['K4', 'K8'], status: 'draft', notes: '' }); p.go('portfolio'); });
+    ok('baseline: tagged evidence adds to the baseline without counting twice', await P(() => window.__planner.ksbCovered().size === 32));
+    await P(() => window.__planner.go('plan'));
+    ok('baseline: the set-up steps are on the plan from 23 November', await P(() => /Paste the PGCE link into the T Level project/.test(document.querySelector('#screen').textContent)));
+    ok('baseline: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  for (const v of ['yes', 1, null, {}]) {
+    const st = JSON.parse(JSON.stringify(rich));
+    st.settings.baseCount = v;
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-23T19:30:00', state: st });
+    ok(`baseline: a damaged switch (${JSON.stringify(v)}) is repaired to on`, await page.evaluate(() => window.__planner.state.settings.baseCount === true && window.__planner.ksbCovered().size >= 31) && errors.length === 0, errors);
     await ctx.close();
   }
 
