@@ -2,13 +2,23 @@
 
 The Cap and Gown study planner as an Android app, with real alarms and Claude inside the app.
 
+## Page 48: the baseline counts
+
+A page change only: it arrives by itself, with no new install.
+
+- **The Strong KSBs now count.** The 31 Strong KSBs on the reset baseline count as evidenced, so Portfolio shows 31/51 for KSBs with evidence and the progress ring moves with it. On the KSB map they are green and labelled Strong, and their sheet says Evidenced (baseline).
+- **A switch to turn it off.** The Reset baseline card on KSB evidence has **Count the 31 Strong KSBs as evidenced**. Off, the map counts only what is tagged here or marked as in PebblePad. It is on for every phone unless turned off (`settings.baseCount`).
+- **Seen where progress is read.** The Portfolio overview has a KSB reset baseline notice with **Open KSB evidence**.
+- **The coach works on what is left.** With the baseline on, the coach's KSB of the day comes from the Partial and Gap KSBs (S18 first).
+- Tests: `logic.js` checks the baseline data, the count, the switch, the map labels, the sheet, tagging on top of the baseline and a damaged switch. The sample record in `seed.js` keeps the switch off so the older coach checks still test what they were written for.
+
 ## Page 46: the KSB reset baseline
 
 A page change only: it arrives by itself, with no new install.
 
 - **Reset baseline on the KSB page.** Portfolio, KSB evidence has a Reset baseline card: where the evidence for each of the 51 KSBs stood on 22 November 2026, when the portfolio was restarted (31 Strong, 14 Partial, 6 Gap). The Gap and Partial KSBs are buttons, and **What the evidence codes mean** explains P1, TL3 and the rest.
 - **On each KSB.** A KSB's sheet shows its baseline: strength, the evidence behind it, the next step and what it was mapped to in PebblePad before the reset.
-- **It never ticks anything.** The KSB map still counts only what you tag here or mark as already in PebblePad, so the reset starts clean.
+- **Read-only at first.** On page 46 the baseline did not count towards the KSB map. Page 48 changed that (see above).
 - **New planner steps.** "KSB reset and T Level bridge set-up" (your own target, 1 December): paste the PGCE link into the T Level project, add the Drive line to the PGCE project and run the catch-up once, review the KSB Coverage Reset, then the quick wins.
 
 The baseline is `ksbBaseline` in `window.STUDY_DATA` (one entry per KSB: `s` strength, `ev` evidence, `pp` mapped before the reset, `next`). Its master copy is `claude/ksb-coverage-reset.md` in the PGCE Claude project.
