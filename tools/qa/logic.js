@@ -1195,7 +1195,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
       ok('meeting: the page offers to listen, to paste a transcript and to write a meeting up, and shows saved meetings', await P(() => !!document.querySelector('#screen [data-act="meet-listen"]') && !!document.querySelector('#screen [data-act="meet-paste"]') && !!document.querySelector('#screen [data-act="meet-new"]') && /No sound is saved/.test(document.querySelector('#screen').textContent) && /Talked targets/.test(document.querySelector('#screen').textContent)));
       await click(page, '#screen [data-act="meet-listen"]');
       const sheet0 = await P(() => document.querySelector('#layer').textContent);
-      ok('meeting: before listening it says what happens to the words and asks about the mentor', /keeps only the words/.test(sheet0) && /No sound is saved/.test(sheet0) && /My mentor knows and agrees/.test(sheet0) && /may send the sound to Google/.test(sheet0) && /You can lock the phone or open another app/.test(sheet0) && !/newest app/.test(sheet0) && !/One more install/.test(sheet0), sheet0);
+      ok('meeting: before listening it says what happens to the words and asks about the mentor', /keeps only the words/.test(sheet0) && /No sound is saved/.test(sheet0) && /My mentor knows and agrees/.test(sheet0) && /may send the sound to Google/.test(sheet0) && /Keep the app open on the screen if you can/.test(sheet0) && /To listen with the phone locked/.test(sheet0) && !/You can lock the phone/.test(sheet0) && !/newest app/.test(sheet0) && !/One more install/.test(sheet0), sheet0);
       await click(page, '#layer [data-act="meet-start"]'); await tick(page);
       ok('meeting: it will not start until the mentor has agreed', (await calls(page, 'meetingStart')).length === 0 && /Ask your mentor first/.test(await toastText()) && await P(() => !window.__planner.MEET.live && window.__planner.state.portfolio.meetNotes == null));
       await click(page, '#layer #mt-ok');
@@ -1231,7 +1231,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
       await click(page, '#screen [data-act="meet-resume"]'); await tick(page);
       ok('meeting: Carry on listens again without asking twice', (await calls(page, 'meetingStart')).length === 2 && await P(() => window.__planner.MEET.live && document.querySelector('#layer').textContent === '' && document.querySelector('#mt-state').textContent === 'Listening'));
       // the phone is locked or another app is opened: the newest app keeps listening under its own notice
-      ok('meeting: the card says the phone can be locked', await P(() => window.__planner.MEET.bg === true && /You can lock the phone or open another app/.test(document.querySelector('#mt-foot').textContent)));
+      ok('meeting: with the phone’s speech the card says to keep the app open if you can', await P(() => window.__planner.MEET.bg === true && window.__planner.MEET.own === false && /Keep the app open on the screen if you can/.test(document.querySelector('#mt-foot').textContent) && !/You can lock the phone/.test(document.querySelector('#mt-foot').textContent)));
       await P(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => !!window.__hidden }); window.__hidden = true; document.dispatchEvent(new Event('visibilitychange')); });
       await page.waitForTimeout(500);
       ok('meeting: with the phone locked it keeps listening', (await calls(page, 'meetingStart')).length === 2 && (await calls(page, 'dictateStop')).length === 1 && await P(() => window.__planner.MEET.live && window.__planner.MEET.st === 'on' && window.__planner.MEET.hidAt > 0));
@@ -1453,6 +1453,206 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
       ok('meeting in the app before locked listening: other screens of the app keep listening, with the bar', await P(() => window.__planner.MEET.live && !!document.querySelector('#screen .mtbar')) && (await calls(page, 'dictateStop')).length === 0);
       ok('meeting in the app before locked listening: no script errors', errors.length === 0, errors);
       await ctx.close();
+    }
+    // ---------- The app's own listening: a speech model on the phone, so it carries on with the phone locked ----------
+    const ownCardText = (page) => page.evaluate(() => { const c = document.querySelector('#own-card'); return c ? c.textContent.replace(/\s+/g, ' ').trim() : ''; });
+    const ownBtn = (page, act) => page.evaluate((a) => { const b = document.querySelector(`#own-card [data-act="${a}"]`); return b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; }, act);
+    const toastOf = (page) => page.evaluate(() => document.querySelector('#toast').hidden ? '' : document.querySelector('#toast').textContent);
+    const startMeeting = async (page) => { await click(page, '#screen [data-act="meet-listen"]'); await click(page, '#layer #mt-ok'); await click(page, '#layer [data-act="meet-start"]'); await tick(page); };
+    {
+      // the one-off download of the speech model, then a meeting with the phone locked
+      const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-23T15:30:00', state: mk() });
+      const P = (fn, arg) => page.evaluate(fn, arg);
+      const card = () => ownCardText(page);
+      const btn = (act) => ownBtn(page, act);
+      const notes = () => P(() => window.__planner.state.portfolio.meetNotes);
+      const stored = () => P(() => JSON.parse(localStorage.getItem('capgown-planner-v1')).portfolio.meetNotes);
+      await toMeetings(page);
+      ok('own listening: the meetings page offers the one-off download, with the size the app gives', /Listening with the phone locked/.test(await card()) && /downloaded once/.test(await card()) && (await btn('own-get')) === 'Download (128 MB)' && await P(() => !document.querySelector('#own-card .list')), await card());
+      await click(page, '#own-card [data-act="own-more"]');
+      ok('own listening: Other sizes lists the three sizes, with Balanced chosen', await P(() => { const rows = [...document.querySelectorAll('#own-card .list .li')].map((r) => r.textContent.replace(/\s+/g, ' ')); return rows.length === 3 && /Balanced.*128 MB.*Chosen/.test(rows[0]) && /Most accurate.*251 MB.*Choose/.test(rows[1]) && /Smallest.*43 MB.*Choose/.test(rows[2]); }), await card());
+      await click(page, '#own-card [data-act="own-size"][data-id="tiny"]');
+      ok('own listening: choosing another size changes what Download fetches', (await btn('own-get')) === 'Download (43 MB)', await card());
+      await click(page, '#own-card [data-act="own-size"][data-id="small"]');
+      await click(page, '#own-card [data-act="own-get"]'); await tick(page);
+      ok('own listening: Download asks the app for that size and shows the progress', JSON.stringify(await calls(page, 'ownDownload')) === '[["small"]]' && /Downloading the speech model \(Balanced\)/.test(await card()) && await P(() => document.querySelector('#own-prog').textContent === '0 of 128 MB' && parseFloat(document.querySelector('#own-bar').style.width) === 0 && !!document.querySelector('#own-card [data-act="own-cancel"]') && !document.querySelector('#own-card [data-act="own-get"]') && !document.querySelector('#own-card .list')), await card());
+      await P(() => { document.querySelector('#own-card').__same = true; window.__ownStep(67108864); }); await tick(page);
+      ok('own listening: the bar and the numbers move without the card being built again', await P(() => document.querySelector('#own-card').__same === true && document.querySelector('#own-prog').textContent === '64 of 128 MB' && parseFloat(document.querySelector('#own-bar').style.width) === 50), await card());
+      await click(page, '#own-card [data-act="own-cancel"]'); await tick(page);
+      ok('own listening: Stop the download stops it and offers it again', (await calls(page, 'ownCancel')).length === 1 && (await btn('own-get')) === 'Download (128 MB)', await card());
+      await click(page, '#own-card [data-act="own-get"]'); await tick(page);
+      await P(() => window.__ownEnd('offline')); await tick(page);
+      ok('own listening: a download that drops says so and can be carried on', /connection dropped/.test(await card()) && (await btn('own-get')) === 'Download (128 MB)' && (await toastOf(page)) === '', await card());
+      await click(page, '#own-card [data-act="own-get"]'); await tick(page);
+      ok('own listening: starting again clears the message', !/connection dropped/.test(await card()) && /Downloading the speech model/.test(await card()), await card());
+      await P(() => { window.__ownStep(134217728); window.__ownEnd(''); }); await tick(page);
+      ok('own listening: when the download finishes it is switched on, and the page says so', (await calls(page, 'ownDownload')).length === 3 && /The speech model is ready/.test(await toastOf(page)) && /On The app does the listening itself/.test(await card()) && /Balanced speech model, 128 MB on this phone/.test(await card()) && !!(await btn('own-off')), await card());
+      await click(page, '#screen [data-act="meet-listen"]');
+      const sheet = await P(() => document.querySelector('#layer').textContent);
+      ok('own listening: the sheet says the phone can be locked and that no sound leaves the phone', /You can lock the phone or open another app/.test(sheet) && /No sound leaves the phone/.test(sheet) && /My mentor knows and agrees/.test(sheet) && !/Google/.test(sheet) && !/To listen with the phone locked/.test(sheet) && !/One more install/.test(sheet), sheet);
+      await click(page, '#layer #mt-ok');
+      await click(page, '#layer [data-act="meet-start"]'); await tick(page);
+      ok('own listening: Start uses the app’s own listening, and the card says the phone can be locked', (await calls(page, 'meetingStart')).length === 1 && await P(() => { const M = window.__planner.MEET; const foot = document.querySelector('#mt-foot').textContent; return M.live && M.own === true && /The app is doing the listening itself/.test(foot) && /You can lock the phone/.test(foot) && !document.querySelector('#own-card'); }));
+      await P(() => window.__say('we looked at the scheme of work'));
+      ok('own listening: each sentence is taken down with its number', /We looked at the scheme of work\.$/.test((await notes()).text) && (await notes()).sid === 'run1' && (await notes()).seq === 1, await notes());
+      await P(() => window.__capgownDictate('final', 'we looked at the scheme of work', 1, 'run1'));
+      ok('own listening: a sentence that arrives twice is taken down once', ((await notes()).text.match(/scheme of work/g) || []).length === 1, await notes());
+      // the phone is locked and holds the page up: the app keeps the sentences, and the page asks for them when it wakes
+      await P(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => !!window.__hidden }); window.__hidden = true; document.dispatchEvent(new Event('visibilitychange')); });
+      await page.waitForTimeout(300);
+      await P(() => { window.__sayHeld('my mentor asked about the hinge question'); window.__sayHeld('we agreed to try it on Thursday'); });
+      ok('own listening: while the page is held up nothing reaches it, and it is not stopped', !/hinge question/.test((await notes()).text) && await P(() => window.__planner.MEET.live) && (await calls(page, 'dictateStop')).length === 0);
+      await P(() => { window.__hidden = false; document.dispatchEvent(new Event('visibilitychange')); window.__capgownResume(); }); await tick(page);
+      ok('own listening: when the page wakes it takes in what it missed, in order, and saves it at once', /scheme of work\.\s+My mentor asked about the hinge question\.\s+We agreed to try it on Thursday\.$/.test((await notes()).text) && (await notes()).seq === 3 && /We agreed to try it on Thursday\.$/.test((await stored()).text) && (await stored()).seq === 3 && (await calls(page, 'meetingStart')).length === 1 && await P(() => window.__planner.MEET.live && document.querySelector('#mt-state').textContent === 'Listening'), await notes());
+      await P(() => { window.__capgownResume(); window.__planner.meetCatchUp(); });
+      ok('own listening: asking again brings nothing twice', ((await notes()).text.match(/hinge question/g) || []).length === 1 && ((await notes()).text.match(/on Thursday/g) || []).length === 1);
+      await P(() => window.__say('then we set the next date'));
+      ok('own listening: the next sentence follows on, once', (await notes()).seq === 4 && ((await notes()).text.match(/next date/g) || []).length === 1, await notes());
+      // it ended while the page was held up (the 95 minute limit, say): the page finds out when it wakes, and starts it again
+      await P(() => { window.__hidden = true; document.dispatchEvent(new Event('visibilitychange')); });
+      await page.waitForTimeout(300);
+      await P(() => { window.__sayHeld('the last thing before it stopped'); window.__dictating = false; window.__hidden = false; document.dispatchEvent(new Event('visibilitychange')); window.__capgownResume(); });
+      await page.waitForTimeout(600);
+      ok('own listening: if it stopped while the page was held up, the page takes in the words and starts it again', /The last thing before it stopped\.$/.test((await notes()).text) && (await calls(page, 'meetingStart')).length === 2 && await P(() => window.__planner.MEET.live && window.__planner.MEET.own === true && document.querySelector('#mt-state').textContent === 'Listening'), await notes());
+      // Pause: the app finishes the sentence it was on, and those words are kept; nothing after that
+      await click(page, '#screen [data-act="meet-pause"]'); await tick(page);
+      await P(() => window.__sayLate('the last words before pause'));
+      ok('own listening: the sentence being said when Pause was tapped is kept', await P(() => !window.__planner.MEET.live && !!document.querySelector('#mt-paused')) && /The last words before pause\.$/.test((await stored()).text) && (await stored()).seq === 6, await stored());
+      await P(() => window.__say('this was said while paused'));
+      ok('own listening: nothing said while paused is taken down', !/while paused/.test((await notes()).text));
+      await click(page, '#screen [data-act="meet-finish"]'); await tick(page);
+      await P(() => window.__sayLate('one late sentence'));
+      ok('own listening: a sentence that arrives after Finish goes into the notes on the screen', await P(() => /One late sentence\.$/.test(document.querySelector('#mt-notes').value)) && /One late sentence\.$/.test((await stored()).text), await stored());
+      ok('own listening: after the meeting the card is back, still on', /On The app does the listening itself/.test(await card()));
+      await click(page, '#screen [data-act="meet-drop-ask"]');
+      await click(page, '#screen [data-act="meet-drop"]'); await tick(page);
+      ok('own listening: deleting the notes tells the app to forget the sentences it was keeping', (await calls(page, 'meetingForget')).length === 1 && (await notes()) === null && await P(() => window.__heard.lines.length === 0));
+      await P(() => window.__sayLate('words with no notes to go into'));
+      ok('own listening: a sentence with no notes to go into is dropped quietly', (await notes()) === null && errors.length === 0, errors);
+      await click(page, '#own-card [data-act="own-off"]'); await tick(page);
+      ok('own listening: it can be switched off, and the model stays on the phone', JSON.stringify((await calls(page, 'ownUse')).pop()) === '[""]' && /Off The speech model is on this phone/.test(await card()) && !!(await btn('own-use')), await card());
+      await click(page, '#screen [data-act="meet-listen"]');
+      ok('own listening: switched off, the sheet is about the phone’s speech service again', await P(() => { const t = document.querySelector('#layer').textContent; return /may send the sound to Google/.test(t) && /To listen with the phone locked/.test(t) && !/You can lock the phone/.test(t); }));
+      await click(page, '[data-act="close-sheet"]');
+      await click(page, '#own-card [data-act="own-use"]'); await tick(page);
+      ok('own listening: and switched on again', JSON.stringify((await calls(page, 'ownUse')).pop()) === '["small"]' && /On The app does the listening itself/.test(await card()), await card());
+      ok('own listening: no script errors', errors.length === 0, errors);
+      await ctx.close();
+    }
+    {
+      // two sizes on the phone: change the one in use, remove one, download another
+      const { ctx, page, errors } = await open(browser, { app: true, own: { small: true, tiny: true }, ownUse: 'small', now: '2026-11-23T15:30:00', state: mk() });
+      const P = (fn, arg) => page.evaluate(fn, arg);
+      const card = () => ownCardText(page);
+      const has = (sel) => P((x) => !!document.querySelector(`#own-card ${x}`), sel);
+      const rows = () => P(() => [...document.querySelectorAll('#own-card .list .li')].map((r) => r.textContent.replace(/\s+/g, ' ').trim()));
+      await toMeetings(page);
+      ok('own sizes: with a model in use the card says On and which it is', /On The app does the listening itself/.test(await card()) && /Balanced speech model, 128 MB on this phone/.test(await card()) && (await ownBtn(page, 'own-more')) === 'Change the size', await card());
+      await click(page, '#own-card [data-act="own-more"]');
+      ok('own sizes: the list shows the one in use, the ones on the phone and the ones to download', await has('.list [data-act="own-del-ask"][data-id="small"]') && !(await has('.list [data-act="own-use"][data-id="small"]')) && await has('.list [data-act="own-get"][data-id="medium"]') && await has('.list [data-act="own-use"][data-id="tiny"]') && await has('.list [data-act="own-del-ask"][data-id="tiny"]') && /In use/.test((await rows())[0]) && /On this phone/.test((await rows())[2]) && (await ownBtn(page, 'own-more')) === 'Hide the sizes', await rows());
+      await click(page, '#own-card [data-act="own-del-ask"][data-id="tiny"]');
+      ok('own sizes: Remove asks first', await has('[data-act="own-del"][data-id="tiny"]') && await has('[data-act="own-del-no"]') && (await calls(page, 'ownDelete')).length === 0);
+      await click(page, '#own-card [data-act="own-del-no"]');
+      ok('own sizes: Keep leaves it there', !(await has('[data-act="own-del"]')) && await has('[data-act="own-use"][data-id="tiny"]') && (await calls(page, 'ownDelete')).length === 0);
+      await click(page, '#own-card [data-act="own-use"][data-id="tiny"]'); await tick(page);
+      ok('own sizes: Use changes the size in use', JSON.stringify(await calls(page, 'ownUse')) === '[["tiny"]]' && /Smallest speech model, 43 MB on this phone/.test(await card()), await card());
+      await click(page, '#own-card [data-act="own-more"]');
+      await click(page, '#own-card [data-act="own-del-ask"][data-id="small"]');
+      await click(page, '#own-card [data-act="own-del"][data-id="small"]'); await tick(page);
+      ok('own sizes: Yes, remove takes it off the phone, and the one in use stays', JSON.stringify(await calls(page, 'ownDelete')) === '[["small"]]' && /Removed/.test(await toastOf(page)) && await has('.list [data-act="own-get"][data-id="small"]') && /Smallest speech model/.test(await card()), await card());
+      await click(page, '#own-card .list [data-act="own-get"][data-id="medium"]'); await tick(page);
+      ok('own sizes: another size can be downloaded while one is in use', JSON.stringify(await calls(page, 'ownDownload')) === '[["medium"]]' && /Downloading the speech model \(Most accurate\)/.test(await card()) && /0 of 251 MB/.test(await card()), await card());
+      await P(() => window.__ownEnd('space')); await tick(page);
+      ok('own sizes: a download with no room says so, and the size in use stays on', /not enough room/.test(await card()) && /On The app does the listening itself/.test(await card()) && /Smallest speech model/.test(await card()), await card());
+      await click(page, '#own-card [data-act="own-more"]');
+      await click(page, '#own-card [data-act="own-del-ask"][data-id="tiny"]');
+      await click(page, '#own-card [data-act="own-del"][data-id="tiny"]'); await tick(page);
+      ok('own sizes: removing the one in use goes back to the download offer', /It needs a speech model, downloaded once/.test(await card()) && !/On The app does/.test(await card()), await card());
+      ok('own sizes: no script errors', errors.length === 0, errors);
+      await ctx.close();
+    }
+    {
+      // on mobile data the download asks first
+      const { ctx, page, errors } = await open(browser, { app: true, metered: true, now: '2026-11-23T15:30:00', state: mk() });
+      const card = () => ownCardText(page);
+      await toMeetings(page);
+      await click(page, '#own-card [data-act="own-get"]'); await tick(page);
+      ok('own on mobile data: Download asks first, with the size', (await calls(page, 'ownDownload')).length === 0 && /You are on mobile data/.test(await card()) && /about 128 MB/.test(await card()) && (await ownBtn(page, 'own-get')) === 'Download anyway' && (await ownBtn(page, 'own-wait')) === 'Wait for Wi-Fi', await card());
+      await click(page, '#own-card [data-act="own-wait"]');
+      ok('own on mobile data: Wait for Wi-Fi puts the question away', (await calls(page, 'ownDownload')).length === 0 && !/mobile data/.test(await card()) && (await ownBtn(page, 'own-get')) === 'Download (128 MB)', await card());
+      await click(page, '#own-card [data-act="own-get"]');
+      await click(page, '#own-card [data-act="own-get"]'); await tick(page);
+      ok('own on mobile data: Download anyway starts it', JSON.stringify(await calls(page, 'ownDownload')) === '[["small"]]' && /Downloading the speech model/.test(await card()) && !/mobile data/.test(await card()) && errors.length === 0, await card());
+      await ctx.close();
+    }
+    {
+      // the app's own listening will not start on this phone: the meeting carries on with the phone's speech service
+      const { ctx, page, errors } = await open(browser, { app: true, own: { small: true }, ownUse: 'small', ownFails: true, now: '2026-11-23T15:30:00', state: mk() });
+      const P = (fn, arg) => page.evaluate(fn, arg);
+      const card = () => ownCardText(page);
+      await toMeetings(page);
+      await startMeeting(page);
+      ok('own listening that cannot start: the page says so and nothing is left listening', (await calls(page, 'meetingStart')).length === 1 && await P(() => !window.__planner.MEET.live && /own listening could not start on this phone/.test(document.querySelector('#screen').textContent) && !!document.querySelector('#screen [data-act="meet-resume"]')));
+      ok('own listening that cannot start: its card says so and offers another try', /could not start last time/.test(await card()) && /Off The speech model is on this phone/.test(await card()) && !!(await ownBtn(page, 'own-use')), await card());
+      await click(page, '#screen [data-act="meet-resume"]'); await tick(page);
+      ok('own listening that cannot start: Carry on listens with the phone’s speech service', (await calls(page, 'meetingStart')).length === 2 && await P(() => { const M = window.__planner.MEET; return M.live && M.own === false && /Keep the app open on the screen if you can/.test(document.querySelector('#mt-foot').textContent); }) && errors.length === 0, errors);
+      await ctx.close();
+    }
+    {
+      // a phone that cannot run the speech model, and an app that could not say how big the downloads are
+      const a = await open(browser, { app: true, noOwnEngine: true, now: '2026-11-23T15:30:00', state: mk() });
+      await toMeetings(a.page);
+      ok('a phone that cannot run the app’s own listening: the card says so and offers nothing', /cannot run the app’s own listening/.test(await ownCardText(a.page)) && await a.page.evaluate(() => !document.querySelector('#own-card button')), await ownCardText(a.page));
+      await click(a.page, '#screen [data-act="meet-listen"]');
+      ok('a phone that cannot run the app’s own listening: the sheet does not point to it', await a.page.evaluate(() => { const t = document.querySelector('#layer').textContent; return /Keep the app open on the screen if you can/.test(t) && !/To listen with the phone locked/.test(t) && !/One more install/.test(t) && !document.querySelector('#layer [data-act="meet-start"]').disabled; }) && a.errors.length === 0, a.errors);
+      await a.ctx.close();
+      const b = await open(browser, { app: true, ownNoSizes: true, now: '2026-11-23T15:30:00', state: mk() });
+      await toMeetings(b.page);
+      ok('own listening: if the app cannot say how big the download is, the page gives its own figure', (await ownBtn(b.page, 'own-get')) === 'Download (130 MB)' && b.errors.length === 0, await ownCardText(b.page));
+      await b.ctx.close();
+    }
+    {
+      // the app as it was before it could do the listening itself (build 14)
+      const { ctx, page, errors } = await open(browser, { app: true, app9: true, now: '2026-11-23T15:30:00', state: mk() });
+      const P = (fn, arg) => page.evaluate(fn, arg);
+      await toMeetings(page);
+      ok('meeting in the app before its own listening: the card says the newest app can listen with the phone locked', /Listening with the phone locked/.test(await ownCardText(page)) && /The newest app can do the listening itself/.test(await ownCardText(page)) && await P(() => !!document.querySelector('#own-card [data-act="get-app"]') && !document.querySelector('#own-card [data-act="own-get"]')), await ownCardText(page));
+      await click(page, '#screen [data-act="meet-listen"]');
+      ok('meeting in the app before its own listening: the sheet says one more install lets it listen with the phone locked', await P(() => { const t = document.querySelector('#layer').textContent; return /One more install lets it listen with the phone locked/.test(t) && /Keep the app open on the screen if you can/.test(t) && !/You can lock the phone/.test(t) && !!document.querySelector('#layer [data-act="get-app"]') && !document.querySelector('#layer [data-act="meet-start"]').disabled; }));
+      await click(page, '#layer #mt-ok');
+      await click(page, '#layer [data-act="meet-start"]'); await tick(page);
+      await P(() => window.__say('said in the older app'));
+      ok('meeting in the app before its own listening: it listens as before, with no sentence numbers', (await calls(page, 'meetingStart')).length === 1 && await P(() => { const M = window.__planner.MEET; const n = window.__planner.state.portfolio.meetNotes; return M.live && M.own === false && M.bg === true && /Said in the older app\.$/.test(n.text) && !('sid' in n) && !('seq' in n); }));
+      await P(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => !!window.__hidden }); window.__hidden = true; document.dispatchEvent(new Event('visibilitychange')); });
+      await page.waitForTimeout(300);
+      await P(() => { window.__hidden = false; document.dispatchEvent(new Event('visibilitychange')); window.__capgownResume(); }); await tick(page);
+      ok('meeting in the app before its own listening: coming back from a locked phone it is still listening', (await calls(page, 'meetingStart')).length === 1 && await P(() => window.__planner.MEET.live && document.querySelector('#mt-state').textContent === 'Listening') && errors.length === 0, errors);
+      await ctx.close();
+    }
+    for (const who of [{ name: 'a browser', o: { app: false }, card: false }, { name: 'the app before whole meetings', o: { app: true, app7: true }, card: false }, { name: 'the app before locked listening', o: { app: true, app8: true }, card: true }]) {
+      const { ctx, page, errors } = await open(browser, Object.assign({ now: '2026-11-23T15:30:00', state: mk() }, who.o));
+      await toMeetings(page);
+      ok(`own listening in ${who.name}: ${who.card ? 'the card says what the newest app can do' : 'there is no card'}`, (who.card ? /The newest app can do the listening itself/.test(await ownCardText(page)) : (await ownCardText(page)) === '') && errors.length === 0, await ownCardText(page));
+      await ctx.close();
+    }
+    {
+      // the notes remember the number of the last sentence taken in: damaged numbers are dropped, and numbers from
+      // an earlier run of the app do not hold back a new meeting
+      const bad = mk();
+      bad.portfolio.meetNotes = { date: '2026-11-23', text: 'Kept words.', secs: 10, draft: '', sent: 0, sid: 7, seq: 'x' };
+      const a = await open(browser, { app: true, now: '2026-11-23T15:30:00', state: bad });
+      await toMeetings(a.page);
+      ok('own listening: damaged sentence numbers in the notes are dropped and the words stay', await a.page.evaluate(() => { const n = window.__planner.state.portfolio.meetNotes; return n && n.text === 'Kept words.' && !('sid' in n) && !('seq' in n) && !!document.querySelector('#mt-notes'); }) && a.errors.length === 0, a.errors);
+      await a.ctx.close();
+      const old = mk();
+      old.portfolio.meetNotes = { date: '2026-11-23', text: 'From before.', secs: 10, draft: '', sent: 0, sid: 'earlier', seq: 40 };
+      const b = await open(browser, { app: true, own: { small: true }, ownUse: 'small', now: '2026-11-23T15:30:00', state: old });
+      await toMeetings(b.page);
+      ok('own listening: good sentence numbers are kept', await b.page.evaluate(() => { const n = window.__planner.state.portfolio.meetNotes; return n.sid === 'earlier' && n.seq === 40; }));
+      await click(b.page, '#screen [data-act="meet-resume"]'); await click(b.page, '#layer #mt-ok'); await click(b.page, '#layer [data-act="meet-start"]'); await tick(b.page);
+      await b.page.evaluate(() => window.__say('a new sentence in a new run'));
+      ok('own listening: numbers from an earlier run of the app do not hold back a new meeting', await b.page.evaluate(() => { const n = window.__planner.state.portfolio.meetNotes; return /From before\.[\s\S]*A new sentence in a new run\.$/.test(n.text) && n.sid === 'run1' && n.seq === 1; }) && b.errors.length === 0, b.errors);
+      await b.ctx.close();
     }
     for (const who of [{ name: 'the app before Listen and Speak', o: { app: true, app4: true }, re: /Listening needs the newest app/ }]) {
       const { ctx, page, errors } = await open(browser, Object.assign({ now: '2026-11-23T15:30:00', state: mk() }, who.o));

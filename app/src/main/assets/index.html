@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Cap and Gown</title>
-<meta name="capgown-page" content="50">
+<meta name="capgown-page" content="51">
 <meta name="capgown-min-app" content="0">
 <meta name="theme-color" content="#3454D9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -438,7 +438,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     // nums: hours you had before the log (lead, setting, remote). evidence: the evidence log, tagged to KSBs.
     // ksbDone: KSBs you have already evidenced in PebblePad. hours: the teaching hours log. meetings: mentor meetings.
     // obsInfo: date, link, spoken notes, targets and reflection text per observation. placements: details for placement 1 and 2.
-    // meetNotes: the words the phone took down in a mentor meeting { date, text, secs, draft, sent }, kept until the record is saved.
+    // meetNotes: the words the phone took down in a mentor meeting { date, text, secs, draft, sent, sid, seq }, kept until the record is saved.
     return { nums: {}, obs: {}, checks: {}, duties: {}, approach: '', evidence: [], ksbDone: {}, hours: [], meetings: [], meetNotes: null, obsInfo: {}, placements: {}, dutyNotes: {} };
   }
   function normalise(s) {
@@ -570,7 +570,10 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     if (P.meetNotes != null) {
       const n = P.meetNotes;
       if (!isObj(n) || !isDay(n.date)) P.meetNotes = null;
-      else { n.text = str(n.text).slice(0, 80000); n.draft = str(n.draft).slice(0, 30000); n.secs = clamp(Number(n.secs) || 0, 0, 86400); n.sent = isNum(n.sent) && n.sent > 0 ? n.sent : 0; }
+      else { n.text = str(n.text).slice(0, 80000); n.draft = str(n.draft).slice(0, 30000); n.secs = clamp(Number(n.secs) || 0, 0, 86400); n.sent = isNum(n.sent) && n.sent > 0 ? n.sent : 0;
+        // sid, seq: the app's number for the last sentence taken in (see meetSeen)
+        if (typeof n.sid !== 'string' || n.sid.length > 40 || !isNum(n.seq) || n.seq < 0) { delete n.sid; delete n.seq; }
+      }
     }
     const C = out.coach;
     ['aw', 'ksb', 'cp', 'days', 'end'].forEach((k) => { if (!isObj(C[k])) C[k] = {}; });
@@ -4407,8 +4410,8 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     ta.scrollTop = ta.scrollHeight;
     if (full) { toast('This box is full, so listening has stopped.'); dictStop(); }
   }
-  function dictEvent(kind, text) {
-    if (MEET.live) { meetEvent(kind, text); return; }
+  function dictEvent(kind, text, seq, sid) {
+    if (MEET.live || (kind === 'final' && seq && sid)) { meetEvent(kind, text, seq, sid); return; }
     if (kind === 'final') { dictInsert(text); if (DICT.on) dictLive('<b>Listening.</b> Carry on, or tap Stop.'); return; }
     if (!DICT.on) return;
     if (kind === 'ready') { dictLive('<b>Listening.</b> Speak now. Tap Stop when you finish.'); return; }
@@ -4431,10 +4434,14 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   /* ---------- Mentor meetings: the phone takes the notes, Claude drafts the record ----------
      Tap Listen at the start of a meeting and the phone's speech recogniser (the one Speak uses) turns what is
      said into words. Only the words are kept (state.portfolio.meetNotes); the app never makes a sound file.
-     The newest app listens to a whole meeting in one go (Bridge.meetingStart: it carries on through pauses and
-     says "wait" while it tries again). An older app, or a browser, listens in short stretches that this page
-     starts again. Listening never carries on unseen: it pauses when the Mentor meetings page is left, and the
-     app stops the microphone when it goes off the screen (it carries on when the app comes back).
+     The app listens to a whole meeting in one go (Bridge.meetingStart: it carries on through pauses and says
+     "wait" while it tries again). An older app, or a browser, listens in short stretches that this page starts
+     again. While it listens, every other screen of the app shows a bar that says so (meetBanner).
+     With the phone locked there are two cases. The phone's speech service stops on many phones when the screen
+     goes off, whatever the app does. So the newest app can do the listening itself (OwnSpeech.java), with a
+     speech model that is downloaded once (ownCard): that carries on locked, and no sound leaves the phone.
+     The app numbers the sentences it passes on, so a page that was held up while the phone was locked can ask
+     for the ones it missed (meetCatchUp).
      Afterwards "Build my record" puts the notes and the record's headings into your own Claude; its reply is
      pasted back, sorted into the boxes of the record, checked by you and your mentor, and taken to PebblePad.
      MEET_FIELDS are those boxes: [key, label on the form, heading Claude is asked to use, other spellings]. */
@@ -4457,14 +4464,15 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   // being stopped (pause, finish, long, quiet, full). running: the phone's recogniser has been asked to listen
   // and has not said "end" yet. away: the app is off the screen and the listening is waiting for it to come back.
   // bg: the phone is keeping the listening going off the screen. hidAt: when the app last left the screen.
-  // agreed: the mentor's yes, asked once a visit.
-  const MEET = { live: false, st: '', stopping: '', running: false, paused: false, agreed: false, away: false, bg: false, hidAt: 0, pending: false, heardAt: 0, engineAt: 0, quick: 0, fails: 0, stampAt: 0, partial: '', why: '', tick: null, tickAt: 0, again: null, saveT: null, forceT: null, savedAt: 0 };
+  // own: the app is doing the listening itself (not the phone's speech service). agreed: the mentor's yes, asked once a visit.
+  const MEET = { live: false, st: '', stopping: '', running: false, paused: false, agreed: false, away: false, bg: false, own: false, hidAt: 0, pending: false, heardAt: 0, engineAt: 0, quick: 0, fails: 0, stampAt: 0, partial: '', why: '', tick: null, tickAt: 0, again: null, saveT: null, forceT: null, savedAt: 0 };
   const MEET_WHY = {
     quiet: 'Listening stopped because nobody had spoken for 10 minutes.',
     long: 'Listening stopped after 90 minutes, which is the most it does in one meeting.',
     full: 'Listening stopped because the notes are full.',
     locked: 'This phone stopped the listening when it was locked or the app was left. On this phone, keep the app open on the screen while it listens.',
     unheard: 'Nothing was heard for 10 minutes after the phone was locked or the app was left, so listening stopped. If people were still talking, this phone needs the app open on the screen while it listens.',
+    engine: 'The app’s own listening could not start on this phone. Tap Carry on listening to use the phone’s speech service instead, and keep the app open on the screen.',
     denied: DICT_END.denied, offline: DICT_END.offline, mic: DICT_END.mic, language: DICT_END.language, busy: DICT_END.busy, none: DICT_END.none
   };
   const canMeet = () => !!(APP && typeof APP.meetingStart === 'function');
@@ -4472,7 +4480,18 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   // with a Pause button (MeetingService). An app before it stops the microphone when it leaves the screen.
   const canMeetAway = () => !!(APP && typeof APP.meetingInBackground === 'function');
   const meetBgNow = () => { try { return canMeetAway() && APP.meetingInBackground() === true; } catch (e) { return false; } };
-  const meetFoot = () => (MEET.bg ? 'You can lock the phone or open another app. It keeps listening until you tap Pause or Finish, and a notice at the top of the phone says so.'
+  // The newest app can do the listening itself (OwnSpeech), once its speech model has been downloaded. ownStatus()
+  // is what the app says: supported, sizes { size: { bytes, ready } }, use (the size a meeting will listen with,
+  // or '' for the phone's speech service), busy (the size being downloaded), done, total, error, metered, broken.
+  const canOwn = () => !!(APP && typeof APP.ownListen === 'function');
+  function ownStatus() {
+    if (!canOwn()) return null;
+    try { const o = JSON.parse(APP.ownListen() || 'null'); return o && typeof o === 'object' && !Array.isArray(o) ? o : null; } catch (e) { return null; }
+  }
+  const ownOn = (st = ownStatus()) => !!(st && st.supported && st.use && !st.broken);
+  const MEET_KEEP_OPEN = 'Keep the app open on the screen if you can. On many phones the phone’s speech service stops when the screen goes off.';
+  const meetFoot = () => (MEET.own ? 'The app is doing the listening itself. You can lock the phone or open another app. It carries on until you tap Pause or Finish, and a notice at the top of the phone says so.'
+    : MEET.bg ? MEET_KEEP_OPEN
     : `Keep ${APP ? 'the app' : 'this page'} open on the screen. Listening stops if you leave ${APP ? 'the app' : 'it'} or lock the ${APP ? 'phone' : 'screen'}, and carries on when you come back.`);
   const MEET_WHERE = APP ? 'on this phone' : IS_ARTIFACT ? 'with your planner' : 'in this browser'; // where the words are kept
   const meetNotes = () => state.portfolio.meetNotes;
@@ -4519,7 +4538,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     }
     const p = state.portfolio;
     if (!p.meetNotes) p.meetNotes = { date: todayKey(), text: '', secs: 0, draft: '', sent: 0 };
-    Object.assign(MEET, { live: true, st: 'starting', stopping: '', running: false, paused: false, away: false, bg: canMeetAway(), hidAt: 0, pending: false, heardAt: Date.now(), quick: 0, fails: 0, stampAt: 0, partial: '', why: '', tickAt: Date.now(), savedAt: Date.now() });
+    Object.assign(MEET, { live: true, st: 'starting', stopping: '', running: false, paused: false, away: false, bg: canMeetAway(), own: false, hidAt: 0, pending: false, heardAt: Date.now(), quick: 0, fails: 0, stampAt: 0, partial: '', why: '', tickAt: Date.now(), savedAt: Date.now() });
     sub.mtDrop = false;
     if (LS.state === 'playing') listenCmd('toggle'); // so the phone does not write down its own voice
     clearTimeout(window.__mtT);
@@ -4547,9 +4566,40 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   }
   // The app is back on the screen: carry on if a meeting was being listened to.
   function meetWake() {
+    meetCatchUp();
     if (!MEET.live) return;
     if (!MEET.stopping && !MEET.running && !MEET.again && !document.hidden) meetEngine();
     meetPaint();
+  }
+  // The app numbers the sentences of a meeting (seq) within one run of the app (sid). The notes remember the
+  // last number taken in, so that no sentence is taken in twice. True if this one has been taken in already.
+  function meetSeen(seq, sid) {
+    const n = meetNotes();
+    seq = Number(seq) || 0;
+    sid = String(sid || '');
+    if (!n || !seq || !sid) return false;
+    if (n.sid === sid && seq <= (Number(n.seq) || 0)) return true;
+    n.sid = sid;
+    n.seq = seq;
+    return false;
+  }
+  // A page that is off the screen can be held up by the phone. When it wakes it asks the app for the sentences
+  // it has not had, and whether the app is still listening.
+  function meetCatchUp() {
+    const n = meetNotes();
+    if (!n || !APP || typeof APP.meetingSince !== 'function') return;
+    let r = null;
+    try { r = JSON.parse(APP.meetingSince(String(n.sid || ''), Number(n.seq) || 0) || 'null'); } catch (e) { r = null; }
+    if (!r || typeof r !== 'object' || !Array.isArray(r.lines)) return;
+    let got = 0;
+    r.lines.forEach((l) => { if (Array.isArray(l) && !meetSeen(l[0], r.id)) { meetAdd(l[1], Number(l[2]) || 0); got++; } });
+    if (got) saveLocal(); // at once: the phone may hold the page up again
+    // It ended while the page was held up, so the page never heard that it had.
+    if (MEET.live && MEET.running && !MEET.stopping && MEET.st === 'on' && MEET.hidAt && r.live === false) meetEvent('end', '');
+  }
+  // The notes are gone: the app forgets the sentences it was keeping for meetCatchUp.
+  function meetForget() {
+    if (APP && typeof APP.meetingForget === 'function') { try { APP.meetingForget(); } catch (e) { /* ignore */ } }
   }
   function meetStop(how) {
     if (!MEET.live || MEET.stopping) return;
@@ -4585,21 +4635,30 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     if (!/[.!?…:;,]$/.test(t)) t += '.';
     return t;
   }
-  function meetAdd(raw) {
+  // at: when it was heard, for a sentence fetched after the page was held up (meetCatchUp).
+  function meetAdd(raw, at) {
     const n = meetNotes();
     MEET.partial = '';
     const seg = n ? meetSpoken(raw) : '';
     if (!seg) { meetPaint(); return; }
     const t = Date.now();
-    MEET.heardAt = t;
+    const when = at > 0 && at < t ? at : t;
+    MEET.heardAt = Math.max(MEET.heardAt, when);
     let cur = n.text;
-    if (!MEET.stampAt || t - MEET.stampAt >= 5 * 60000) { // the time, every five minutes, so the record can say when
-      const d = now();
+    if (!MEET.stampAt || when - MEET.stampAt >= 5 * 60000) { // the time, every five minutes, so the record can say when
+      const d = when === t ? now() : new Date(when);
       const stamp = `[${pad(d.getHours())}:${pad(d.getMinutes())}]`;
       cur = cur.trim() ? `${cur.replace(/\s+$/, '')}\n\n${stamp}\n` : `${stamp}\n`;
-      MEET.stampAt = t;
+      MEET.stampAt = when;
     }
     n.text = joinSpoken(cur, seg).slice(0, MEET_ROOM);
+    if (!MEET.live) {
+      // The last words can arrive just after Pause or Finish: they go into the notes that are on the screen.
+      saveLocal();
+      const ta = $('#mt-notes');
+      if (ta) ta.value = n.text; else if (route === 'portfolio' && sub.ppage === 'meetings' && !$('#layer .sheet')) render();
+      return;
+    }
     // Saved as it goes, so a flat battery loses a few seconds at most: lightly every few seconds, fully every minute.
     // Off the screen a page's timers are slowed right down, so there each piece is saved as it arrives.
     if (document.hidden) { if (t - MEET.savedAt > 30000) { MEET.savedAt = t; commit(); } else saveLocal(); }
@@ -4607,10 +4666,11 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     meetPaint();
     if (n.text.length >= MEET_ROOM) meetStop('full');
   }
-  function meetEvent(kind, text) {
-    if (kind === 'final') { meetAdd(text); return; }
+  function meetEvent(kind, text, seq, sid) {
+    if (kind === 'final') { if (!meetSeen(seq, sid)) meetAdd(text); return; }
+    if (!MEET.live) return;
     if (kind === 'partial') { MEET.partial = String(text || ''); MEET.heardAt = Date.now(); if (!MEET.stopping) MEET.st = 'on'; meetPaint(); return; }
-    if (kind === 'ready') { MEET.fails = 0; MEET.bg = meetBgNow(); if (!MEET.stopping) MEET.st = 'on'; meetPaint(); return; }
+    if (kind === 'ready') { MEET.fails = 0; MEET.bg = meetBgNow(); MEET.own = text === 'own'; if (!MEET.stopping) MEET.st = 'on'; meetPaint(); return; }
     if (kind === 'wait') { if (!MEET.stopping) { MEET.st = 'wait'; MEET.why = String(text || ''); meetPaint(); } return; }
     if (kind !== 'end') return;
     const why = String(text || '');
@@ -4619,7 +4679,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     clearTimeout(MEET.forceT);
     if (why === 'paused' && !MEET.stopping) MEET.stopping = 'pause'; // Pause on the phone's notice
     if (MEET.stopping) { meetDone(''); return; }
-    if (why === 'denied' || why === 'none' || why === 'language' || why === 'locked') { meetDone(why); return; }
+    if (why === 'denied' || why === 'none' || why === 'language' || why === 'locked' || why === 'engine') { meetDone(why); return; }
     const n = meetNotes();
     if (!n) { meetDone(''); return; }
     if (n.secs >= MEET_MAX) { meetDone('long'); return; }
@@ -4658,18 +4718,21 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     meetPaint();
   }
   function meetStartSheet() {
+    const st = ownStatus();
+    const own = ownOn(st); // the app will do the listening itself
     let noRecogniser = false;
-    if (APP && typeof APP.dictateAvailable === 'function') { try { noRecogniser = APP.dictateAvailable() === false; } catch (e) { noRecogniser = false; } }
+    if (!own && APP && typeof APP.dictateAvailable === 'function') { try { noRecogniser = APP.dictateAvailable() === false; } catch (e) { noRecogniser = false; } }
     const cant = !canDictate();
     const warn = cant
       ? `<div class="notice warn"><div><b>${APP ? 'Listening needs the newest app' : 'This browser cannot listen'}</b><p>${APP ? `${GET_APP}, open the file and tap Install. Your records stay. Until then you can paste a transcript.` : 'It works in the Cap and Gown app, and in Chrome. You can still paste a transcript.'}</p></div></div>`
       : noRecogniser ? '<div class="notice warn"><div><b>This phone has no speech recogniser turned on</b><p>Install or turn on “Speech Recognition and Synthesis from Google” in the Play Store, then come back.</p></div></div>'
         : APP && !canMeet() ? `<div class="notice warn"><div><b>One more install makes this dependable</b><p>This older app listens in short stretches, and the screen can switch off in a quiet spell, which stops it. ${GET_APP}, open the file and tap Install. Your records stay.</p></div></div>`
-          : APP && !canMeetAway() ? `<div class="notice warn"><div><b>One more install lets it listen with the phone locked</b><p>${GET_APP}, open the file and tap Install. Your records stay. Until then, keep the app open on the screen while it listens.</p></div></div>` : '';
+          : APP && !canOwn() ? `<div class="notice warn"><div><b>One more install lets it listen with the phone locked</b><p>The newest app can do the listening itself, which carries on when the screen goes off. ${GET_APP}, open the file and tap Install. Your records stay. Until then, keep the app open on the screen while it listens.</p></div></div>`
+            : own || !st || !st.supported ? '' : '<div class="notice"><div><b>To listen with the phone locked</b><p>Set up the app’s own listening first. It is on this page, under “Listening with the phone locked”.</p></div></div>';
     sheet(`<h3>Listen to this meeting</h3>
       <div class="small">Put the phone on the table between you. It turns what is said into words and keeps only the words, ${MEET_WHERE}. No sound is saved.</div>
-      <ul class="small vlist"><li>${canMeetAway() ? 'You can lock the phone or open another app. It keeps listening, and a notice at the top of the phone says so, with a Pause button.' : `Keep ${APP ? 'the app' : 'this page'} open on the screen. Listening stops if you leave ${APP ? 'the app' : 'it'} or lock the ${APP ? 'phone' : 'screen'}, and carries on when you come back.`}</li><li>Tap <b>Pause</b> for anything private, such as a named learner.</li><li>It will mishear some words, so take a few notes of your own the first time.</li></ul>
-      <div class="small muted">Your phone’s own speech service does the listening, the same one as the microphone key on the keyboard. It may send the sound to Google to turn it into words.</div>
+      <ul class="small vlist"><li>${own ? 'You can lock the phone or open another app. The app does the listening itself and carries on, and a notice at the top of the phone says so, with a Pause button.' : canMeetAway() ? MEET_KEEP_OPEN : `Keep ${APP ? 'the app' : 'this page'} open on the screen. Listening stops if you leave ${APP ? 'the app' : 'it'} or lock the ${APP ? 'phone' : 'screen'}, and carries on when you come back.`}</li><li>Tap <b>Pause</b> for anything private, such as a named learner.</li><li>It will mishear some words, so take a few notes of your own the first time.</li></ul>
+      <div class="small muted">${own ? 'The app does the listening itself, with a speech model on this phone. No sound leaves the phone.' : 'Your phone’s own speech service does the listening, the same one as the microphone key on the keyboard. It may send the sound to Google to turn it into words.'}</div>
       ${warn}
       <div class="li" style="border:0;padding:0"><div class="grow"><b class="small">My mentor knows and agrees</b><div class="small muted">Ask every time, before you start.</div></div><button class="toggle" role="switch" aria-checked="false" data-act="flip-toggle" id="mt-ok" aria-label="My mentor knows the phone is taking notes and agrees"></button></div>
       <div class="btnrow"><button class="btn" data-act="meet-start"${cant ? ' disabled' : ''}>${ic('mic', 16)} Start listening</button><button class="btn ghost" data-act="close-sheet">Cancel</button></div>`);
@@ -4699,6 +4762,85 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       ${step2}
       ${sub.mtDrop ? '<div class="notice warn"><div><b>Delete the phone’s notes?</b><p>The words are removed for good. Records you have saved stay.</p><div class="btnrow" style="margin-top:8px"><button class="btn sm danger" data-act="meet-drop">Yes, delete them</button><button class="btn sm ghost" data-act="meet-drop-no">Keep them</button></div></div></div>' : '<div class="btnrow"><button class="btn sm ghost" data-act="meet-write">Write the record myself</button><button class="btn sm ghost danger" data-act="meet-drop-ask">Delete the notes</button></div>'}</div>`;
   }
+  /* The app's own listening: one card on the Mentor meetings page to download its speech model, switch it on
+     and off, and change its size. OWN_SIZES: [size, name, megabytes until the app says, who it suits]. */
+  const OWN_SIZES = [['small', 'Balanced', 130, 'Good for most phones.'], ['medium', 'Most accurate', 255, 'The best words. Needs a fast phone.'], ['tiny', 'Smallest', 45, 'For an older phone, or one with little room.']];
+  const OWN_ERR = {
+    offline: 'The download stopped because the connection dropped. Tap Download to carry on from where it stopped.',
+    space: 'There is not enough room on this phone for the download. Free some space, or choose a smaller size.',
+    failed: 'The download did not work. Tap Download to try again.'
+  };
+  const OWN = { was: '' }; // the size that was downloading when the app last said
+  const ownName = (k) => (OWN_SIZES.find((x) => x[0] === k) || [])[1] || '';
+  const ownSizeOf = (st, k) => (st && st.sizes && st.sizes[k] && typeof st.sizes[k] === 'object' ? st.sizes[k] : {});
+  function ownMB(st, k) {
+    const b = Number(ownSizeOf(st, k).bytes);
+    return b > 0 ? Math.max(1, Math.round(b / 1048576)) : (OWN_SIZES.find((x) => x[0] === k) || [])[2] || 0;
+  }
+  function ownCard() {
+    if (!APP || MEET.live || !canMeet()) return '';
+    const st = ownStatus();
+    const head = '<h3>Listening with the phone locked</h3>';
+    const why = 'The phone’s speech service stops on many phones when the screen goes off.';
+    if (!st) return `<div class="card" id="own-card">${head}<div class="small">${why} The newest app can do the listening itself, which carries on with the phone locked.</div><div class="small">${GET_APP}, open the file and tap Install. Your records stay.</div></div>`;
+    if (!st.supported) return `<div class="card" id="own-card">${head}<div class="small muted">This phone cannot run the app’s own listening, so it uses the phone’s speech service. Keep the app open on the screen while it listens.</div></div>`;
+    const busy = OWN_SIZES.some((x) => x[0] === st.busy) ? st.busy : '';
+    const ready = OWN_SIZES.map((x) => x[0]).filter((k) => ownSizeOf(st, k).ready === true);
+    const use = ready.includes(st.use) && !st.broken ? st.use : '';
+    const pick = OWN_SIZES.some((x) => x[0] === sub.ownSize) ? sub.ownSize : 'small';
+    const err = !busy && OWN_ERR[st.error] ? `<div class="notice warn"><div><p>${OWN_ERR[st.error]}</p></div></div>` : '';
+    const ask = !busy && st.metered && OWN_SIZES.some((x) => x[0] === sub.ownAsk) ? sub.ownAsk : '';
+    const askBox = ask ? `<div class="notice warn"><div><b>You are on mobile data</b><p>The download is about ${ownMB(st, ask)} MB.</p><div class="btnrow" style="margin-top:8px"><button class="btn sm" data-act="own-get" data-id="${esc(ask)}">Download anyway</button><button class="btn sm ghost" data-act="own-wait">Wait for Wi-Fi</button></div></div></div>` : '';
+    let body;
+    if (busy) {
+      const total = Number(st.total) > 0 ? Number(st.total) : ownMB(st, busy) * 1048576;
+      const done = Math.max(0, Math.min(total, Number(st.done) || 0));
+      body = `<div class="small">Downloading the speech model (${esc(ownName(busy))}). Keep the app open until it finishes.</div>
+        <div class="bar" role="progressbar" aria-label="Download" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(done / total * 100)}"><i id="own-bar" style="width:${(done / total * 100).toFixed(1)}%"></i></div>
+        <div class="small muted" id="own-prog">${Math.round(done / 1048576)} of ${Math.round(total / 1048576)} MB</div>
+        <button class="btn sm ghost" data-act="own-cancel" style="align-self:flex-start">Stop the download</button>`;
+    } else if (use) {
+      const battery = appStatus().battery === false ? '<div class="small">Some phones stop apps to save battery. <button class="linkish" data-act="alarm-fix" data-id="battery">Let this app run without battery limits</button></div>' : '';
+      body = `<div class="small"><span class="pill good">On</span> The app does the listening itself, so you can lock the phone or open another app while it listens. No sound leaves the phone, and none is saved.</div>
+        <div class="small muted">${esc(ownName(use))} speech model, ${ownMB(st, use)} MB on this phone. A long meeting uses a fair amount of battery.</div>${battery}
+        <div class="btnrow"><button class="btn sm ghost" data-act="own-off">Use the phone’s speech instead</button><button class="btn sm ghost" data-act="own-more">${sub.ownMore ? 'Hide the sizes' : 'Change the size'}</button></div>`;
+    } else if (ready.length) {
+      body = `${st.broken ? '<div class="notice warn"><div><p>The app’s own listening could not start last time. You can try it again, or download a different size.</p></div></div>' : ''}
+        <div class="small"><span class="pill">Off</span> The speech model is on this phone, but meetings are listened to by the phone’s speech service. ${why}</div>
+        <div class="btnrow"><button class="btn sm" data-act="own-use" data-id="${esc(ready[0])}">Use the app’s own listening</button><button class="btn sm ghost" data-act="own-more">${sub.ownMore ? 'Hide the sizes' : 'Change the size'}</button></div>`;
+    } else {
+      body = `<div class="small">${why} The app can do the listening itself instead. It carries on with the phone locked, and no sound leaves the phone.</div>
+        <div class="small">It needs a speech model, downloaded once. Use Wi-Fi if you can.</div>
+        ${ask ? '' : `<div class="btnrow"><button class="btn" data-act="own-get" data-id="${esc(pick)}">Download (${ownMB(st, pick)} MB)</button><button class="btn ghost" data-act="own-more">${sub.ownMore ? 'Hide the sizes' : 'Other sizes'}</button></div>`}`;
+    }
+    const rows = sub.ownMore && !busy ? `<div class="list">${OWN_SIZES.map(([k, name, , hint]) => {
+      const has = ready.includes(k);
+      const tag = k === use ? ' <span class="pill good">In use</span>' : has ? ' <span class="pill">On this phone</span>' : '';
+      const btns = sub.ownDel === k ? `<button class="btn sm danger" data-act="own-del" data-id="${k}">Yes, remove</button><button class="btn sm ghost" data-act="own-del-no">Keep</button>`
+        : has ? `${k === use ? '' : `<button class="btn sm ghost" data-act="own-use" data-id="${k}">Use</button>`}<button class="btn sm ghost danger" data-act="own-del-ask" data-id="${k}">Remove</button>`
+          : ready.length || k !== pick ? `<button class="btn sm ghost" data-act="${ready.length ? 'own-get' : 'own-size'}" data-id="${k}">${ready.length ? 'Download' : 'Choose'}</button>` : '<span class="pill good">Chosen</span>';
+      return `<div class="li top"><div class="grow" style="min-width:0"><b class="small">${name}</b>${tag}<div class="small muted">${ownMB(st, k)} MB. ${hint}</div></div><div class="btnrow" style="flex:none">${btns}</div></div>`;
+    }).join('')}</div>` : '';
+    return `<div class="card" id="own-card">${head}${err}${body}${askBox}${rows}</div>`;
+  }
+  // The app says the download has moved on, finished or failed.
+  function ownChanged() {
+    const st = ownStatus();
+    const busy = st && typeof st.busy === 'string' ? st.busy : '';
+    const was = OWN.was;
+    OWN.was = busy;
+    const card = $('#own-card');
+    if (busy && busy === was && card && $('#own-bar')) { // only the bar and the numbers move
+      const total = Number(st.total) > 0 ? Number(st.total) : ownMB(st, busy) * 1048576;
+      const done = Math.max(0, Math.min(total, Number(st.done) || 0));
+      $('#own-bar').style.width = `${(done / total * 100).toFixed(1)}%`;
+      const prog = $('#own-prog');
+      if (prog) prog.textContent = `${Math.round(done / 1048576)} of ${Math.round(total / 1048576)} MB`;
+      return;
+    }
+    if (was && !busy && st && !st.error && ownOn(st)) toast('<b>The speech model is ready.</b> From now on the app does the listening itself, with the phone locked or not.', 7000);
+    if (card) { const html = ownCard(); if (html) card.outerHTML = html; else card.remove(); }
+  }
   PP.meetings = () => {
     const p = state.portfolio;
     const n = p.meetNotes;
@@ -4709,6 +4851,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const row = (m) => `<div class="li top"><button class="grow tap" data-act="meet-open" data-id="${esc(m.id)}" style="text-align:left;min-width:0"><b>${esc(shortDate(m.date))}</b>${m.none ? ' <span class="pill warn">No meeting</span>' : ''}${m.pp ? ' <span class="pill good">In PebblePad</span>' : ''}<div class="small">${esc(m.discussed || '')}</div>${m.actions ? `<div class="small muted">Actions: ${esc(m.actions)}</div>` : ''}</button><button class="iconbtn" data-act="meet-del" data-id="${esc(m.id)}" aria-label="Delete">${ic('trash', 16)}</button></div>`;
     return `<div class="small muted">Your Mentor Meeting Record. The handbook suggests about 30 minutes a week. No meeting? Note why.</div>
       ${top}
+      ${ownCard()}
       <button class="btn${n || MEET.live ? ' ghost' : ''}" data-act="meet-new">${ic('plus', 16)} Write up a meeting</button>
       <div class="card"><h3>Meetings</h3>${list.length ? `<div class="list">${list.map(row).join('')}</div>` : '<div class="small muted">No meetings recorded yet.</div>'}</div>`;
   };
@@ -4757,7 +4900,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     m.date = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : (m.date || todayKey());
     MEET_FIELDS.forEach(([k]) => { if (vals[k] || k === 'discussed' || k === 'actions') m[k] = vals[k]; else delete m[k]; });
     if (isNew && !none && on('m-ev')) p.evidence.push({ id: 'e' + uid(), title: `Mentor meeting, ${shortDate(m.date)}`, type: 'Mentor meeting record', date: m.date, link: '', status: 'draft', ksbs: [], notes: m.discussed });
-    if (meetEdit && meetEdit.fromNotes && on('m-drop')) { p.meetNotes = null; Object.assign(MEET, { paused: false, why: '', agreed: false }); }
+    if (meetEdit && meetEdit.fromNotes && on('m-drop')) { p.meetNotes = null; meetForget(); Object.assign(MEET, { paused: false, why: '', agreed: false }); }
     meetEdit = { id: m.id, fromNotes: false };
     commit();
     return { m, isNew };
@@ -5962,6 +6105,26 @@ ${n.text.trim()}
         break;
       }
       case 'meet-resume': if (MEET.agreed) meetBegin(); else meetStartSheet(); break;
+      // The app's own listening: its speech model
+      case 'own-more': sub.ownMore = !sub.ownMore; sub.ownDel = ''; render(); break;
+      case 'own-size': sub.ownSize = id; sub.ownAsk = ''; render(); break;
+      case 'own-wait': sub.ownAsk = ''; render(); break;
+      case 'own-get': {
+        const st = ownStatus();
+        if (!st || !st.supported || st.busy || !OWN_SIZES.some((x) => x[0] === id)) break;
+        if (st.metered && sub.ownAsk !== id) { sub.ownSize = id; sub.ownAsk = id; sub.ownMore = false; render(); break; }
+        sub.ownAsk = ''; sub.ownMore = false; sub.ownSize = id;
+        try { APP.ownDownload(id); } catch (err) { toast('The download could not start.'); }
+        OWN.was = id;
+        render();
+        break;
+      }
+      case 'own-cancel': if (canOwn()) { try { APP.ownCancel(); } catch (err) { /* ignore */ } } break;
+      case 'own-use': if (canOwn()) { try { APP.ownUse(id); } catch (err) { /* ignore */ } sub.ownMore = false; render(); } break;
+      case 'own-off': if (canOwn()) { try { APP.ownUse(''); } catch (err) { /* ignore */ } render(); } break;
+      case 'own-del-ask': sub.ownDel = id; render(); break;
+      case 'own-del-no': sub.ownDel = ''; render(); break;
+      case 'own-del': sub.ownDel = ''; if (canOwn()) { try { APP.ownDelete(id); } catch (err) { /* ignore */ } render(); toast('Removed. You can download it again at any time.'); } break;
       case 'meet-pause': meetStop('pause'); break;
       case 'meet-finish': if (MEET.live) meetStop('finish'); else { MEET.paused = false; render(); } break;
       case 'meet-paste': {
@@ -5996,7 +6159,7 @@ ${n.text.trim()}
       case 'meet-write': meetSheet({ date: (p.meetNotes || {}).date, fromNotes: !!p.meetNotes }); break;
       case 'meet-drop-ask': sub.mtDrop = true; render(); break;
       case 'meet-drop-no': sub.mtDrop = false; render(); break;
-      case 'meet-drop': sub.mtDrop = false; p.meetNotes = null; Object.assign(MEET, { paused: false, why: '', agreed: false }); clearTimeout(window.__mtT); commit(); render(); toast('The phone’s notes are deleted.'); break;
+      case 'meet-drop': sub.mtDrop = false; p.meetNotes = null; meetForget(); Object.assign(MEET, { paused: false, why: '', agreed: false }); clearTimeout(window.__mtT); commit(); render(); toast('The phone’s notes are deleted.'); break;
       case 'meet-del': p.meetings = p.meetings.filter((m) => m.id !== id); commit(); render(); break;
       case 'pcheck': { if (p.checks[id]) delete p.checks[id]; else p.checks[id] = Date.now(); commit(); render(); break; }
       case 'pduty': { if (p.duties[id]) delete p.duties[id]; else p.duties[id] = Date.now(); commit(); render(); break; }
@@ -6362,7 +6525,8 @@ ${n.text.trim()}
     window.__capgownPod = (st) => podState(st);
     window.__capgownPodFeed = (req, d) => { const f = PODF.cb[String(req)]; if (f) f(d); };
     podSync();
-    window.__capgownDictate = (kind, text) => dictEvent(String(kind || ''), String(text || ''));
+    window.__capgownDictate = (kind, text, seq, sid) => dictEvent(String(kind || ''), String(text || ''), seq, sid);
+    window.__capgownOwn = () => ownChanged();
     listenSync();
     window.__capgownBack = () => {
       if (DICT.on) dictStop();
@@ -6403,7 +6567,7 @@ ${n.text.trim()}
   document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); if (!document.hidden) meetWake(); else if (MEET.live) MEET.hidAt = Date.now(); });
 
   // Exposed for testing only
-  window.__planner = { deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
+  window.__planner = { ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
 })();
 
 </script>

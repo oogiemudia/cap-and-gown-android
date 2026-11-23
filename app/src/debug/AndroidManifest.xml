@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only in the test build that the checks run on an emulator. The app people install does not have this. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".SelfTest"
+            android:exported="true"
+            android:label="Cap and Gown self test" />
+    </application>
+</manifest>

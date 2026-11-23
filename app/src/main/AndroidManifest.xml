@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- To say "you are on mobile data" before the speech model is downloaded -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
@@ -90,11 +93,17 @@
             android:foregroundServiceType="mediaPlayback" />
 
         <!-- Keeps the mentor meeting listener going with the phone locked or another app open. It shows a notice
-             with Pause for as long as it listens. Only words are kept: no sound is saved. -->
+             with Pause for as long as it listens. Only words are kept: no sound is saved. The app's own
+             listening (OwnSpeech) relies on it: the phone's speech service may still stop when the screen goes off. -->
         <service
             android:name=".MeetingService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
+
+        <!-- The speech engine's own screen for asking for the microphone is not used: the app asks itself -->
+        <activity
+            android:name="ai.moonshine.voice.MicrophonePermissionActivity"
+            tools:node="remove" />
 
         <receiver
             android:name=".AlarmReceiver"

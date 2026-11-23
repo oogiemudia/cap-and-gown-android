@@ -103,3 +103,121 @@ jobs:
           name: CapAndGown-test-build
           path: app/build/outputs/apk/release/app-release.apk
           retention-days: 14
+
+  engine:
+    # The page's test robot cannot run the speech engine, so this job does: it starts an Android emulator,
+    # installs a test build, downloads the smallest speech model and plays it a recording of speech.
+    # The test is app/src/debug/java/io/github/oogiemudia/capgown/SelfTest.java, which is not in the app people install.
+    name: The app's own listening on an Android emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      APP: io.github.oogiemudia.capgown
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: A recording of speech for the test (the speech engine's own sample)
+        run: |
+          mkdir -p app/src/debug/assets
+          curl -fsSL --retry 3 -o app/src/debug/assets/selftest.wav \
+            https://raw.githubusercontent.com/moonshine-ai/moonshine/v0.1.6/test-assets/two_cities_16k.wav
+          size=$(stat -c %s app/src/debug/assets/selftest.wav)
+          echo "selftest.wav: $size bytes, sha256 $(sha256sum app/src/debug/assets/selftest.wav | cut -d' ' -f1)"
+          test "$size" -gt 500000 && test "$size" -lt 20000000
+          test "$(head -c 4 app/src/debug/assets/selftest.wav)" = "RIFF"
+
+      - name: Build the test build (not published)
+        run: gradle --no-daemon --stacktrace assembleDebug -Pemulator
+
+      - name: Let the emulator use this machine's processor
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Start an Android 14 phone (emulator)
+        run: |
+          TOOLS="$ANDROID_HOME/cmdline-tools/latest/bin"
+          IMAGE="system-images;android-34;default;x86_64"
+          yes | "$TOOLS/sdkmanager" --licenses > /dev/null 2>&1 || true
+          "$TOOLS/sdkmanager" --install platform-tools emulator "$IMAGE" > /dev/null
+          echo no | "$TOOLS/avdmanager" create avd --force -n capgown -k "$IMAGE" --device pixel_6
+          QEMU_AUDIO_DRV=none nohup "$ANDROID_HOME/emulator/emulator" -avd capgown -no-window -no-boot-anim -no-snapshot \
+            -gpu swiftshader_indirect -memory 4096 -camera-back none -camera-front none > emulator.log 2>&1 &
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          timeout 300 "$ADB" wait-for-device
+          for i in $(seq 1 150); do
+            [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break
+            sleep 2
+          done
+          [ "$("$ADB" shell getprop sys.boot_completed | tr -d '\r')" = "1" ] || { tail -n 40 emulator.log; exit 1; }
+          "$ADB" shell svc power stayon true
+          "$ADB" shell settings put system screen_off_timeout 1800000
+          "$ADB" shell input keyevent 82
+          "$ADB" shell wm dismiss-keyguard || true
+
+      - name: Install the test build
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          "$ADB" install -r app/build/outputs/apk/debug/app-debug.apk
+          "$ADB" shell pm grant "$APP" android.permission.RECORD_AUDIO
+          "$ADB" shell pm grant "$APP" android.permission.POST_NOTIFICATIONS
+
+      - name: The speech model downloads and a recording comes out as words
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          "$ADB" logcat -c
+          "$ADB" shell am start -S -W -n "$APP/.SelfTest" --es what recording --es size tiny
+          for i in $(seq 1 300); do
+            "$ADB" logcat -d -s CapGownSelfTest:V > selftest-recording.log || true
+            grep -Eq "SELFTEST (PASS|FAIL) recording" selftest-recording.log && break
+            sleep 5
+          done
+          cat selftest-recording.log
+          if ! grep -q "SELFTEST PASS recording" selftest-recording.log; then
+            "$ADB" logcat -d -t 300 | grep -Ei "capgown|moonshine|onnx|AndroidRuntime|FATAL|DEBUG   " | tail -n 120 || true
+            exit 1
+          fi
+
+      - name: The microphone keeps giving sound with the screen off
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          "$ADB" logcat -c
+          "$ADB" shell input keyevent 82
+          "$ADB" shell am start -S -W -n "$APP/.SelfTest" --es what mic --es size tiny
+          sleep 25
+          # the screen goes off, as when the phone is locked, and then the phone is told it is idle on battery
+          "$ADB" shell svc power stayon false
+          "$ADB" shell input keyevent 223
+          sleep 15
+          "$ADB" shell dumpsys battery unplug
+          "$ADB" shell dumpsys deviceidle force-idle || true
+          for i in $(seq 1 60); do
+            "$ADB" logcat -d -s CapGownSelfTest:V > selftest-mic.log || true
+            grep -Eq "SELFTEST (PASS|FAIL|SKIP) mic" selftest-mic.log && break
+            sleep 5
+          done
+          cat selftest-mic.log
+          "$ADB" shell dumpsys deviceidle get deep || true
+          grep -Eq "SELFTEST (PASS|SKIP) mic" selftest-mic.log
+
+      - name: Keep the logs with this run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: own-listening-emulator-logs
+          path: |
+            selftest-*.log
+            emulator.log
+          retention-days: 14
+          if-no-files-found: ignore
+

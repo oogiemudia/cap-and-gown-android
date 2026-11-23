@@ -67,6 +67,35 @@ const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placem
     await check('mentor meeting, taking the record to PebblePad');
     await meet(() => { const P = window.__planner; document.querySelector('[data-act="close-sheet"]').click(); P.sub.mtDrop = false; P.go('home'); P.sub.ppage = 'meetings'; P.go('portfolio'); });
     await check('mentor meeting, saved and in the list');
+    // The app's own listening: the offer, the sizes, the question on mobile data, downloading, a download that
+    // failed, on with its sizes and the remove question, off after it could not start, the sheet, and listening
+    const own = (fn) => meet(fn).then(() => meet(() => { const P = window.__planner; P.go('home'); P.sub.ppage = 'meetings'; P.go('portfolio'); }));
+    await own(() => 0);
+    await check('own listening, the offer');
+    await own(() => { window.__planner.sub.ownMore = true; });
+    await check('own listening, the sizes');
+    await own(() => { const s = window.__planner.sub; window.__own.metered = true; s.ownMore = false; s.ownSize = 'medium'; s.ownAsk = 'medium'; });
+    await check('own listening, the question on mobile data');
+    await own(() => { const s = window.__planner.sub; s.ownAsk = ''; Object.assign(window.__own, { metered: false, busy: 'medium', done: 131596288, total: 263192576 }); });
+    await check('own listening, downloading');
+    await own(() => { Object.assign(window.__own, { busy: '', error: 'space' }); window.__planner.sub.ownMore = true; });
+    await check('own listening, a download that failed');
+    await own(() => { const W = window.__own; W.sizes.small.ready = true; W.sizes.tiny.ready = true; W.use = 'small'; W.error = 'offline'; const s = window.__planner.sub; s.ownMore = true; s.ownDel = 'tiny'; window.__keepStatus = window.AndroidApp.status; window.AndroidApp.status = () => JSON.stringify(Object.assign(JSON.parse(window.__keepStatus()), { battery: false })); });
+    await check('own listening, on, with the sizes and the remove question');
+    await own(() => { window.AndroidApp.status = window.__keepStatus; const W = window.__own; W.broken = true; W.error = ''; const s = window.__planner.sub; s.ownMore = false; s.ownDel = ''; });
+    await check('own listening, off after it could not start');
+    await own(() => { window.__own.broken = false; });
+    await meet(() => document.querySelector('#screen [data-act="meet-listen"]').click());
+    await check('own listening, before listening');
+    await meet(() => { document.querySelector('#mt-ok').click(); document.querySelector('#layer [data-act="meet-start"]').click(); });
+    await meet(() => { window.__say('we talked about the starter activity and how the learners settled quickly into the practical'); });
+    await check('own listening, listening');
+    await meet(() => document.querySelector('#screen [data-act="meet-finish"]').click());
+    await meet(() => { const P = window.__planner; P.state.portfolio.meetNotes = null; window.__keepOwn = window.AndroidApp.ownListen; delete window.AndroidApp.ownListen; P.go('home'); P.sub.ppage = 'meetings'; P.go('portfolio'); });
+    await check('own listening, the app before it');
+    await own(() => { window.AndroidApp.ownListen = window.__keepOwn; window.__own.supported = false; });
+    await check('own listening, a phone that cannot run it');
+    await own(() => { const W = window.__own; W.supported = true; W.use = ''; W.sizes.small.ready = false; W.sizes.tiny.ready = false; });
     // the rows that only show after a tap: change a date, delete, a step's sheet, a library item, the add sheet, updates
     const taps = [['deadlines', '[data-act="edit-due"]'], ['deadlines', '[data-act="ask-delete"]'], ['home', '[data-act="step"]'], ['plan', '[data-act="step"]'], ['library', '[data-act="res"]'], ['library', '[data-act="lib-add"]'], ['study', '[data-act="fy-why"]'], ['settings', '[data-act="live-revert-ask"]'], ['settings', '[data-act="ask-reset"]'], ['goals', '[data-act]'], ['portfolio', '[data-act="ev-new"]']];
     for (const [r, sel] of taps) {

@@ -53,6 +53,12 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
     private boolean dictateMeeting; // the listening asked for is a whole meeting, not a few sentences
     private boolean onScreen;       // between onResume and onPause
     private boolean meetingPaused;  // Pause was tapped on the meeting's notice
+    private OwnSpeech own;          // the app's own listening, for a meeting, once its speech model is on the phone
+    // The sentences of a meeting, numbered as they are heard, so that the page can ask for any it missed
+    // while the phone was locked (meetingSince). Only words, only in memory, and forgotten when the page says so.
+    private final String heardId = Long.toString(System.currentTimeMillis(), 36);
+    private final java.util.ArrayList<Object[]> heard = new java.util.ArrayList<>(); // { number, words, time }
+    private int heardCount;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +92,11 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
         askForNotificationsOnce();
         Alarms.scheduleNext(this);
         checkForUpdate(false);
+        // The page shows how the download of the speech model is going
+        SpeechModel.watch(() -> runOnUiThread(() -> {
+            keepScreenOn();
+            if (loaded) js("window.__capgownOwn && window.__capgownOwn()");
+        }));
     }
 
     /** Looks for a newer planner page on GitHub (see LiveUpdate) and tells the page what it found. */
@@ -102,6 +113,7 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
         runOnUiThread(() -> {
             if (web == null) return;
             if (dictation != null) dictation.cancel();
+            if (own != null) own.stop();
             if (chat != null) chat.hide();
             loaded = false;
             web.loadUrl(START);
@@ -133,6 +145,7 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
     protected void onResume() {
         super.onResume();
         onScreen = true;
+        if (own != null) own.background(false);
         if (chat != null) chat.resume();
         if (loaded) {
             js("window.__capgownResume && window.__capgownResume()");
@@ -146,6 +159,10 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
         // that is being listened to under its own notice (MeetingService). What was heard is kept.
         onScreen = false;
         if (dictation != null && !(dictation.inMeeting() && MeetingService.running())) dictation.cancel();
+        if (own != null && own.active()) {
+            if (MeetingService.running()) own.background(true);
+            else own.stop();
+        }
         if (chat != null) chat.pause();
         super.onPause();
     }
@@ -194,12 +211,22 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
     }
 
     private void beginDictation() {
-        if (dictation == null) dictation = new Dictation(this, this::tellDictation);
         ReadAloud.pause(); // so the phone does not write down its own voice
         Podcast.pause(); // or the podcast
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         meetingPaused = false;
+        // A meeting is listened to by the app itself once its speech model is on the phone: that carries on
+        // with the phone locked, and the screen is left to switch off as usual.
+        String size = dictateMeeting && !(dictation != null && dictation.active()) ? SpeechModel.inUse(this) : "";
+        if (!size.isEmpty()) {
+            if (own == null) own = new OwnSpeech(this, this::tellDictation);
+            own.background(!onScreen);
+            own.start(size, null);
+            MeetingService.start(this, this::pauseMeeting);
+            return;
+        }
+        if (dictation == null) dictation = new Dictation(this, this::tellDictation);
         dictation.start(dictateMeeting);
+        keepScreenOn();
         // A meeting carries on with the phone locked or another app open, under a notice with a Pause button.
         // The notice has to go up now, while the app is on the screen.
         if (dictateMeeting && dictation.inMeeting()) MeetingService.start(this, this::pauseMeeting);
@@ -208,6 +235,11 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
     /** Pause on the meeting's notice: stop listening and tell the page it was paused, not cut off. */
     private void pauseMeeting() {
         runOnUiThread(() -> {
+            if (own != null && own.active()) {
+                meetingPaused = true;
+                own.stop();
+                return;
+            }
             if (dictation == null || !dictation.active()) {
                 MeetingService.stop();
                 return;
@@ -217,6 +249,66 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
         });
     }
 
+    /**
+     * The screen stays on while the phone's speech service listens (it stops when the screen goes off) and
+     * while the speech model downloads. The app's own listening does not need it.
+     */
+    private void keepScreenOn() {
+        boolean on = (dictation != null && dictation.active()) || SpeechModel.busy();
+        if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+
+    /* ---------- The app's own listening: its speech model (see SpeechModel) ---------- */
+
+    String ownStatus() {
+        return SpeechModel.status(this).toString();
+    }
+
+    void ownDownload(String size) {
+        runOnUiThread(() -> SpeechModel.download(this, size));
+    }
+
+    void ownUse(String size) {
+        runOnUiThread(() -> SpeechModel.use(this, size));
+    }
+
+    void ownDelete(String size) {
+        runOnUiThread(() -> {
+            if (own != null && own.active()) return; // not while it is being listened with
+            SpeechModel.delete(this, size);
+        });
+    }
+
+    /**
+     * The sentences of a meeting that the page has not had yet: everything after number seq, or everything
+     * if the page's numbers are from an earlier run of the app. Also whether it is still listening.
+     */
+    String meetingSince(String id, int seq) {
+        org.json.JSONArray lines = new org.json.JSONArray();
+        synchronized (heard) {
+            boolean same = heardId.equals(id);
+            for (Object[] h : heard) {
+                if (same && (Integer) h[0] <= seq) continue;
+                lines.put(new org.json.JSONArray().put(h[0]).put(h[1]).put(h[2]));
+            }
+        }
+        JSONObject o = new JSONObject();
+        try {
+            o.put("id", heardId);
+            o.put("lines", lines);
+            o.put("live", (own != null && own.active()) || (dictation != null && dictation.inMeeting()));
+        } catch (org.json.JSONException ignored) { }
+        return o.toString();
+    }
+
+    /** The page has deleted the meeting's notes: forget the sentences kept here too. */
+    void meetingForget() {
+        synchronized (heard) {
+            heard.clear();
+        }
+    }
+
     /** True once a meeting may carry on off the screen (its notice is up). */
     boolean meetingInBackground() {
         return MeetingService.running();
@@ -224,23 +316,33 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
 
     void stopDictation() {
         runOnUiThread(() -> {
+            if (own != null) own.stop();
             if (dictation != null) dictation.stop();
         });
     }
 
     private void tellDictation(String kind, String text) {
+        int number = 0;
         if ("end".equals(kind)) {
-            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             MeetingService.stop();
+            keepScreenOn();
+            if ("engine".equals(text)) SpeechModel.broken(true); // the next try uses the phone's speech service
             if (meetingPaused) {
                 meetingPaused = false;
                 if (text.isEmpty()) text = "paused";
             } else if (dictateMeeting && !onScreen && ("denied".equals(text) || "mic".equals(text))) {
                 text = "locked"; // the phone took the microphone away because the app was off the screen
             }
+        } else if ("final".equals(kind) && dictateMeeting && !text.trim().isEmpty()) {
+            synchronized (heard) {
+                number = ++heardCount;
+                heard.add(new Object[]{number, text, System.currentTimeMillis()});
+                if (heard.size() > 3000) heard.remove(0);
+            }
         }
         if (web != null && loaded) {
-            js("window.__capgownDictate && window.__capgownDictate(" + JSONObject.quote(kind) + "," + JSONObject.quote(text) + ")");
+            js("window.__capgownDictate && window.__capgownDictate(" + JSONObject.quote(kind) + "," + JSONObject.quote(text)
+                    + (number > 0 ? "," + number + "," + JSONObject.quote(heardId) : "") + ")");
         }
     }
 
@@ -249,6 +351,8 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
         ReadAloud.removeListener(this);
         Podcast.removeListener(this);
         if (dictation != null) dictation.cancel();
+        if (own != null) own.stop();
+        SpeechModel.watch(null);
         if (chat != null) chat.destroy();
         if (web != null) {
             web.destroy();
