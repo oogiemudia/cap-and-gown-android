@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -19,6 +20,10 @@ import java.util.ArrayList;
  * It reports through Callback: "ready" (listening now), "partial" (the words so far, still changing),
  * "final" (a finished piece of text) and "end" with the reason: "" (you stopped it), quiet, denied,
  * offline, mic, language, busy or none (this phone has no speech recogniser).
+ *
+ * A whole meeting (start(true)) is the same listening kept going for longer: it carries on through
+ * pauses until nobody has been heard for ten minutes, and when the signal or the recogniser drops out
+ * it says "wait" with the reason and keeps trying. Only words are passed on. No sound is kept.
  */
 final class Dictation implements RecognitionListener {
 
@@ -30,6 +35,9 @@ final class Dictation implements RecognitionListener {
     private static final int MAX_RETRIES = 3;
     private static final long RESTART_MS = 200;             // a breath between one sentence and the next round
     private static final long MAX_MS = 20 * 60 * 1000L;     // in case it is left on by mistake
+    private static final long MEETING_MAX_MS = 90 * 60 * 1000L;   // a whole mentor meeting, with room to spare
+    private static final long MEETING_QUIET_MS = 10 * 60 * 1000L; // nobody heard for this long: the meeting is over
+    private static final long MEETING_WAIT_MS = 5000;             // between tries when the signal or the recogniser drops out
     private static final int ERROR_LANGUAGE_NOT_SUPPORTED = 12; // SpeechRecognizer, Android 12 and later
     private static final int ERROR_LANGUAGE_UNAVAILABLE = 13;
 
@@ -42,6 +50,8 @@ final class Dictation implements RecognitionListener {
     private boolean inRound;   // the phone is listening now, so an answer is still to come
     private boolean offline;
     private boolean anyLanguage;
+    private boolean meeting;
+    private long lastHeard;
     private int quiet;
     private int retries;
     private String partial = "";
@@ -71,7 +81,18 @@ final class Dictation implements RecognitionListener {
     }
 
     void start() {
+        start(false);
+    }
+
+    /** wholeMeeting: keep listening through pauses, for a mentor meeting, instead of a few sentences. */
+    void start(boolean wholeMeeting) {
         if (active) {
+            if (wholeMeeting && !meeting) { // a short dictation turns into a meeting: give it the longer limits
+                meeting = true;
+                lastHeard = SystemClock.elapsedRealtime();
+                handler.removeCallbacks(tooLong);
+                handler.postDelayed(tooLong, MEETING_MAX_MS);
+            }
             out.onDictate("ready", ""); // already listening (the page was redrawn): say so again
             return;
         }
@@ -87,7 +108,9 @@ final class Dictation implements RecognitionListener {
         quiet = 0;
         retries = 0;
         partial = "";
-        handler.postDelayed(tooLong, MAX_MS);
+        meeting = wholeMeeting;
+        lastHeard = SystemClock.elapsedRealtime();
+        handler.postDelayed(tooLong, meeting ? MEETING_MAX_MS : MAX_MS);
         listen();
     }
 
@@ -156,6 +179,16 @@ final class Dictation implements RecognitionListener {
         handler.postDelayed(listen, after);
     }
 
+    /** Quiet for too long: a few rounds for a dictation, ten minutes for a meeting. */
+    private boolean tooQuiet() {
+        return meeting ? SystemClock.elapsedRealtime() - lastHeard >= MEETING_QUIET_MS : quiet >= MAX_QUIET;
+    }
+
+    private void noteHeard() {
+        quiet = 0;
+        lastHeard = SystemClock.elapsedRealtime();
+    }
+
     /** A new recogniser, for when the old one is stuck. */
     private void renew() {
         if (recognizer == null) return;
@@ -208,6 +241,7 @@ final class Dictation implements RecognitionListener {
         }
         if (t.isEmpty()) return;
         partial = t;
+        lastHeard = SystemClock.elapsedRealtime();
         out.onDictate("partial", t);
     }
 
@@ -221,11 +255,11 @@ final class Dictation implements RecognitionListener {
         if (t.isEmpty()) {
             quiet++;
         } else {
-            quiet = 0;
+            noteHeard();
             retries = 0;
             out.onDictate("final", t);
         }
-        if (quiet >= MAX_QUIET) finish("quiet");
+        if (tooQuiet()) finish("quiet");
         else again(RESTART_MS);
     }
 
@@ -241,9 +275,9 @@ final class Dictation implements RecognitionListener {
         switch (code) {
             case SpeechRecognizer.ERROR_NO_MATCH:
             case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-                if (heard) quiet = 0;
+                if (heard) noteHeard();
                 else quiet++;
-                if (quiet >= MAX_QUIET) finish("quiet");
+                if (tooQuiet()) finish("quiet");
                 else again(RESTART_MS);
                 break;
             case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
@@ -260,6 +294,12 @@ final class Dictation implements RecognitionListener {
                     offline = true;
                     renew();
                     again(300);
+                } else if (meeting && !tooQuiet()) {
+                    // The signal dropped in the middle of a meeting: say so and keep trying.
+                    offline = false;
+                    renew();
+                    out.onDictate("wait", "offline");
+                    again(MEETING_WAIT_MS);
                 } else {
                     finish("offline");
                 }
@@ -282,6 +322,11 @@ final class Dictation implements RecognitionListener {
                     if (retries == MAX_RETRIES) anyLanguage = true;
                     renew();
                     again(500);
+                } else if (meeting && !tooQuiet()) {
+                    retries = 0;
+                    renew();
+                    out.onDictate("wait", "busy");
+                    again(MEETING_WAIT_MS);
                 } else {
                     finish("busy");
                 }

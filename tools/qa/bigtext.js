@@ -41,6 +41,26 @@ const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placem
     await page.evaluate(() => { document.querySelector('[data-act="close-sheet"]').click(); window.__planner.go('settings'); });
     await check('settings, older app without the PebblePad link');
     await page.evaluate(() => { window.AndroidApp.hasPebblePad = window.__keepPP.has; window.AndroidApp.openPebblePad = window.__keepPP.open; window.__planner.go('home'); });
+    // Mentor meetings: the sheet before listening (as an older app words it, the longest), listening with words
+    // coming in, paused, the notes with Claude's draft and the delete question, and the record with every heading
+    const meet = (fn) => page.evaluate(fn).then(() => page.evaluate(() => new Promise((r) => setTimeout(r, 40))));
+    await meet(() => { const P = window.__planner; P.go('home'); P.sub.ppage = 'meetings'; P.go('portfolio'); window.__keepMeet = window.AndroidApp.meetingStart; delete window.AndroidApp.meetingStart; document.querySelector('#screen [data-act="meet-listen"]').click(); });
+    await check('mentor meeting, before listening, older app');
+    await meet(() => { window.AndroidApp.meetingStart = window.__keepMeet; document.querySelector('[data-act="close-sheet"]').click(); document.querySelector('#screen [data-act="meet-listen"]').click(); document.querySelector('#mt-ok').click(); document.querySelector('#layer [data-act="meet-start"]').click(); });
+    await meet(() => { window.__say('we talked about the starter activity and how the learners settled quickly into the practical'); window.__say('and the learners were engaged all the way through the practical task which is exactly what I wanted to see from this group', 'partial'); window.__planner.state.portfolio.meetNotes.secs = 5399; window.__planner.meetTick(); });
+    await check('mentor meeting, listening');
+    await meet(() => window.__capgownDictate('wait', 'busy'));
+    await check('mentor meeting, waiting for the speech service');
+    await meet(() => document.querySelector('#screen [data-act="meet-pause"]').click());
+    await check('mentor meeting, paused');
+    await meet(() => { const P = window.__planner; document.querySelector('#screen [data-act="meet-finish"]').click(); const n = P.state.portfolio.meetNotes; n.sent = 1; n.draft = 'WHO WAS THERE:\nMe and my mentor\nWHAT WE DISCUSSED:\nThe starter went well.\nTARGETS AND ACTIONS:\n- Shorten the plenary'; P.MEET.why = 'quiet'; P.sub.mtDrop = true; P.go('home'); P.sub.ppage = 'meetings'; P.go('portfolio'); });
+    await check('mentor meeting, the notes with Claude’s draft');
+    await meet(() => document.querySelector('#screen [data-act="meet-fill"]').click());
+    await check('mentor meeting, check your record');
+    await meet(() => { document.querySelector('#layer [data-act="pp-take"][data-k="meet"]').click(); });
+    await check('mentor meeting, taking the record to PebblePad');
+    await meet(() => { const P = window.__planner; document.querySelector('[data-act="close-sheet"]').click(); P.sub.mtDrop = false; P.go('home'); P.sub.ppage = 'meetings'; P.go('portfolio'); });
+    await check('mentor meeting, saved and in the list');
     // the rows that only show after a tap: change a date, delete, a step's sheet, a library item, the add sheet, updates
     const taps = [['deadlines', '[data-act="edit-due"]'], ['deadlines', '[data-act="ask-delete"]'], ['home', '[data-act="step"]'], ['plan', '[data-act="step"]'], ['library', '[data-act="res"]'], ['library', '[data-act="lib-add"]'], ['study', '[data-act="fy-why"]'], ['settings', '[data-act="live-revert-ask"]'], ['settings', '[data-act="ask-reset"]'], ['goals', '[data-act]'], ['portfolio', '[data-act="ev-new"]']];
     for (const [r, sel] of taps) {

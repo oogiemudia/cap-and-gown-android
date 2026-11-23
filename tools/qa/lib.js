@@ -133,6 +133,16 @@ function bridgeScript(opts) {
         tellSpeak('ready');
       },
       dictateStop: () => { rec('dictateStop')(); if (window.__dictating) { window.__dictating = false; tellSpeak('end', ''); } },
+      // A whole mentor meeting (Dictation.start(true)). The app will not start one while it is off the screen
+      // (a test sets window.__offScreen): it says "end", "away" and the page asks again when the app is back.
+      meetingStart: () => {
+        rec('meetingStart')();
+        if (window.__offScreen) { tellSpeak('end', 'away'); return; }
+        if (o.micDenied) { tellSpeak('end', 'denied'); return; }
+        if (o.noRecogniser) { tellSpeak('end', 'none'); return; }
+        window.__dictating = true;
+        tellSpeak('ready');
+      },
       // The PebblePad app (PebblePocket): on this phone unless noPebble
       hasPebblePad: () => !o.noPebble,
       openPebblePad: () => { rec('openPebblePad')(); return !o.noPebble; },
@@ -145,6 +155,8 @@ function bridgeScript(opts) {
       setAutoUpdate: (on) => { live.auto = !!on; rec('setAutoUpdate')(on); },
       revertUpdate: rec('revertUpdate')
     };
+    // app7: the app as it was before it could listen to a whole mentor meeting (page 48).
+    if (o.oldApp || o.app4 || o.app5 || o.app6 || o.app7) delete window.AndroidApp.meetingStart;
     // app6: the app as it was before it could open the PebblePad app (page 44).
     if (o.oldApp || o.app4 || o.app5 || o.app6) ['hasPebblePad', 'openPebblePad'].forEach((k) => { delete window.AndroidApp[k]; });
     // app5: the app as it was before podcasts played inside it (page 42).

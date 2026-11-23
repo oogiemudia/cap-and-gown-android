@@ -196,10 +196,10 @@ public class Bridge {
         return "ok";
     }
 
-    /** Puts text (the week's plan) into the chat's message box. */
+    /** Puts text (the week's plan, or the notes of a mentor meeting with their brief) into the chat's message box. */
     @JavascriptInterface
     public void chatInsert(String text) {
-        if (text == null || text.length() > 50_000) return;
+        if (text == null || text.length() > 200_000) return;
         activity.runOnUiThread(() -> activity.chat.insert(text));
     }
 
@@ -389,6 +389,17 @@ public class Bridge {
     @JavascriptInterface
     public void dictateStop() {
         activity.stopDictation();
+    }
+
+    /**
+     * Listens to a whole meeting: the same as dictateStart, but it carries on through pauses (until nobody
+     * has been heard for ten minutes, or ninety minutes have passed) and says "wait" with the reason while
+     * it tries again after the signal or the recogniser drops out. dictateStop ends it. Only words reach
+     * the page. No sound is kept.
+     */
+    @JavascriptInterface
+    public void meetingStart() {
+        activity.startDictation(true);
     }
 
     /** A phone toast, used while the chat covers the page. */
