@@ -113,6 +113,8 @@ jobs:
     timeout-minutes: 45
     env:
       APP: io.github.oogiemudia.capgown
+      # the tool that makes the emulator and the emulator itself must agree on where it is kept
+      ANDROID_AVD_HOME: /home/runner/.android/avd
     steps:
       - uses: actions/checkout@v4
 
@@ -148,13 +150,15 @@ jobs:
         run: |
           TOOLS="$ANDROID_HOME/cmdline-tools/latest/bin"
           IMAGE="system-images;android-34;default;x86_64"
+          mkdir -p "$ANDROID_AVD_HOME"
           yes | "$TOOLS/sdkmanager" --licenses > /dev/null 2>&1 || true
           "$TOOLS/sdkmanager" --install platform-tools emulator "$IMAGE" > /dev/null
           echo no | "$TOOLS/avdmanager" create avd --force -n capgown -k "$IMAGE" --device pixel_6
-          QEMU_AUDIO_DRV=none nohup "$ANDROID_HOME/emulator/emulator" -avd capgown -no-window -no-boot-anim -no-snapshot \
+          "$ANDROID_HOME/emulator/emulator" -list-avds
+          QEMU_AUDIO_DRV=none nohup "$ANDROID_HOME/emulator/emulator" -avd capgown -no-window -no-boot-anim -no-snapshot -no-metrics \
             -gpu swiftshader_indirect -memory 4096 -camera-back none -camera-front none > emulator.log 2>&1 &
           ADB="$ANDROID_HOME/platform-tools/adb"
-          timeout 300 "$ADB" wait-for-device
+          timeout 300 "$ADB" wait-for-device || { echo "The emulator did not start:"; cat emulator.log; exit 1; }
           for i in $(seq 1 150); do
             [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break
             sleep 2
