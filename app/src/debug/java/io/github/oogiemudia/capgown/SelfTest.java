@@ -92,7 +92,12 @@ public final class SelfTest extends Activity {
             return;
         }
         File[] got = SpeechModel.dir(this, size).listFiles();
-        if (got != null) for (File f : got) say("on the phone: " + f.getName() + " " + f.length());
+        if (got != null) {
+            for (File f : got) {
+                say("on the phone: " + f.getName() + " " + f.length() + " bytes, CRC-32C "
+                        + android.util.Base64.encodeToString(SpeechModel.crc32c(f), android.util.Base64.NO_WRAP));
+            }
+        }
         if (!size.equals(SpeechModel.inUse(this))) {
             say("SELFTEST FAIL recording: the downloaded model was not put into use");
             return;

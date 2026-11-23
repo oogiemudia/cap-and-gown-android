@@ -1608,7 +1608,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
       await a.ctx.close();
       const b = await open(browser, { app: true, ownNoSizes: true, now: '2026-11-23T15:30:00', state: mk() });
       await toMeetings(b.page);
-      ok('own listening: if the app cannot say how big the download is, the page gives its own figure', (await ownBtn(b.page, 'own-get')) === 'Download (130 MB)' && b.errors.length === 0, await ownCardText(b.page));
+      ok('own listening: if the app cannot say how big the download is, the page gives its own figure', (await ownBtn(b.page, 'own-get')) === 'Download (136 MB)' && b.errors.length === 0, await ownCardText(b.page));
       await b.ctx.close();
     }
     {

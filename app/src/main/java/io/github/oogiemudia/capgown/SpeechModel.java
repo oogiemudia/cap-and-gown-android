@@ -30,7 +30,7 @@ import ai.moonshine.voice.TranscriberOption;
  * itself, so that a mentor meeting can be listened to with the phone locked and nothing leaves the phone.
  *
  * The engine (Moonshine Voice, MIT licence) is in the app. Its model is not: it is a one-off download of
- * between about 45 and 255 MB, in one of three sizes, kept in the app's own folder. The list of files and
+ * between 43 and 257 MB, in one of three sizes, kept in the app's own folder. The list of files and
  * where they come from is the engine's own list, so nothing here names a file.
  */
 final class SpeechModel {
@@ -392,33 +392,78 @@ final class SpeechModel {
 
     /**
      * Checks a file against the engine's list, where the list gives a checksum this phone can work out and
-     * recognise. A checksum written in a way it does not recognise is not held against the file.
+     * recognise (the list gives CRC-32C). A checksum written in a way it does not recognise is not held
+     * against the file.
      */
     private static boolean sumOk(Item it, File f) throws IOException {
         String want = it.sum.trim();
         if (want.isEmpty()) return true;
-        String kind = it.sumType.toLowerCase(Locale.ROOT).replace("-", "");
-        String algo = kind.equals("sha256") ? "SHA-256" : kind.equals("sha1") ? "SHA-1" : kind.equals("md5") ? "MD5" : "";
-        if (algo.isEmpty()) return true;
+        String kind = it.sumType.toLowerCase(Locale.ROOT).replace("-", "").replace("_", "");
         byte[] sum;
+        if (kind.equals("crc32c")) {
+            sum = crc32c(f);
+        } else {
+            String algo = kind.equals("sha256") ? "SHA-256" : kind.equals("sha1") ? "SHA-1" : kind.equals("md5") ? "MD5" : "";
+            if (algo.isEmpty()) return true;
+            try (FileInputStream in = new FileInputStream(f)) {
+                MessageDigest md = MessageDigest.getInstance(algo);
+                byte[] buf = new byte[64 * 1024];
+                int n;
+                while ((n = in.read(buf)) >= 0) {
+                    if (cancel) throw new Stopped();
+                    md.update(buf, 0, n);
+                }
+                sum = md.digest();
+            } catch (java.security.NoSuchAlgorithmException e) {
+                return true;
+            }
+        }
+        if (same(want, sum)) return true;
+        if (sum.length == 4 && same(want, new byte[]{sum[3], sum[2], sum[1], sum[0]})) return true; // written low byte first
+        // Wrong only if it is plainly the same kind of checksum, written the same way, with a different value.
+        String hex = hex(sum);
+        String b64 = android.util.Base64.encodeToString(sum, android.util.Base64.NO_WRAP);
+        boolean asHex = want.length() == hex.length() && want.matches("[0-9a-fA-F]+");
+        boolean asB64 = (want.length() == b64.length() || want.length() == b64.replace("=", "").length()) && want.matches("[A-Za-z0-9+/]+=*");
+        return !(asHex || asB64);
+    }
+
+    private static boolean same(String want, byte[] sum) {
+        if (want.equalsIgnoreCase(hex(sum))) return true;
+        String b64 = android.util.Base64.encodeToString(sum, android.util.Base64.NO_WRAP);
+        return want.equals(b64) || want.equals(b64.replace("=", ""));
+    }
+
+    private static String hex(byte[] sum) {
+        StringBuilder hex = new StringBuilder();
+        for (byte b : sum) hex.append(String.format(Locale.ROOT, "%02x", b));
+        return hex.toString();
+    }
+
+    private static int[] crcTable;
+
+    /** The CRC-32C (Castagnoli) of a file, as four bytes, high byte first. */
+    static byte[] crc32c(File f) throws IOException {
+        int[] t = crcTable;
+        if (t == null) {
+            t = new int[256];
+            for (int i = 0; i < 256; i++) {
+                int c = i;
+                for (int k = 0; k < 8; k++) c = (c & 1) != 0 ? (c >>> 1) ^ 0x82F63B78 : c >>> 1;
+                t[i] = c;
+            }
+            crcTable = t;
+        }
+        int crc = 0xFFFFFFFF;
         try (FileInputStream in = new FileInputStream(f)) {
-            MessageDigest md = MessageDigest.getInstance(algo);
             byte[] buf = new byte[64 * 1024];
             int n;
             while ((n = in.read(buf)) >= 0) {
                 if (cancel) throw new Stopped();
-                md.update(buf, 0, n);
+                for (int i = 0; i < n; i++) crc = t[(crc ^ buf[i]) & 0xFF] ^ (crc >>> 8);
             }
-            sum = md.digest();
-        } catch (java.security.NoSuchAlgorithmException e) {
-            return true;
         }
-        StringBuilder hex = new StringBuilder();
-        for (byte b : sum) hex.append(String.format(Locale.ROOT, "%02x", b));
-        if (want.equalsIgnoreCase(hex.toString())) return true;
-        String b64 = android.util.Base64.encodeToString(sum, android.util.Base64.NO_WRAP);
-        if (want.equals(b64) || want.equals(b64.replace("=", ""))) return true;
-        // Wrong only if it is plainly the same kind of checksum with a different value.
-        return !(want.length() == hex.length() && want.matches("[0-9a-fA-F]+"));
+        crc = ~crc;
+        return new byte[]{(byte) (crc >>> 24), (byte) (crc >>> 16), (byte) (crc >>> 8), (byte) crc};
     }
 }
