@@ -143,6 +143,9 @@ function bridgeScript(opts) {
         window.__dictating = true;
         tellSpeak('ready');
       },
+      // The meeting's own notice is up (MeetingService), so it carries on with the phone locked. That the method
+      // exists tells the page this app can do it; noMeetingService is a phone that would not put the notice up.
+      meetingInBackground: () => !o.noMeetingService && !!window.__dictating,
       // The PebblePad app (PebblePocket): on this phone unless noPebble
       hasPebblePad: () => !o.noPebble,
       openPebblePad: () => { rec('openPebblePad')(); return !o.noPebble; },
@@ -155,6 +158,8 @@ function bridgeScript(opts) {
       setAutoUpdate: (on) => { live.auto = !!on; rec('setAutoUpdate')(on); },
       revertUpdate: rec('revertUpdate')
     };
+    // app8: the app as it was before it could listen with the phone locked (page 49, build 13).
+    if (o.oldApp || o.app4 || o.app5 || o.app6 || o.app7 || o.app8) delete window.AndroidApp.meetingInBackground;
     // app7: the app as it was before it could listen to a whole mentor meeting (page 48).
     if (o.oldApp || o.app4 || o.app5 || o.app6 || o.app7) delete window.AndroidApp.meetingStart;
     // app6: the app as it was before it could open the PebblePad app (page 44).

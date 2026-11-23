@@ -52,6 +52,7 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
     private Dictation dictation;
     private boolean dictateMeeting; // the listening asked for is a whole meeting, not a few sentences
     private boolean onScreen;       // between onResume and onPause
+    private boolean meetingPaused;  // Pause was tapped on the meeting's notice
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -141,9 +142,10 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
 
     @Override
     protected void onPause() {
-        // The microphone is never left on once the app is off the screen. What was heard is kept.
+        // The microphone is not left on once the app is off the screen, with one exception: a mentor meeting
+        // that is being listened to under its own notice (MeetingService). What was heard is kept.
         onScreen = false;
-        if (dictation != null) dictation.cancel();
+        if (dictation != null && !(dictation.inMeeting() && MeetingService.running())) dictation.cancel();
         if (chat != null) chat.pause();
         super.onPause();
     }
@@ -196,7 +198,28 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
         ReadAloud.pause(); // so the phone does not write down its own voice
         Podcast.pause(); // or the podcast
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        meetingPaused = false;
         dictation.start(dictateMeeting);
+        // A meeting carries on with the phone locked or another app open, under a notice with a Pause button.
+        // The notice has to go up now, while the app is on the screen.
+        if (dictateMeeting && dictation.inMeeting()) MeetingService.start(this, this::pauseMeeting);
+    }
+
+    /** Pause on the meeting's notice: stop listening and tell the page it was paused, not cut off. */
+    private void pauseMeeting() {
+        runOnUiThread(() -> {
+            if (dictation == null || !dictation.active()) {
+                MeetingService.stop();
+                return;
+            }
+            meetingPaused = true;
+            dictation.stop();
+        });
+    }
+
+    /** True once a meeting may carry on off the screen (its notice is up). */
+    boolean meetingInBackground() {
+        return MeetingService.running();
     }
 
     void stopDictation() {
@@ -206,7 +229,16 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
     }
 
     private void tellDictation(String kind, String text) {
-        if ("end".equals(kind)) getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if ("end".equals(kind)) {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            MeetingService.stop();
+            if (meetingPaused) {
+                meetingPaused = false;
+                if (text.isEmpty()) text = "paused";
+            } else if (dictateMeeting && !onScreen && ("denied".equals(text) || "mic".equals(text))) {
+                text = "locked"; // the phone took the microphone away because the app was off the screen
+            }
+        }
         if (web != null && loaded) {
             js("window.__capgownDictate && window.__capgownDictate(" + JSONObject.quote(kind) + "," + JSONObject.quote(text) + ")");
         }
