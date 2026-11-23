@@ -72,19 +72,37 @@ public final class SelfTest extends Activity {
         }
         say("status before: " + SpeechModel.status(this));
 
+        // An emulator that has only just started may not have its connection yet: wait for it, as a person would.
+        android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        long w0 = SystemClock.elapsedRealtime();
+        boolean online = false;
+        while (!online && SystemClock.elapsedRealtime() - w0 < 120000) {
+            android.net.Network net = cm.getActiveNetwork();
+            android.net.NetworkCapabilities caps = net == null ? null : cm.getNetworkCapabilities(net);
+            online = caps != null && caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+            if (!online) Thread.sleep(1000);
+        }
+        say("connection after " + (SystemClock.elapsedRealtime() - w0) / 1000 + " s: " + (online ? "there" : "not there"));
+
         long t0 = SystemClock.elapsedRealtime();
-        SpeechModel.download(this, size);
-        long told = 0;
-        while (SpeechModel.busy()) {
-            if (SystemClock.elapsedRealtime() - t0 > 15 * 60 * 1000L) {
-                say("SELFTEST FAIL recording: the download took more than 15 minutes. " + SpeechModel.status(this));
-                return;
+        for (int attempt = 1; ; attempt++) {
+            SpeechModel.download(this, size);
+            long told = 0;
+            while (SpeechModel.busy()) {
+                if (SystemClock.elapsedRealtime() - t0 > 15 * 60 * 1000L) {
+                    say("SELFTEST FAIL recording: the download took more than 15 minutes. " + SpeechModel.status(this));
+                    return;
+                }
+                if (SystemClock.elapsedRealtime() - told > 5000) {
+                    told = SystemClock.elapsedRealtime();
+                    say("downloading: " + SpeechModel.status(this).optLong("done") + " of " + SpeechModel.status(this).optLong("total"));
+                }
+                Thread.sleep(250);
             }
-            if (SystemClock.elapsedRealtime() - told > 5000) {
-                told = SystemClock.elapsedRealtime();
-                say("downloading: " + SpeechModel.status(this).optLong("done") + " of " + SpeechModel.status(this).optLong("total"));
-            }
-            Thread.sleep(250);
+            // A dropped connection is carried on from where it stopped, as Download does when it is tapped again.
+            if (SpeechModel.ready(this, size) || !"offline".equals(SpeechModel.status(this).optString("error")) || attempt >= 6) break;
+            say("the download stopped for want of a connection (try " + attempt + "): trying again in 10 s");
+            Thread.sleep(10000);
         }
         say("status after " + (SystemClock.elapsedRealtime() - t0) / 1000 + " s: " + SpeechModel.status(this));
         if (!SpeechModel.ready(this, size)) {
