@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Cap and Gown</title>
-<meta name="capgown-page" content="49">
+<meta name="capgown-page" content="50">
 <meta name="capgown-min-app" content="0">
 <meta name="theme-color" content="#3454D9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -234,6 +234,8 @@ body.listening .fab{bottom:calc(84px + var(--player-h,96px))}
 .mtlive{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5;min-height:4.6em;overflow-wrap:anywhere;white-space:pre-wrap}
 .mtlive i{font-style:normal;color:var(--muted)}
 .mtclock{font-variant-numeric:tabular-nums;font-weight:800;font-size:17px;flex:0 0 auto}
+.mtbar{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;color:inherit;font:inherit;line-height:1.35}
+.mtbar .vdot{flex:0 0 auto}
 ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 
 /* portfolio workbook */
@@ -3465,7 +3467,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 
   /* ---------- What makes it smart ---------- */
   V.about = () => `<div class="notice"><div><b>Can it be smarter than Claude?</b><p>No app can out-think the model it runs on, and the tutor here is Claude, your own account. What the app adds is memory: your deadlines, missed evenings, portfolio gaps, quiz mistakes and what works for you. So it can put the right thing in front of you, and hand Claude your week when you ask.</p></div></div>
-    ${[['The phone takes the notes in a mentor meeting', 'On Portfolio, Mentor meetings, tap Listen at the start of a meeting. The phone turns what is said into words and keeps only the words: no sound is saved. Afterwards your own Claude sorts them under the headings of your record, you and your mentor check it, and it goes to PebblePad. Ask your mentor first, every time.'], ['PebblePad, one tap away', 'The PebblePad buttons open the PebblePad app on your phone or PebblePad on the web. A reflection, a piece of evidence or a KSB note can be copied and taken across, then marked here as uploaded. The two apps cannot swap data, so it is still: add it there, mark it here.'], ['The coach', 'A small step each day. For the assessor workbook: a short lesson and two checks for every question, then a plan and your own answer. For the PGCE: one KSB a day, and five minutes a day on the change project. Claude joins in for live coaching and for feedback, and never writes it for you. Open it from Home or More.'], ['Listen and speak', 'The phone reads lessons, readings and your own writing to you, even with the screen off. Tap Speak under any writing box to turn what you say into text, and keep spoken notes with each observation.'], ['Podcasts inside the app', 'Tap Play on the day’s podcast and it plays here, with the screen off and on the lock screen. It carries on from where you stopped, and every episode of the show is a tap away.'], ['Online library, inside the app', 'Your course reading list on Padlet and the Ann Gravells list open in the app. Save any page and it is filed by topic.'], ['A Study tab that picks for you', 'What to study, read, watch and listen to, chosen from your weak topics, what is due, your energy and the time you have. Every pick says why.'], ['Learns what works', 'Tap Done and say if it stuck. Readings, videos and podcasts are ranked by what has worked for you.'], ['Updates by itself', 'New library items, deadlines and fixes arrive without a new install.'], ['Tutor that knows your week', 'Ask tutor opens your Claude account in the app, with your plan ready to go in the message box.'], ['One next step', 'The single best thing to do now: an open review first, then the closest deadline.'], ['Portfolio readiness', 'Eight parts of the Module 3 portfolio, measured from your own records.'], ['Self-healing planner', 'Missed steps move to the next evening with room before their deadline.'], ['Energy check-in', 'Low evenings keep only the most urgent step.'], ['Mistake notebook', 'Wrong answers become review cards.'], ['Spaced repetition', 'Cards come back just before you forget them.'], ['Format that fits', 'Leads with the format that sticks for you.'], ['Real alarms', 'Rings like an alarm clock until the work is ticked off.'], ['Decision log', 'Every change explained, most can be undone.']].map(([a, b]) => `<div class="card"><b>${esc(a)}</b><div class="small muted">${esc(b)}</div></div>`).join('')}`;
+    ${[['The phone takes the notes in a mentor meeting', 'On Portfolio, Mentor meetings, tap Listen at the start of a meeting. The phone turns what is said into words and keeps only the words: no sound is saved. Afterwards your own Claude sorts them under the headings of your record, you and your mentor check it, and it goes to PebblePad. Ask your mentor first, every time. With the newest app it keeps listening when the phone is locked or another app is open, under a notice with a Pause button.'], ['PebblePad, one tap away', 'The PebblePad buttons open the PebblePad app on your phone or PebblePad on the web. A reflection, a piece of evidence or a KSB note can be copied and taken across, then marked here as uploaded. The two apps cannot swap data, so it is still: add it there, mark it here.'], ['The coach', 'A small step each day. For the assessor workbook: a short lesson and two checks for every question, then a plan and your own answer. For the PGCE: one KSB a day, and five minutes a day on the change project. Claude joins in for live coaching and for feedback, and never writes it for you. Open it from Home or More.'], ['Listen and speak', 'The phone reads lessons, readings and your own writing to you, even with the screen off. Tap Speak under any writing box to turn what you say into text, and keep spoken notes with each observation.'], ['Podcasts inside the app', 'Tap Play on the day’s podcast and it plays here, with the screen off and on the lock screen. It carries on from where you stopped, and every episode of the show is a tap away.'], ['Online library, inside the app', 'Your course reading list on Padlet and the Ann Gravells list open in the app. Save any page and it is filed by topic.'], ['A Study tab that picks for you', 'What to study, read, watch and listen to, chosen from your weak topics, what is due, your energy and the time you have. Every pick says why.'], ['Learns what works', 'Tap Done and say if it stuck. Readings, videos and podcasts are ranked by what has worked for you.'], ['Updates by itself', 'New library items, deadlines and fixes arrive without a new install.'], ['Tutor that knows your week', 'Ask tutor opens your Claude account in the app, with your plan ready to go in the message box.'], ['One next step', 'The single best thing to do now: an open review first, then the closest deadline.'], ['Portfolio readiness', 'Eight parts of the Module 3 portfolio, measured from your own records.'], ['Self-healing planner', 'Missed steps move to the next evening with room before their deadline.'], ['Energy check-in', 'Low evenings keep only the most urgent step.'], ['Mistake notebook', 'Wrong answers become review cards.'], ['Spaced repetition', 'Cards come back just before you forget them.'], ['Format that fits', 'Leads with the format that sticks for you.'], ['Real alarms', 'Rings like an alarm clock until the work is ticked off.'], ['Decision log', 'Every change explained, most can be undone.']].map(([a, b]) => `<div class="card"><b>${esc(a)}</b><div class="small muted">${esc(b)}</div></div>`).join('')}`;
 
   /* ---------- Deadlines and Add ---------- */
   function filterChips() {
@@ -3551,7 +3553,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     if (route === 'log' && state.log.some((e) => e.at > (state.logSeen || 0))) { state.logSeen = now().getTime(); saveLocal(); }
     document.body.dataset.route = route;
     $('#appbar').innerHTML = appbar();
-    $('#screen').innerHTML = `<div class="inner">${(V[route] || V.home)()}</div>`;
+    $('#screen').innerHTML = `<div class="inner">${meetBanner()}${(V[route] || V.home)()}</div>`;
     renderNav();
     const lq = $('#libq');
     if (lq) lq.addEventListener('input', () => { const pos = lq.selectionStart; sub.q = lq.value; render(); const n = $('#libq'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } });
@@ -3741,6 +3743,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const name = String(title || '').trim() || 'Reading aloud';
     if (!listenOn()) { toast('Listen is switched off. Turn it on in Settings, under Display and audio.'); return false; }
     if (!hasWords(t)) { toast('There are no words here to read yet.'); return false; }
+    if (MEET.live) { toast('The phone is listening to your meeting, and would write down its own voice. Pause that first.', 5000); return false; }
     if (DICT.on) dictStop();
     if (POD.state !== 'idle' && !canPod()) podCmd('stop');
     if (canListen()) {
@@ -4009,6 +4012,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     return podGo(it, go);
   }
   function podGo(it, go) {
+    if (MEET.live) { toast('The phone is listening to your meeting, and would write the podcast down. Pause that first.', 5000); return false; }
     if (LS.state !== 'idle') listenCmd('stop');
     if (DICT.on) dictStop();
     let ok = false;
@@ -4267,7 +4271,6 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   };
   let boxN = 0;
   function voiceBars() {
-    meetCheck();
     const speakBtn = dictateOn() ? `<button class="vbtn" type="button" data-act="dictate" aria-pressed="false" aria-label="Speak: turn what you say into text in this box">${ic('mic', 15)} Speak</button>` : '';
     const hearBtn = listenOn() ? `<button class="vbtn" type="button" data-act="hear" aria-label="Listen to the text in this box">${ic('speaker', 15)} Listen</button>` : '';
     if (speakBtn || hearBtn) {
@@ -4451,16 +4454,26 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   const MEET_QUIET = 10 * 60000; // nobody heard for this long: the meeting is over
   const MEET_ROOM = 80000;       // letters of notes
   // live: listening (or about to, or waiting to try again). st: starting, on, wait, away, stopping. stopping: why it is
-  // being stopped (pause, finish, leave, long, quiet, full). running: the phone's recogniser has been asked to listen
-  // and has not said "end" yet. away: the app is off the screen. agreed: the mentor's yes, asked once a visit.
-  const MEET = { live: false, st: '', stopping: '', running: false, paused: false, agreed: false, away: false, pending: false, heardAt: 0, engineAt: 0, quick: 0, fails: 0, stampAt: 0, partial: '', why: '', tick: null, tickAt: 0, again: null, saveT: null, forceT: null, savedAt: 0 };
+  // being stopped (pause, finish, long, quiet, full). running: the phone's recogniser has been asked to listen
+  // and has not said "end" yet. away: the app is off the screen and the listening is waiting for it to come back.
+  // bg: the phone is keeping the listening going off the screen. hidAt: when the app last left the screen.
+  // agreed: the mentor's yes, asked once a visit.
+  const MEET = { live: false, st: '', stopping: '', running: false, paused: false, agreed: false, away: false, bg: false, hidAt: 0, pending: false, heardAt: 0, engineAt: 0, quick: 0, fails: 0, stampAt: 0, partial: '', why: '', tick: null, tickAt: 0, again: null, saveT: null, forceT: null, savedAt: 0 };
   const MEET_WHY = {
     quiet: 'Listening stopped because nobody had spoken for 10 minutes.',
     long: 'Listening stopped after 90 minutes, which is the most it does in one meeting.',
     full: 'Listening stopped because the notes are full.',
+    locked: 'This phone stopped the listening when it was locked or the app was left. On this phone, keep the app open on the screen while it listens.',
+    unheard: 'Nothing was heard for 10 minutes after the phone was locked or the app was left, so listening stopped. If people were still talking, this phone needs the app open on the screen while it listens.',
     denied: DICT_END.denied, offline: DICT_END.offline, mic: DICT_END.mic, language: DICT_END.language, busy: DICT_END.busy, none: DICT_END.none
   };
   const canMeet = () => !!(APP && typeof APP.meetingStart === 'function');
+  // The newest app keeps a meeting going with the phone locked or another app open, under a notice of its own
+  // with a Pause button (MeetingService). An app before it stops the microphone when it leaves the screen.
+  const canMeetAway = () => !!(APP && typeof APP.meetingInBackground === 'function');
+  const meetBgNow = () => { try { return canMeetAway() && APP.meetingInBackground() === true; } catch (e) { return false; } };
+  const meetFoot = () => (MEET.bg ? 'You can lock the phone or open another app. It keeps listening until you tap Pause or Finish, and a notice at the top of the phone says so.'
+    : `Keep ${APP ? 'the app' : 'this page'} open on the screen. Listening stops if you leave ${APP ? 'the app' : 'it'} or lock the ${APP ? 'phone' : 'screen'}, and carries on when you come back.`);
   const MEET_WHERE = APP ? 'on this phone' : IS_ARTIFACT ? 'with your planner' : 'in this browser'; // where the words are kept
   const meetNotes = () => state.portfolio.meetNotes;
   const meetClock = (secs) => `${Math.floor(secs / 60)}:${pad(Math.floor(secs % 60))}`;
@@ -4480,16 +4493,22 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     return `${esc(tail)}${part ? `${tail ? ' ' : ''}<i>${esc(part)}</i>` : ''}`;
   }
   function meetPaint() {
-    if (!$('#mt-card')) return;
     const n = meetNotes() || { text: '', secs: 0 };
-    $('#mt-state').textContent = meetStateText();
-    $('#mt-clock').textContent = meetClock(n.secs);
-    $('#mt-live').innerHTML = meetTail();
-    $('#mt-count').textContent = meetCount(n);
-    $('#mt-dot').style.visibility = MEET.st === 'on' ? 'visible' : 'hidden';
+    const set = (sel, fn) => { const el = $(sel); if (el) fn(el); };
+    set('#mt-state', (el) => { el.textContent = meetStateText(); });
+    set('#mt-clock', (el) => { el.textContent = meetClock(n.secs); });
+    set('#mt-dot', (el) => { el.style.visibility = MEET.st === 'on' ? 'visible' : 'hidden'; });
+    set('#mt-live', (el) => { el.innerHTML = meetTail(); });
+    set('#mt-count', (el) => { el.textContent = meetCount(n); });
+    set('#mt-foot', (el) => { el.textContent = meetFoot(); });
   }
-  // Listening must be seen: leaving the Mentor meetings page, or opening the tutor over it, pauses it.
-  function meetCheck() { if (MEET.live && !MEET.stopping && (!$('#mt-card') || tutorOpen)) meetStop('leave'); }
+  // It carries on while other screens of the app are open, so each of them says so: a bar at the top that
+  // opens Mentor meetings. (Off the screen, the phone's own notice says so: see canMeetAway.)
+  function meetBanner() {
+    if (!MEET.live || (route === 'portfolio' && sub.ppage === 'meetings')) return '';
+    const n = meetNotes() || { secs: 0 };
+    return `<button class="mtbar" type="button" data-act="ppage" data-id="meetings" aria-label="The phone is listening to your mentor meeting. Open Mentor meetings"><span class="vdot" id="mt-dot" style="visibility:${MEET.st === 'on' ? 'visible' : 'hidden'}"></span><span class="grow"><b id="mt-state">${meetStateText()}</b><span class="small muted" style="display:block">Your mentor meeting. Tap to open it.</span></span><span class="mtclock" id="mt-clock">${meetClock(n.secs)}</span></button>`;
+  }
   function meetBegin() {
     if (MEET.live) return;
     if (!canDictate()) { toast(APP ? 'Listening needs the newest app. Tap Get the newest app in Settings, open the file and tap Install.' : 'This browser cannot turn speech into text. It works in the Cap and Gown app, and in Chrome.', 6000); return; }
@@ -4500,7 +4519,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     }
     const p = state.portfolio;
     if (!p.meetNotes) p.meetNotes = { date: todayKey(), text: '', secs: 0, draft: '', sent: 0 };
-    Object.assign(MEET, { live: true, st: 'starting', stopping: '', running: false, paused: false, away: false, pending: false, heardAt: Date.now(), quick: 0, fails: 0, stampAt: 0, partial: '', why: '', tickAt: Date.now(), savedAt: Date.now() });
+    Object.assign(MEET, { live: true, st: 'starting', stopping: '', running: false, paused: false, away: false, bg: canMeetAway(), hidAt: 0, pending: false, heardAt: Date.now(), quick: 0, fails: 0, stampAt: 0, partial: '', why: '', tickAt: Date.now(), savedAt: Date.now() });
     sub.mtDrop = false;
     if (LS.state === 'playing') listenCmd('toggle'); // so the phone does not write down its own voice
     clearTimeout(window.__mtT);
@@ -4518,7 +4537,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     clearTimeout(MEET.again);
     MEET.again = null;
     if (!MEET.live || MEET.stopping || MEET.running) return;
-    if (document.hidden) { MEET.away = true; MEET.st = 'away'; meetPaint(); return; }
+    if (document.hidden && !canMeetAway()) { MEET.away = true; MEET.st = 'away'; meetPaint(); return; } // the newest app answers "away" itself
     MEET.away = false;
     MEET.running = true;
     MEET.engineAt = Date.now();
@@ -4527,7 +4546,11 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     if (APP) { try { if (canMeet()) APP.meetingStart(); else APP.dictateStart(); } catch (e) { meetEvent('end', 'mic'); } } else webDictate();
   }
   // The app is back on the screen: carry on if a meeting was being listened to.
-  function meetWake() { if (MEET.live && !MEET.stopping && !MEET.running && !MEET.again && !document.hidden) meetEngine(); }
+  function meetWake() {
+    if (!MEET.live) return;
+    if (!MEET.stopping && !MEET.running && !MEET.again && !document.hidden) meetEngine();
+    meetPaint();
+  }
   function meetStop(how) {
     if (!MEET.live || MEET.stopping) return;
     MEET.stopping = how;
@@ -4546,13 +4569,12 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const how = MEET.stopping;
     clearInterval(MEET.tick); clearTimeout(MEET.again); clearTimeout(MEET.forceT); clearTimeout(MEET.saveT);
     Object.assign(MEET, { live: false, st: '', stopping: '', running: false, away: false, partial: '', tick: null, again: null, saveT: null, forceT: null });
-    MEET.paused = how === 'pause' || how === 'leave';
+    MEET.paused = how === 'pause';
     MEET.why = MEET_WHY[how] ? how : how ? '' : why;
     const n = meetNotes();
     if (n) n.secs = Math.round(n.secs);
     commit();
     render();
-    if (how === 'leave') toast('<b>Listening has paused</b> because you left the page. Your words are safe. Open Portfolio, Mentor meetings to carry on.', 7000);
   }
   // A piece of what was heard, tidied: a capital to start and a full stop to end. Unlike Speak, the words
   // "comma" or "new line" are left as they were said, because here nobody is dictating.
@@ -4579,28 +4601,35 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     }
     n.text = joinSpoken(cur, seg).slice(0, MEET_ROOM);
     // Saved as it goes, so a flat battery loses a few seconds at most: lightly every few seconds, fully every minute.
-    if (!MEET.saveT) MEET.saveT = setTimeout(() => { MEET.saveT = null; if (Date.now() - MEET.savedAt > 60000) { MEET.savedAt = Date.now(); commit(); } else saveLocal(); }, 4000);
+    // Off the screen a page's timers are slowed right down, so there each piece is saved as it arrives.
+    if (document.hidden) { if (t - MEET.savedAt > 30000) { MEET.savedAt = t; commit(); } else saveLocal(); }
+    else if (!MEET.saveT) MEET.saveT = setTimeout(() => { MEET.saveT = null; if (Date.now() - MEET.savedAt > 60000) { MEET.savedAt = Date.now(); commit(); } else saveLocal(); }, 4000);
     meetPaint();
     if (n.text.length >= MEET_ROOM) meetStop('full');
   }
   function meetEvent(kind, text) {
     if (kind === 'final') { meetAdd(text); return; }
     if (kind === 'partial') { MEET.partial = String(text || ''); MEET.heardAt = Date.now(); if (!MEET.stopping) MEET.st = 'on'; meetPaint(); return; }
-    if (kind === 'ready') { MEET.fails = 0; if (!MEET.stopping) MEET.st = 'on'; meetPaint(); return; }
+    if (kind === 'ready') { MEET.fails = 0; MEET.bg = meetBgNow(); if (!MEET.stopping) MEET.st = 'on'; meetPaint(); return; }
     if (kind === 'wait') { if (!MEET.stopping) { MEET.st = 'wait'; MEET.why = String(text || ''); meetPaint(); } return; }
     if (kind !== 'end') return;
     const why = String(text || '');
     MEET.running = false;
     MEET.partial = '';
     clearTimeout(MEET.forceT);
+    if (why === 'paused' && !MEET.stopping) MEET.stopping = 'pause'; // Pause on the phone's notice
     if (MEET.stopping) { meetDone(''); return; }
-    if (why === 'denied' || why === 'none' || why === 'language') { meetDone(why); return; }
+    if (why === 'denied' || why === 'none' || why === 'language' || why === 'locked') { meetDone(why); return; }
     const n = meetNotes();
     if (!n) { meetDone(''); return; }
     if (n.secs >= MEET_MAX) { meetDone('long'); return; }
     if (n.text.length >= MEET_ROOM) { meetDone('full'); return; }
-    if (Date.now() - MEET.heardAt >= MEET_QUIET || (why === 'quiet' && canMeet())) { meetDone('quiet'); return; }
-    if (why === 'away' || document.hidden) { MEET.away = true; MEET.st = 'away'; meetPaint(); return; } // meetWake carries on
+    if (Date.now() - MEET.heardAt >= MEET_QUIET || (why === 'quiet' && canMeet())) {
+      // Quiet from about the moment the app left the screen: the phone may have stopped the microphone there.
+      meetDone(MEET.hidAt && MEET.heardAt <= MEET.hidAt + 60000 ? 'unheard' : 'quiet');
+      return;
+    }
+    if (why === 'away' || (document.hidden && !canMeetAway())) { MEET.away = true; MEET.st = 'away'; meetPaint(); return; } // meetWake carries on
     if (why === '' || why === 'quiet') {
       // The phone stopped by itself (its own time limit, a quiet spell, or the app left the screen for a moment): carry on.
       MEET.quick = Date.now() - MEET.engineAt < 2500 ? MEET.quick + 1 : 0;
@@ -4618,7 +4647,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   }
   function meetTick() {
     const t = Date.now();
-    const dt = Math.min(5, Math.max(0, (t - MEET.tickAt) / 1000));
+    const dt = Math.min(MEET.bg ? 150 : 5, Math.max(0, (t - MEET.tickAt) / 1000));
     MEET.tickAt = t;
     const n = meetNotes();
     if (!MEET.live || !n) { clearInterval(MEET.tick); MEET.tick = null; return; }
@@ -4635,10 +4664,11 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const warn = cant
       ? `<div class="notice warn"><div><b>${APP ? 'Listening needs the newest app' : 'This browser cannot listen'}</b><p>${APP ? `${GET_APP}, open the file and tap Install. Your records stay. Until then you can paste a transcript.` : 'It works in the Cap and Gown app, and in Chrome. You can still paste a transcript.'}</p></div></div>`
       : noRecogniser ? '<div class="notice warn"><div><b>This phone has no speech recogniser turned on</b><p>Install or turn on “Speech Recognition and Synthesis from Google” in the Play Store, then come back.</p></div></div>'
-        : APP && !canMeet() ? `<div class="notice warn"><div><b>One more install makes this dependable</b><p>This older app listens in short stretches, and the screen can switch off in a quiet spell, which stops it. ${GET_APP}, open the file and tap Install. Your records stay.</p></div></div>` : '';
+        : APP && !canMeet() ? `<div class="notice warn"><div><b>One more install makes this dependable</b><p>This older app listens in short stretches, and the screen can switch off in a quiet spell, which stops it. ${GET_APP}, open the file and tap Install. Your records stay.</p></div></div>`
+          : APP && !canMeetAway() ? `<div class="notice warn"><div><b>One more install lets it listen with the phone locked</b><p>${GET_APP}, open the file and tap Install. Your records stay. Until then, keep the app open on the screen while it listens.</p></div></div>` : '';
     sheet(`<h3>Listen to this meeting</h3>
       <div class="small">Put the phone on the table between you. It turns what is said into words and keeps only the words, ${MEET_WHERE}. No sound is saved.</div>
-      <ul class="small vlist"><li>Keep this screen open. Listening stops if you leave the app or lock the phone, and carries on when you come back.</li><li>Tap <b>Pause</b> for anything private, such as a named learner.</li><li>It will mishear some words, so take a few notes of your own the first time.</li></ul>
+      <ul class="small vlist"><li>${canMeetAway() ? 'You can lock the phone or open another app. It keeps listening, and a notice at the top of the phone says so, with a Pause button.' : `Keep ${APP ? 'the app' : 'this page'} open on the screen. Listening stops if you leave ${APP ? 'the app' : 'it'} or lock the ${APP ? 'phone' : 'screen'}, and carries on when you come back.`}</li><li>Tap <b>Pause</b> for anything private, such as a named learner.</li><li>It will mishear some words, so take a few notes of your own the first time.</li></ul>
       <div class="small muted">Your phone’s own speech service does the listening, the same one as the microphone key on the keyboard. It may send the sound to Google to turn it into words.</div>
       ${warn}
       <div class="li" style="border:0;padding:0"><div class="grow"><b class="small">My mentor knows and agrees</b><div class="small muted">Ask every time, before you start.</div></div><button class="toggle" role="switch" aria-checked="false" data-act="flip-toggle" id="mt-ok" aria-label="My mentor knows the phone is taking notes and agrees"></button></div>
@@ -4650,7 +4680,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       <div class="mtlive" id="mt-live">${meetTail()}</div>
       <div class="small muted" id="mt-count">${meetCount(n)}</div>
       <div class="btnrow"><button class="btn ghost" data-act="meet-pause">Pause</button><button class="btn" data-act="meet-finish">Finish</button></div>
-      <div class="small muted">Keep this screen open. Listening stops if you leave the app or lock the phone, and carries on when you come back.</div></div>`;
+      <div class="small muted" id="mt-foot">${meetFoot()}</div></div>`;
   }
   function meetPausedCard(n) {
     return `<div class="card" id="mt-paused"><div class="row"><h3 class="grow">Paused</h3><span class="mtclock">${meetClock(n.secs)}</span></div>
@@ -5546,7 +5576,6 @@ ${n.text.trim()}
       <div class="tutor-hole">${chatReady() ? '<div><p><b>Opening Claude…</b></p><p class="small">If this stays, check your connection, then tap the three dots and Reload.</p></div>' : `<div class="card" style="text-align:left"><h3>Your Claude tutor</h3><p class="small">In the Android app, this opens your own Claude account here, with your week ready to paste. In a browser, open Claude in a new tab and paste your question.</p><div class="btnrow"><a class="btn" href="${esc(chatUrl())}" target="_blank" rel="noopener">Open Claude</a><button class="btn ghost" type="button" data-act="copy-week">Copy my week</button></div></div>`}</div>`;
     el.hidden = false;
     tutorOpen = true;
-    meetCheck();
     if (chatReady() && !state.settings.chatTipSeen) { signInHelp(true); return; }
     positionChat();
     if (prompt) setTimeout(() => sendToTutor(prompt), 250);
@@ -6371,10 +6400,10 @@ ${n.text.trim()}
   });
   function newDay() { lastDay = todayKey(); heal(); render(); }
   setInterval(() => { if (todayKey() !== lastDay) newDay(); }, 60000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); if (!document.hidden) meetWake(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); if (!document.hidden) meetWake(); else if (MEET.live) MEET.hidAt = Date.now(); });
 
   // Exposed for testing only
-  window.__planner = { deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
+  window.__planner = { deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
 })();
 
 </script>

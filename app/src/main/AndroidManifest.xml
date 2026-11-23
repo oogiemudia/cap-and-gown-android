@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- So that listening to a mentor meeting can carry on with the phone locked, under its own notice -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- Only asked for when you tap the microphone: Speak (speech to text) or the Chat tab -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -86,6 +88,13 @@
             android:name=".PodcastService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
+
+        <!-- Keeps the mentor meeting listener going with the phone locked or another app open. It shows a notice
+             with Pause for as long as it listens. Only words are kept: no sound is saved. -->
+        <service
+            android:name=".MeetingService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
 
         <receiver
             android:name=".AlarmReceiver"

@@ -76,6 +76,11 @@ final class Dictation implements RecognitionListener {
         }
     }
 
+    /** A whole meeting is being listened to (as opposed to a few sentences for a writing box). */
+    boolean inMeeting() {
+        return active && meeting;
+    }
+
     boolean active() {
         return active;
     }

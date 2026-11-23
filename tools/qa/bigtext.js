@@ -46,11 +46,17 @@ const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placem
     const meet = (fn) => page.evaluate(fn).then(() => page.evaluate(() => new Promise((r) => setTimeout(r, 40))));
     await meet(() => { const P = window.__planner; P.go('home'); P.sub.ppage = 'meetings'; P.go('portfolio'); window.__keepMeet = window.AndroidApp.meetingStart; delete window.AndroidApp.meetingStart; document.querySelector('#screen [data-act="meet-listen"]').click(); });
     await check('mentor meeting, before listening, older app');
-    await meet(() => { window.AndroidApp.meetingStart = window.__keepMeet; document.querySelector('[data-act="close-sheet"]').click(); document.querySelector('#screen [data-act="meet-listen"]').click(); document.querySelector('#mt-ok').click(); document.querySelector('#layer [data-act="meet-start"]').click(); });
+    await meet(() => { window.AndroidApp.meetingStart = window.__keepMeet; window.__keepBg = window.AndroidApp.meetingInBackground; delete window.AndroidApp.meetingInBackground; document.querySelector('[data-act="close-sheet"]').click(); document.querySelector('#screen [data-act="meet-listen"]').click(); });
+    await check('mentor meeting, before listening, the app before locked listening');
+    await meet(() => { window.AndroidApp.meetingInBackground = window.__keepBg; document.querySelector('[data-act="close-sheet"]').click(); document.querySelector('#screen [data-act="meet-listen"]').click(); });
+    await check('mentor meeting, before listening');
+    await meet(() => { document.querySelector('#mt-ok').click(); document.querySelector('#layer [data-act="meet-start"]').click(); });
     await meet(() => { window.__say('we talked about the starter activity and how the learners settled quickly into the practical'); window.__say('and the learners were engaged all the way through the practical task which is exactly what I wanted to see from this group', 'partial'); window.__planner.state.portfolio.meetNotes.secs = 5399; window.__planner.meetTick(); });
     await check('mentor meeting, listening');
     await meet(() => window.__capgownDictate('wait', 'busy'));
     await check('mentor meeting, waiting for the speech service');
+    for (const r of ['home', 'settings', 'plan']) { await meet(() => 0); await page.evaluate((x) => window.__planner.go(x), r); await check(r + ' with the meeting bar, waiting'); }
+    await meet(() => { const P = window.__planner; P.sub.ppage = 'meetings'; P.go('portfolio'); });
     await meet(() => document.querySelector('#screen [data-act="meet-pause"]').click());
     await check('mentor meeting, paused');
     await meet(() => { const P = window.__planner; document.querySelector('#screen [data-act="meet-finish"]').click(); const n = P.state.portfolio.meetNotes; n.sent = 1; n.draft = 'WHO WAS THERE:\nMe and my mentor\nWHAT WE DISCUSSED:\nThe starter went well.\nTARGETS AND ACTIONS:\n- Shorten the plenary'; P.MEET.why = 'quiet'; P.sub.mtDrop = true; P.go('home'); P.sub.ppage = 'meetings'; P.go('portfolio'); });

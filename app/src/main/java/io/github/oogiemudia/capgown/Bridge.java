@@ -395,11 +395,22 @@ public class Bridge {
      * Listens to a whole meeting: the same as dictateStart, but it carries on through pauses (until nobody
      * has been heard for ten minutes, or ninety minutes have passed) and says "wait" with the reason while
      * it tries again after the signal or the recogniser drops out. dictateStop ends it. Only words reach
-     * the page. No sound is kept.
+     * the page. No sound is kept. It carries on with the phone locked or another app open, under a notice
+     * with a Pause button (MeetingService); Pause there ends it with the reason "paused", and a phone that
+     * takes the microphone away off the screen ends it with "locked".
      */
     @JavascriptInterface
     public void meetingStart() {
         activity.startDictation(true);
+    }
+
+    /**
+     * True while a meeting is being listened to under its own notice, which lets it carry on with the phone
+     * locked or another app open. That the method exists tells the page this app can do it.
+     */
+    @JavascriptInterface
+    public boolean meetingInBackground() {
+        return activity.meetingInBackground();
     }
 
     /** A phone toast, used while the chat covers the page. */

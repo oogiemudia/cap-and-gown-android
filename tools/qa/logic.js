@@ -1195,7 +1195,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
       ok('meeting: the page offers to listen, to paste a transcript and to write a meeting up, and shows saved meetings', await P(() => !!document.querySelector('#screen [data-act="meet-listen"]') && !!document.querySelector('#screen [data-act="meet-paste"]') && !!document.querySelector('#screen [data-act="meet-new"]') && /No sound is saved/.test(document.querySelector('#screen').textContent) && /Talked targets/.test(document.querySelector('#screen').textContent)));
       await click(page, '#screen [data-act="meet-listen"]');
       const sheet0 = await P(() => document.querySelector('#layer').textContent);
-      ok('meeting: before listening it says what happens to the words and asks about the mentor', /keeps only the words/.test(sheet0) && /No sound is saved/.test(sheet0) && /My mentor knows and agrees/.test(sheet0) && /may send the sound to Google/.test(sheet0) && !/newest app/.test(sheet0), sheet0);
+      ok('meeting: before listening it says what happens to the words and asks about the mentor', /keeps only the words/.test(sheet0) && /No sound is saved/.test(sheet0) && /My mentor knows and agrees/.test(sheet0) && /may send the sound to Google/.test(sheet0) && /You can lock the phone or open another app/.test(sheet0) && !/newest app/.test(sheet0) && !/One more install/.test(sheet0), sheet0);
       await click(page, '#layer [data-act="meet-start"]'); await tick(page);
       ok('meeting: it will not start until the mentor has agreed', (await calls(page, 'meetingStart')).length === 0 && /Ask your mentor first/.test(await toastText()) && await P(() => !window.__planner.MEET.live && window.__planner.state.portfolio.meetNotes == null));
       await click(page, '#layer #mt-ok');
@@ -1230,35 +1230,58 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
       ok('meeting: nothing said while paused is taken down', !/while paused/.test((await notes()).text));
       await click(page, '#screen [data-act="meet-resume"]'); await tick(page);
       ok('meeting: Carry on listens again without asking twice', (await calls(page, 'meetingStart')).length === 2 && await P(() => window.__planner.MEET.live && document.querySelector('#layer').textContent === '' && document.querySelector('#mt-state').textContent === 'Listening'));
-      // the app goes off the screen: the phone stops the microphone, and it carries on when the app is back
-      await P(() => { window.__offScreen = true; Object.defineProperty(document, 'hidden', { configurable: true, get: () => !!window.__hidden }); window.__hidden = true; window.__dictateEnd(''); });
+      // the phone is locked or another app is opened: the newest app keeps listening under its own notice
+      ok('meeting: the card says the phone can be locked', await P(() => window.__planner.MEET.bg === true && /You can lock the phone or open another app/.test(document.querySelector('#mt-foot').textContent)));
+      await P(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => !!window.__hidden }); window.__hidden = true; document.dispatchEvent(new Event('visibilitychange')); });
       await page.waitForTimeout(500);
-      ok('meeting: off the screen it waits and does not ask for the microphone', (await calls(page, 'meetingStart')).length === 2 && await P(() => window.__planner.MEET.live && window.__planner.MEET.st === 'away' && /Waiting for the app to come back/.test(document.querySelector('#mt-state').textContent)));
-      await P(() => { window.__offScreen = false; window.__hidden = false; window.__capgownResume(); }); await tick(page);
-      ok('meeting: back on the screen it carries on listening', (await calls(page, 'meetingStart')).length === 3 && await P(() => window.__planner.MEET.live && document.querySelector('#mt-state').textContent === 'Listening'));
-      // the phone says it is off the screen before the page knows
-      await P(() => { window.__offScreen = true; window.__dictateEnd(''); });
+      ok('meeting: with the phone locked it keeps listening', (await calls(page, 'meetingStart')).length === 2 && (await calls(page, 'dictateStop')).length === 1 && await P(() => window.__planner.MEET.live && window.__planner.MEET.st === 'on' && window.__planner.MEET.hidAt > 0));
+      await P(() => window.__say('said while the phone was locked'));
+      ok('meeting: words heard with the phone locked go into the notes and are saved at once', /Said while the phone was locked\.$/.test((await notes()).text) && await P(() => /Said while the phone was locked\.$/.test(JSON.parse(localStorage.getItem('capgown-planner-v1')).portfolio.meetNotes.text)));
+      await P(() => { const M = window.__planner.MEET; window.__planner.state.portfolio.meetNotes.secs = 100; M.tickAt = Date.now() - 60000; window.__planner.meetTick(); });
+      ok('meeting: the clock keeps time while the page’s own timer is slowed', await P(() => { const x = window.__planner.state.portfolio.meetNotes.secs; return x >= 159 && x <= 162; }), await notes());
+      await P(() => { window.__hidden = false; document.dispatchEvent(new Event('visibilitychange')); window.__capgownResume(); }); await tick(page);
+      ok('meeting: back on the screen it is still listening, and nothing was started twice', (await calls(page, 'meetingStart')).length === 2 && await P(() => window.__planner.MEET.live && document.querySelector('#mt-state').textContent === 'Listening'));
+      // the notice could not be put up, so the phone stopped the microphone off the screen: wait, then carry on
+      await P(() => { window.__offScreen = true; window.__hidden = true; document.dispatchEvent(new Event('visibilitychange')); window.__dictateEnd(''); });
       await page.waitForTimeout(550);
-      ok('meeting: if the app refuses because it is off the screen, the page waits for it', (await calls(page, 'meetingStart')).length === 4 && await P(() => window.__planner.MEET.live && window.__planner.MEET.st === 'away'));
-      await P(() => { window.__offScreen = false; document.dispatchEvent(new Event('visibilitychange')); }); await tick(page);
-      ok('meeting: and carries on when it is back', (await calls(page, 'meetingStart')).length === 5 && await P(() => document.querySelector('#mt-state').textContent === 'Listening'));
+      ok('meeting: if the phone stops the microphone off the screen, the page waits for the app to come back', (await calls(page, 'meetingStart')).length === 3 && await P(() => window.__planner.MEET.live && window.__planner.MEET.st === 'away'));
+      await P(() => { window.__offScreen = false; window.__hidden = false; document.dispatchEvent(new Event('visibilitychange')); }); await tick(page);
+      ok('meeting: and carries on when it is back', (await calls(page, 'meetingStart')).length === 4 && await P(() => document.querySelector('#mt-state').textContent === 'Listening'));
       // the phone stops by itself (its own limit): the page starts it again
       await P(() => window.__dictateEnd(''));
       await page.waitForTimeout(550);
-      ok('meeting: if the phone stops by itself the page starts it again', (await calls(page, 'meetingStart')).length === 6 && await P(() => window.__planner.MEET.live));
-      // leaving the page pauses it
+      ok('meeting: if the phone stops by itself the page starts it again', (await calls(page, 'meetingStart')).length === 5 && await P(() => window.__planner.MEET.live));
+      // other screens of the app: it keeps listening, and each of them says so
       const stops = (await calls(page, 'dictateStop')).length;
       await P(() => window.__planner.go('home')); await tick(page);
-      ok('meeting: leaving the Mentor meetings page pauses the listening and says so', (await calls(page, 'dictateStop')).length === stops + 1 && await P(() => !window.__planner.MEET.live) && /Listening has paused/.test(await toastText()));
-      await toMeetings(page);
-      ok('meeting: coming back shows it paused, with the words safe', await P(() => !!document.querySelector('#mt-paused')) && /Next time shorten the plenary\.$/.test((await notes()).text));
-      // opening the tutor pauses it too
-      await click(page, '#screen [data-act="meet-resume"]'); await tick(page);
+      ok('meeting: it keeps listening on other screens of the app, and each one says so', (await calls(page, 'dictateStop')).length === stops && await P(() => { const bar = document.querySelector('#screen .mtbar'); return window.__planner.MEET.live && !!bar && /Listening/.test(bar.textContent) && /mentor meeting/i.test(bar.textContent) && /^\d+:\d\d$/.test(bar.querySelector('#mt-clock').textContent); }));
+      await P(() => window.__say('said on the home screen'));
+      ok('meeting: words heard on another screen go into the notes', /Said on the home screen\.$/.test((await notes()).text));
+      await P(() => window.__capgownDictate('wait', 'busy'));
+      ok('meeting: the bar shows when the speech service drops out', await P(() => /dropped out/.test(document.querySelector('#screen .mtbar').textContent)));
+      await P(() => { window.__capgownDictate('ready', ''); window.__planner.go('settings'); });
+      ok('meeting: the bar is on every screen', await P(() => /Listening/.test((document.querySelector('#screen .mtbar') || {}).textContent || '')));
+      await click(page, '#screen .mtbar'); await tick(page);
+      ok('meeting: tapping the bar opens Mentor meetings, still listening', await P(() => window.__planner.route === 'portfolio' && window.__planner.sub.ppage === 'meetings' && !!document.querySelector('#mt-card') && !document.querySelector('#screen .mtbar') && window.__planner.MEET.live));
       await click(page, '#fab'); await tick(page);
-      ok('meeting: opening the tutor over the page pauses the listening', await P(() => !window.__planner.MEET.live && !document.querySelector('#tutor').hidden));
+      ok('meeting: opening the tutor does not stop it', await P(() => window.__planner.MEET.live && !document.querySelector('#tutor').hidden) && (await calls(page, 'dictateStop')).length === stops);
       await click(page, '[data-act="close-tutor"]');
+      // nothing else may talk into the microphone
+      ok('meeting: Listen will not read aloud while the meeting is being listened to', await P(() => window.__planner.listen('A title', 'Some words to read.') === false) && /Pause that first/.test(await toastText()) && (await calls(page, 'listenStart')).length === 0);
+      // Pause on the phone's notice
+      await P(() => window.__dictateEnd('paused')); await tick(page);
+      ok('meeting: Pause on the phone’s notice pauses it, with the words kept', await P(() => !window.__planner.MEET.live && !!document.querySelector('#mt-paused')) && /Said on the home screen\.$/.test((await notes()).text));
+      await page.waitForTimeout(500);
+      ok('meeting: and it does not start again by itself', (await calls(page, 'meetingStart')).length === 5 && await P(() => !window.__planner.MEET.live));
+      // a phone that takes the microphone away when it is locked
+      await click(page, '#screen [data-act="meet-resume"]'); await tick(page);
+      await P(() => window.__dictateEnd('locked')); await tick(page);
+      ok('meeting: a phone that stops the microphone when it is locked is named as the reason', await P(() => !window.__planner.MEET.live && /stopped the listening when it was locked or the app was left/.test(document.querySelector('#mt-notes-card').textContent)));
+      // quiet from the moment the phone was locked: the phone may have stopped hearing
+      await click(page, '#screen [data-act="meet-resume"]'); await tick(page);
+      await P(() => { const M = window.__planner.MEET; window.__hidden = true; document.dispatchEvent(new Event('visibilitychange')); M.heardAt = M.hidAt - 5000; window.__hidden = false; window.__dictateEnd('quiet'); }); await tick(page);
+      ok('meeting: ten quiet minutes straight after the phone was locked are flagged', await P(() => !window.__planner.MEET.live && /Nothing was heard for 10 minutes after the phone was locked/.test(document.querySelector('#mt-notes-card').textContent)));
       // nobody speaks for ten minutes
-      await toMeetings(page);
       await click(page, '#screen [data-act="meet-resume"]'); await tick(page);
       await P(() => window.__dictateEnd('quiet')); await tick(page);
       ok('meeting: ten quiet minutes end the listening, and the notes say why', await P(() => !window.__planner.MEET.live && !!document.querySelector('#mt-notes-card') && /nobody had spoken for 10 minutes/.test(document.querySelector('#mt-notes-card').textContent)));
@@ -1409,6 +1432,26 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
       await click(page, '#screen [data-act="meet-build"]'); await page.waitForTimeout(450);
       ok('meeting in the older app: a very long brief is copied for pasting, because that app drops it', await P(() => !window.__lastInsert && /^Please turn the rough notes/.test(window.__lastCopy) && window.__lastCopy.length > 50000 && !document.querySelector('#tutor').hidden));
       ok('meeting in the older app: no script errors', errors.length === 0, errors);
+      await ctx.close();
+    }
+    {
+      // the app as it was before it could listen with the phone locked (build 13): the phone stops the microphone off the screen
+      const { ctx, page, errors } = await open(browser, { app: true, app8: true, now: '2026-11-23T15:30:00', state: mk() });
+      const P = (fn, arg) => page.evaluate(fn, arg);
+      await toMeetings(page);
+      await click(page, '#screen [data-act="meet-listen"]');
+      ok('meeting in the app before locked listening: the sheet says one more install lets it listen with the phone locked', await P(() => { const t = document.querySelector('#layer').textContent; return /One more install lets it listen with the phone locked/.test(t) && /Keep the app open on the screen/.test(t) && !/You can lock the phone/.test(t) && !!document.querySelector('#layer [data-act="get-app"]') && !document.querySelector('#layer [data-act="meet-start"]').disabled; }));
+      await click(page, '#layer #mt-ok');
+      await click(page, '#layer [data-act="meet-start"]'); await tick(page);
+      ok('meeting in the app before locked listening: it listens to the whole meeting and says to keep the app open', (await calls(page, 'meetingStart')).length === 1 && await P(() => window.__planner.MEET.live && window.__planner.MEET.bg === false && /Keep the app open on the screen/.test(document.querySelector('#mt-foot').textContent)));
+      await P(() => { window.__offScreen = true; Object.defineProperty(document, 'hidden', { configurable: true, get: () => !!window.__hidden }); window.__hidden = true; document.dispatchEvent(new Event('visibilitychange')); window.__dictateEnd(''); });
+      await page.waitForTimeout(500);
+      ok('meeting in the app before locked listening: off the screen it waits and does not ask for the microphone', (await calls(page, 'meetingStart')).length === 1 && await P(() => window.__planner.MEET.live && window.__planner.MEET.st === 'away' && /Waiting for the app to come back/.test(document.querySelector('#mt-state').textContent)));
+      await P(() => { window.__offScreen = false; window.__hidden = false; window.__capgownResume(); }); await tick(page);
+      ok('meeting in the app before locked listening: back on the screen it carries on', (await calls(page, 'meetingStart')).length === 2 && await P(() => window.__planner.MEET.live && document.querySelector('#mt-state').textContent === 'Listening'));
+      await P(() => window.__planner.go('home')); await tick(page);
+      ok('meeting in the app before locked listening: other screens of the app keep listening, with the bar', await P(() => window.__planner.MEET.live && !!document.querySelector('#screen .mtbar')) && (await calls(page, 'dictateStop')).length === 0);
+      ok('meeting in the app before locked listening: no script errors', errors.length === 0, errors);
       await ctx.close();
     }
     for (const who of [{ name: 'the app before Listen and Speak', o: { app: true, app4: true }, re: /Listening needs the newest app/ }]) {
