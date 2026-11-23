@@ -2,6 +2,22 @@
 
 The Cap and Gown study planner as an Android app, with real alarms and Claude inside the app.
 
+## Version 8 (page 49): the phone takes the notes in a mentor meeting
+
+On Portfolio, Mentor meetings.
+
+- **Listen to this meeting.** Tap it at the start of a meeting and put the phone on the table. The phone's own speech service (the one Speak uses) turns what is said into words, with the time every five minutes. **Only the words are kept, on the phone. No sound file is ever made.**
+- **The mentor agrees first.** Listening will not start until **My mentor knows and agrees** is switched on. It is asked again each time the app is opened, and after the notes are deleted.
+- **Pause, Finish, and never unseen.** Pause for anything private, such as a named learner. Listening pauses by itself when the Mentor meetings page is left or the tutor is opened, stops when the app leaves the screen or the phone is locked, and carries on when the app comes back. It ends after ten quiet minutes or ninety minutes of listening.
+- **Build my record with Claude.** Afterwards the notes can be read and corrected, then the button puts them into your own Claude with a brief: use only what was said, mark anything unclear with [check], name no learner, write no reflection. Claude answers under the headings of the record. Paste its reply back and it is sorted into the boxes: who was there, progress on the last targets, what you discussed, strengths, areas to develop, actions agreed, next meeting.
+- **Check it, save it, take it to PebblePad.** The record opens for checking, with every box open to change. Saving deletes the phone's notes (a switch keeps them). **Save and take it to PebblePad** copies the record under its headings and opens the PebblePad sheet; one tap marks it as in.
+- **Without the microphone.** A transcript made somewhere else can be pasted in instead, and a meeting can still be written up by hand. Saved meetings now open again for changes.
+- **What it cannot do.** It does not know who is speaking, it mishears some words, and it needs a signal on most phones (the phone's speech service may send the sound to Google to turn it into words). The record is a draft for you and your mentor to correct.
+
+The headings are one list in the page (`MEET_FIELDS`), so they can be changed to match the college's Mentor Meeting Record.
+
+Listening to a whole meeting needs this app build (`Bridge.meetingStart`: `Dictation` carries on through pauses and reports "wait" while it tries again, and the chat takes a longer brief). An older app showing the newer page listens in short stretches that the page starts again, says that one more install makes it dependable, and copies a very long brief for pasting.
+
 ## Page 48: the baseline counts
 
 A page change only: it arrives by itself, with no new install.
@@ -90,7 +106,7 @@ Each push to `main` builds a signed app file. The newest one is under **Releases
 On the phone: download it, open it, allow installs from that app if Android asks, then tap Install.
 A new version installs over the old one and keeps your ticks, because every build uses the same signing key.
 
-A new install is only needed when the Android side changes (alarms, the reader, the chat, listen and speak, the podcast player, opening the PebblePad app). Changes to the planner page arrive by themselves, as below.
+A new install is only needed when the Android side changes (alarms, the reader, the chat, listen and speak, the podcast player, opening the PebblePad app, listening to a whole mentor meeting). Changes to the planner page arrive by themselves, as below.
 
 ## Live updates: changing the app without a new install
 
@@ -117,7 +133,7 @@ For a podcast, add `pod:` with the show's key in `SHOWS` so it plays in the app.
 `tools/qa/` is a test robot (Playwright, headless Chromium) with a stand-in for the phone:
 
 - `smoke.js` opens every screen in the app, in a browser and in an older app, at two phone widths.
-- `logic.js` checks behaviour: the recommendations, the library, saved pages, live updates, old and damaged data, different dates, dark and dyslexia display, Listen and Speak (the player bar, speech into each kind of box, spoken notes into a reflection, a refused microphone, an older app, a plain browser), and podcasts (each library podcast finds its own episode, Play from For you and Home, the bar's buttons and slider, carrying on from a saved place, the end of an episode, a lost connection, a show that cannot be reached, an older app, a browser, a 320-pixel phone), and the coach (every lesson has its parts, checks, checklist and real sources; the plan for today under normal, low and good energy; learn, check, plan and write for a question; nothing counted twice; hand-ins from the planner and by hand; the briefs given to Claude and that each says not to write the work; KSB evidence tagged in one tap; the change project's five minutes and notes; damaged data; an older app; a browser), and PebblePad (the app opened in one tap, the website, the PebblePad app missing from the phone, a reflection, a piece of evidence and a KSB's two lines copied across and marked as in, an older app going through the Play Store page, a browser).
+- `logic.js` checks behaviour: the recommendations, the library, saved pages, live updates, old and damaged data, different dates, dark and dyslexia display, Listen and Speak (the player bar, speech into each kind of box, spoken notes into a reflection, a refused microphone, an older app, a plain browser), and podcasts (each library podcast finds its own episode, Play from For you and Home, the bar's buttons and slider, carrying on from a saved place, the end of an episode, a lost connection, a show that cannot be reached, an older app, a browser, a 320-pixel phone), and the coach (every lesson has its parts, checks, checklist and real sources; the plan for today under normal, low and good energy; learn, check, plan and write for a question; nothing counted twice; hand-ins from the planner and by hand; the briefs given to Claude and that each says not to write the work; KSB evidence tagged in one tap; the change project's five minutes and notes; damaged data; an older app; a browser), and PebblePad (the app opened in one tap, the website, the PebblePad app missing from the phone, a reflection, a piece of evidence and a KSB's two lines copied across and marked as in, an older app going through the Play Store page, a browser), and mentor meetings (the mentor's agreement, words into the notes with the time, the signal dropping, Pause, leaving the page, the app going off the screen and coming back, ten quiet minutes, ninety minutes, the brief given to Claude, its reply sorted into the boxes, saving, changing a saved meeting, taking it to PebblePad, a pasted transcript, deleting the notes, a refused microphone, no recogniser, an older app, a browser, damaged notes).
 - `reader.js` takes the script that collects a web page's words for **Listen to this page** out of `ReaderActivity.java` and runs it on made-up pages: menus, cookie notices and footers must be left out.
 - `clicker.js` taps every button on every screen, and whatever each tap reveals.
 - `bigtext.js` checks nothing runs off the edge on a small phone with the phone's text size turned up, the dyslexia-friendly font and wide letters. `FONT="DejaVu Sans"` in front of any of the tests runs it with wide letters, which is what the checks on GitHub use.

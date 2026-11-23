@@ -50,6 +50,8 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
     private PermissionRequest pendingMedia;
     private boolean loaded;
     private Dictation dictation;
+    private boolean dictateMeeting; // the listening asked for is a whole meeting, not a few sentences
+    private boolean onScreen;       // between onResume and onPause
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -129,6 +131,7 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
     @Override
     protected void onResume() {
         super.onResume();
+        onScreen = true;
         if (chat != null) chat.resume();
         if (loaded) {
             js("window.__capgownResume && window.__capgownResume()");
@@ -139,6 +142,7 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
     @Override
     protected void onPause() {
         // The microphone is never left on once the app is off the screen. What was heard is kept.
+        onScreen = false;
         if (dictation != null) dictation.cancel();
         if (chat != null) chat.pause();
         super.onPause();
@@ -166,7 +170,19 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
     /* ---------- Speak: speech to text for the page's writing boxes ---------- */
 
     void startDictation() {
+        startDictation(false);
+    }
+
+    /** wholeMeeting: keep listening through pauses, for the mentor meeting listener. */
+    void startDictation(boolean wholeMeeting) {
         runOnUiThread(() -> {
+            // A meeting that was being listened to must not start again while the app is off the screen:
+            // the page asks again when the app comes back.
+            if (wholeMeeting && !onScreen) {
+                tellDictation("end", "away");
+                return;
+            }
+            dictateMeeting = wholeMeeting;
             if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_DICTATE);
                 return;
@@ -180,7 +196,7 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
         ReadAloud.pause(); // so the phone does not write down its own voice
         Podcast.pause(); // or the podcast
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        dictation.start();
+        dictation.start(dictateMeeting);
     }
 
     void stopDictation() {

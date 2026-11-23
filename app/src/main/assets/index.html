@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Cap and Gown</title>
-<meta name="capgown-page" content="48">
+<meta name="capgown-page" content="49">
 <meta name="capgown-min-app" content="0">
 <meta name="theme-color" content="#3454D9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -231,6 +231,9 @@ body.listening .fab{bottom:calc(84px + var(--player-h,96px))}
 @keyframes vpulse{0%,100%{opacity:1}50%{opacity:.25}}
 .vlive{flex:1 1 100%;font-size:12.5px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
 .vlive:empty{display:none}
+.mtlive{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5;min-height:4.6em;overflow-wrap:anywhere;white-space:pre-wrap}
+.mtlive i{font-style:normal;color:var(--muted)}
+.mtclock{font-variant-numeric:tabular-nums;font-weight:800;font-size:17px;flex:0 0 auto}
 ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 
 /* portfolio workbook */
@@ -433,7 +436,8 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     // nums: hours you had before the log (lead, setting, remote). evidence: the evidence log, tagged to KSBs.
     // ksbDone: KSBs you have already evidenced in PebblePad. hours: the teaching hours log. meetings: mentor meetings.
     // obsInfo: date, link, spoken notes, targets and reflection text per observation. placements: details for placement 1 and 2.
-    return { nums: {}, obs: {}, checks: {}, duties: {}, approach: '', evidence: [], ksbDone: {}, hours: [], meetings: [], obsInfo: {}, placements: {}, dutyNotes: {} };
+    // meetNotes: the words the phone took down in a mentor meeting { date, text, secs, draft, sent }, kept until the record is saved.
+    return { nums: {}, obs: {}, checks: {}, duties: {}, approach: '', evidence: [], ksbDone: {}, hours: [], meetings: [], meetNotes: null, obsInfo: {}, placements: {}, dutyNotes: {} };
   }
   function normalise(s) {
     const base = freshState();
@@ -557,8 +561,15 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     P.meetings = rows(P.meetings, (m) => isDay(m.date)).map((m) => {
       withId(m, 'mt');
       m.discussed = str(m.discussed); m.actions = str(m.actions); m.none = !!m.none;
+      strs(m, ['present', 'progress', 'strengths', 'develop', 'next']);
+      if (m.pp != null && !(isNum(m.pp) && m.pp > 0)) delete m.pp;
       return m;
     });
+    if (P.meetNotes != null) {
+      const n = P.meetNotes;
+      if (!isObj(n) || !isDay(n.date)) P.meetNotes = null;
+      else { n.text = str(n.text).slice(0, 80000); n.draft = str(n.draft).slice(0, 30000); n.secs = clamp(Number(n.secs) || 0, 0, 86400); n.sent = isNum(n.sent) && n.sent > 0 ? n.sent : 0; }
+    }
     const C = out.coach;
     ['aw', 'ksb', 'cp', 'days', 'end'].forEach((k) => { if (!isObj(C[k])) C[k] = {}; });
     keep(C.aw, (v, k) => isObj(v) && /^\d\.\d$/.test(k));
@@ -3099,21 +3110,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       <button class="btn block" data-act="close-sheet">Done</button>`);
   }
 
-  PP.meetings = () => {
-    const list = state.portfolio.meetings.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    return `<div class="small muted">Your Mentor Meeting Record. The handbook suggests about 30 minutes a week. No meeting? Note why.</div>
-      <button class="btn" data-act="meet-new">${ic('plus', 16)} Record a meeting</button>
-      <div class="card"><h3>Meetings</h3>${list.length ? `<div class="list">${list.map((m) => `<div class="li top"><div class="grow"><b>${esc(shortDate(m.date))}</b>${m.none ? ' <span class="pill warn">No meeting</span>' : ''}<div class="small">${esc(m.discussed || '')}</div>${m.actions ? `<div class="small muted">Actions: ${esc(m.actions)}</div>` : ''}</div><button class="iconbtn" data-act="meet-del" data-id="${esc(m.id)}" aria-label="Delete">${ic('trash', 16)}</button></div>`).join('')}</div>` : '<div class="small muted">No meetings recorded yet.</div>'}</div>`;
-  };
-  function meetSheet() {
-    sheet(`<h3>Record a mentor meeting</h3>
-      <div class="field"><label for="m-date">Date</label><input type="date" id="m-date" value="${esc(todayKey())}"></div>
-      <div class="field"><label for="m-disc">What you discussed</label><textarea id="m-disc" placeholder="Feedback on Thursday's lesson, planning Obs 7, workload"></textarea></div>
-      <div class="field"><label for="m-act">Actions agreed</label><textarea id="m-act" placeholder="Try a hinge question before the practical"></textarea></div>
-      <div class="li" style="border:0;padding:0"><div class="grow"><b class="small">No meeting this week</b><div class="small muted">Write why in the first box.</div></div><button class="toggle" role="switch" aria-checked="false" data-act="flip-toggle" id="m-none" aria-label="No meeting this week"></button></div>
-      <div class="li" style="border:0;padding:0"><div class="grow"><b class="small">Also add to the evidence log</b></div><button class="toggle" role="switch" aria-checked="true" data-act="flip-toggle" id="m-ev" aria-label="Also add to the evidence log"></button></div>
-      <div class="btnrow"><button class="btn" data-act="meet-save">Save</button><button class="btn ghost" data-act="close-sheet">Cancel</button></div>`);
-  }
+  // PP.meetings and the meeting record form are further down, with the listening they use (search for MEET_FIELDS).
 
   PP.placements = () => {
     const p = state.portfolio;
@@ -3468,7 +3465,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 
   /* ---------- What makes it smart ---------- */
   V.about = () => `<div class="notice"><div><b>Can it be smarter than Claude?</b><p>No app can out-think the model it runs on, and the tutor here is Claude, your own account. What the app adds is memory: your deadlines, missed evenings, portfolio gaps, quiz mistakes and what works for you. So it can put the right thing in front of you, and hand Claude your week when you ask.</p></div></div>
-    ${[['PebblePad, one tap away', 'The PebblePad buttons open the PebblePad app on your phone or PebblePad on the web. A reflection, a piece of evidence or a KSB note can be copied and taken across, then marked here as uploaded. The two apps cannot swap data, so it is still: add it there, mark it here.'], ['The coach', 'A small step each day. For the assessor workbook: a short lesson and two checks for every question, then a plan and your own answer. For the PGCE: one KSB a day, and five minutes a day on the change project. Claude joins in for live coaching and for feedback, and never writes it for you. Open it from Home or More.'], ['Listen and speak', 'The phone reads lessons, readings and your own writing to you, even with the screen off. Tap Speak under any writing box to turn what you say into text, and keep spoken notes with each observation.'], ['Podcasts inside the app', 'Tap Play on the day’s podcast and it plays here, with the screen off and on the lock screen. It carries on from where you stopped, and every episode of the show is a tap away.'], ['Online library, inside the app', 'Your course reading list on Padlet and the Ann Gravells list open in the app. Save any page and it is filed by topic.'], ['A Study tab that picks for you', 'What to study, read, watch and listen to, chosen from your weak topics, what is due, your energy and the time you have. Every pick says why.'], ['Learns what works', 'Tap Done and say if it stuck. Readings, videos and podcasts are ranked by what has worked for you.'], ['Updates by itself', 'New library items, deadlines and fixes arrive without a new install.'], ['Tutor that knows your week', 'Ask tutor opens your Claude account in the app, with your plan ready to go in the message box.'], ['One next step', 'The single best thing to do now: an open review first, then the closest deadline.'], ['Portfolio readiness', 'Eight parts of the Module 3 portfolio, measured from your own records.'], ['Self-healing planner', 'Missed steps move to the next evening with room before their deadline.'], ['Energy check-in', 'Low evenings keep only the most urgent step.'], ['Mistake notebook', 'Wrong answers become review cards.'], ['Spaced repetition', 'Cards come back just before you forget them.'], ['Format that fits', 'Leads with the format that sticks for you.'], ['Real alarms', 'Rings like an alarm clock until the work is ticked off.'], ['Decision log', 'Every change explained, most can be undone.']].map(([a, b]) => `<div class="card"><b>${esc(a)}</b><div class="small muted">${esc(b)}</div></div>`).join('')}`;
+    ${[['The phone takes the notes in a mentor meeting', 'On Portfolio, Mentor meetings, tap Listen at the start of a meeting. The phone turns what is said into words and keeps only the words: no sound is saved. Afterwards your own Claude sorts them under the headings of your record, you and your mentor check it, and it goes to PebblePad. Ask your mentor first, every time.'], ['PebblePad, one tap away', 'The PebblePad buttons open the PebblePad app on your phone or PebblePad on the web. A reflection, a piece of evidence or a KSB note can be copied and taken across, then marked here as uploaded. The two apps cannot swap data, so it is still: add it there, mark it here.'], ['The coach', 'A small step each day. For the assessor workbook: a short lesson and two checks for every question, then a plan and your own answer. For the PGCE: one KSB a day, and five minutes a day on the change project. Claude joins in for live coaching and for feedback, and never writes it for you. Open it from Home or More.'], ['Listen and speak', 'The phone reads lessons, readings and your own writing to you, even with the screen off. Tap Speak under any writing box to turn what you say into text, and keep spoken notes with each observation.'], ['Podcasts inside the app', 'Tap Play on the day’s podcast and it plays here, with the screen off and on the lock screen. It carries on from where you stopped, and every episode of the show is a tap away.'], ['Online library, inside the app', 'Your course reading list on Padlet and the Ann Gravells list open in the app. Save any page and it is filed by topic.'], ['A Study tab that picks for you', 'What to study, read, watch and listen to, chosen from your weak topics, what is due, your energy and the time you have. Every pick says why.'], ['Learns what works', 'Tap Done and say if it stuck. Readings, videos and podcasts are ranked by what has worked for you.'], ['Updates by itself', 'New library items, deadlines and fixes arrive without a new install.'], ['Tutor that knows your week', 'Ask tutor opens your Claude account in the app, with your plan ready to go in the message box.'], ['One next step', 'The single best thing to do now: an open review first, then the closest deadline.'], ['Portfolio readiness', 'Eight parts of the Module 3 portfolio, measured from your own records.'], ['Self-healing planner', 'Missed steps move to the next evening with room before their deadline.'], ['Energy check-in', 'Low evenings keep only the most urgent step.'], ['Mistake notebook', 'Wrong answers become review cards.'], ['Spaced repetition', 'Cards come back just before you forget them.'], ['Format that fits', 'Leads with the format that sticks for you.'], ['Real alarms', 'Rings like an alarm clock until the work is ticked off.'], ['Decision log', 'Every change explained, most can be undone.']].map(([a, b]) => `<div class="card"><b>${esc(a)}</b><div class="small muted">${esc(b)}</div></div>`).join('')}`;
 
   /* ---------- Deadlines and Add ---------- */
   function filterChips() {
@@ -3690,6 +3687,11 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       const n = String(ksbU(id).n || '').trim();
       if (!n) { toast('Write your two lines first.'); return; }
       carry = { what: `Your two lines for ${id}`, text: `${id}: ${KSBS[id]}\n\n${n}`, done: p.ksbDone[id] ? null : { kind, id, label: `It is in: mark ${id} as evidenced in PebblePad` } };
+    } else if (kind === 'meet') {
+      const r = meetSave();
+      if (!r) return;
+      render();
+      carry = { what: 'Your mentor meeting record', text: meetText(r.m), done: r.m.pp ? null : { kind, id: r.m.id, label: 'It is in: mark this meeting as in PebblePad' } };
     }
     if (!carry) return;
     ppSheet(carry);
@@ -4265,6 +4267,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   };
   let boxN = 0;
   function voiceBars() {
+    meetCheck();
     const speakBtn = dictateOn() ? `<button class="vbtn" type="button" data-act="dictate" aria-pressed="false" aria-label="Speak: turn what you say into text in this box">${ic('mic', 15)} Speak</button>` : '';
     const hearBtn = listenOn() ? `<button class="vbtn" type="button" data-act="hear" aria-label="Listen to the text in this box">${ic('speaker', 15)} Listen</button>` : '';
     if (speakBtn || hearBtn) {
@@ -4308,6 +4311,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   function dictToggle(ta) {
     if (!ta || !ta.id) return;
     if (!dictateOn()) { toast('Speak is switched off. Turn it on in Settings, under Display and audio.'); return; }
+    if (MEET.live) { toast('The phone is listening to your meeting. Pause that first.'); return; }
     if (DICT.on) {
       const same = ta === boxOf();
       DICT.next = same ? '' : boxSel(ta); // another box: start there as soon as this one has finished
@@ -4401,6 +4405,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     if (full) { toast('This box is full, so listening has stopped.'); dictStop(); }
   }
   function dictEvent(kind, text) {
+    if (MEET.live) { meetEvent(kind, text); return; }
     if (kind === 'final') { dictInsert(text); if (DICT.on) dictLive('<b>Listening.</b> Carry on, or tap Stop.'); return; }
     if (!DICT.on) return;
     if (kind === 'ready') { dictLive('<b>Listening.</b> Speak now. Tap Stop when you finish.'); return; }
@@ -4412,11 +4417,369 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     DICT.next = '';
     dictPaint();
     dictLive(DICT_END[why] != null ? DICT_END[why] : DICT_END['']);
-    clearTimeout(window.__obsT); clearTimeout(window.__paperT); clearTimeout(window.__plT); clearTimeout(window.__pdT); clearTimeout(window.__padT);
+    clearTimeout(window.__obsT); clearTimeout(window.__paperT); clearTimeout(window.__plT); clearTimeout(window.__pdT); clearTimeout(window.__padT); clearTimeout(window.__mtT);
     commit();
+    if (MEET.pending) { MEET.pending = false; meetBegin(); return; } // Speak has let go of the microphone: the meeting can start
     let ta = null;
     try { ta = next ? $(next) : null; } catch (e) { ta = null; }
     if (ta) dictBegin(ta);
+  }
+
+  /* ---------- Mentor meetings: the phone takes the notes, Claude drafts the record ----------
+     Tap Listen at the start of a meeting and the phone's speech recogniser (the one Speak uses) turns what is
+     said into words. Only the words are kept (state.portfolio.meetNotes); the app never makes a sound file.
+     The newest app listens to a whole meeting in one go (Bridge.meetingStart: it carries on through pauses and
+     says "wait" while it tries again). An older app, or a browser, listens in short stretches that this page
+     starts again. Listening never carries on unseen: it pauses when the Mentor meetings page is left, and the
+     app stops the microphone when it goes off the screen (it carries on when the app comes back).
+     Afterwards "Build my record" puts the notes and the record's headings into your own Claude; its reply is
+     pasted back, sorted into the boxes of the record, checked by you and your mentor, and taken to PebblePad.
+     MEET_FIELDS are those boxes: [key, label on the form, heading Claude is asked to use, other spellings]. */
+  const MEET_FIELDS = [
+    ['present', 'Who was there', 'WHO WAS THERE', ['PRESENT', 'ATTENDEES']],
+    ['progress', 'Progress on your last targets', 'PROGRESS ON LAST TARGETS', ['PROGRESS SINCE LAST MEETING', 'PROGRESS']],
+    ['discussed', 'What you discussed', 'WHAT WE DISCUSSED', ['WHAT YOU DISCUSSED', 'DISCUSSION', 'DISCUSSED']],
+    ['strengths', 'Strengths', 'STRENGTHS', []],
+    ['develop', 'Areas to develop', 'AREAS TO DEVELOP', ['AREAS FOR DEVELOPMENT']],
+    ['actions', 'Actions agreed', 'TARGETS AND ACTIONS', ['ACTIONS AGREED', 'TARGETS', 'ACTIONS']],
+    ['next', 'Next meeting', 'NEXT MEETING', ['DATE OF NEXT MEETING']]
+  ];
+  const MEET_SHORT = { present: 1, next: 1 }; // one-line boxes
+  const MEET_HINT = { discussed: 'Feedback on Thursday’s lesson, planning Obs 7, workload', actions: 'Try a hinge question before the practical', present: 'Me and my mentor', next: 'Thursday 3 December, 3.30pm' };
+  const meetId = (k) => ({ discussed: 'm-disc', actions: 'm-act' }[k] || `m-${k}`);
+  const MEET_MAX = 90 * 60;      // seconds of listening in one meeting
+  const MEET_QUIET = 10 * 60000; // nobody heard for this long: the meeting is over
+  const MEET_ROOM = 80000;       // letters of notes
+  // live: listening (or about to, or waiting to try again). st: starting, on, wait, away, stopping. stopping: why it is
+  // being stopped (pause, finish, leave, long, quiet, full). running: the phone's recogniser has been asked to listen
+  // and has not said "end" yet. away: the app is off the screen. agreed: the mentor's yes, asked once a visit.
+  const MEET = { live: false, st: '', stopping: '', running: false, paused: false, agreed: false, away: false, pending: false, heardAt: 0, engineAt: 0, quick: 0, fails: 0, stampAt: 0, partial: '', why: '', tick: null, tickAt: 0, again: null, saveT: null, forceT: null, savedAt: 0 };
+  const MEET_WHY = {
+    quiet: 'Listening stopped because nobody had spoken for 10 minutes.',
+    long: 'Listening stopped after 90 minutes, which is the most it does in one meeting.',
+    full: 'Listening stopped because the notes are full.',
+    denied: DICT_END.denied, offline: DICT_END.offline, mic: DICT_END.mic, language: DICT_END.language, busy: DICT_END.busy, none: DICT_END.none
+  };
+  const canMeet = () => !!(APP && typeof APP.meetingStart === 'function');
+  const MEET_WHERE = APP ? 'on this phone' : IS_ARTIFACT ? 'with your planner' : 'in this browser'; // where the words are kept
+  const meetNotes = () => state.portfolio.meetNotes;
+  const meetClock = (secs) => `${Math.floor(secs / 60)}:${pad(Math.floor(secs % 60))}`;
+  const meetWords = (n) => wordCount(String(n.text).replace(/^\[\d\d:\d\d\][ \t]*$/gm, '')).toLocaleString('en-GB'); // the times are not words
+  const meetCount = (n) => `${meetWords(n)} words so far. Only the words are kept. No sound is saved.`;
+  function meetStateText() {
+    if (MEET.st === 'wait') return MEET.why === 'offline' ? 'No connection. Trying again…' : 'The speech service dropped out. Trying again…';
+    return { starting: 'Getting the microphone ready…', away: 'Waiting for the app to come back', stopping: 'Finishing…' }[MEET.st] || 'Listening';
+  }
+  // The last few lines of the notes, with the words still being heard in grey.
+  function meetTail() {
+    const n = meetNotes();
+    const t = n ? n.text : '';
+    const tail = t.length > 320 ? '…' + t.slice(-320).replace(/^\S*\s/, '') : t;
+    const part = MEET.partial.length > 160 ? '…' + MEET.partial.slice(-160) : MEET.partial;
+    if (!tail && !part) return '<i>The words will appear here as they are heard.</i>';
+    return `${esc(tail)}${part ? `${tail ? ' ' : ''}<i>${esc(part)}</i>` : ''}`;
+  }
+  function meetPaint() {
+    if (!$('#mt-card')) return;
+    const n = meetNotes() || { text: '', secs: 0 };
+    $('#mt-state').textContent = meetStateText();
+    $('#mt-clock').textContent = meetClock(n.secs);
+    $('#mt-live').innerHTML = meetTail();
+    $('#mt-count').textContent = meetCount(n);
+    $('#mt-dot').style.visibility = MEET.st === 'on' ? 'visible' : 'hidden';
+  }
+  // Listening must be seen: leaving the Mentor meetings page, or opening the tutor over it, pauses it.
+  function meetCheck() { if (MEET.live && !MEET.stopping && (!$('#mt-card') || tutorOpen)) meetStop('leave'); }
+  function meetBegin() {
+    if (MEET.live) return;
+    if (!canDictate()) { toast(APP ? 'Listening needs the newest app. Tap Get the newest app in Settings, open the file and tap Install.' : 'This browser cannot turn speech into text. It works in the Cap and Gown app, and in Chrome.', 6000); return; }
+    if (DICT.on) { // Speak is using the microphone: start when it has let go
+      DICT.next = ''; MEET.pending = true; dictStop();
+      setTimeout(() => { MEET.pending = false; }, 4000);
+      return;
+    }
+    const p = state.portfolio;
+    if (!p.meetNotes) p.meetNotes = { date: todayKey(), text: '', secs: 0, draft: '', sent: 0 };
+    Object.assign(MEET, { live: true, st: 'starting', stopping: '', running: false, paused: false, away: false, pending: false, heardAt: Date.now(), quick: 0, fails: 0, stampAt: 0, partial: '', why: '', tickAt: Date.now(), savedAt: Date.now() });
+    sub.mtDrop = false;
+    if (LS.state === 'playing') listenCmd('toggle'); // so the phone does not write down its own voice
+    clearTimeout(window.__mtT);
+    commit();
+    clearInterval(MEET.tick);
+    MEET.tick = setInterval(meetTick, 1000);
+    closeSheet(true);
+    render();
+    const card = $('#mt-card');
+    if (card && card.scrollIntoView) card.scrollIntoView({ block: 'start' }); // Pause and Finish in reach
+    meetEngine();
+  }
+  // Asks the phone to listen (again).
+  function meetEngine() {
+    clearTimeout(MEET.again);
+    MEET.again = null;
+    if (!MEET.live || MEET.stopping || MEET.running) return;
+    if (document.hidden) { MEET.away = true; MEET.st = 'away'; meetPaint(); return; }
+    MEET.away = false;
+    MEET.running = true;
+    MEET.engineAt = Date.now();
+    if (MEET.st !== 'on') MEET.st = 'starting';
+    meetPaint();
+    if (APP) { try { if (canMeet()) APP.meetingStart(); else APP.dictateStart(); } catch (e) { meetEvent('end', 'mic'); } } else webDictate();
+  }
+  // The app is back on the screen: carry on if a meeting was being listened to.
+  function meetWake() { if (MEET.live && !MEET.stopping && !MEET.running && !MEET.again && !document.hidden) meetEngine(); }
+  function meetStop(how) {
+    if (!MEET.live || MEET.stopping) return;
+    MEET.stopping = how;
+    clearTimeout(MEET.again);
+    MEET.again = null;
+    if (!MEET.running) { meetDone(''); return; }
+    MEET.st = 'stopping';
+    meetPaint();
+    clearTimeout(MEET.forceT);
+    MEET.forceT = setTimeout(() => { if (MEET.live && MEET.stopping) meetEvent('end', ''); }, 3000); // in case the phone never answers
+    if (APP) { try { APP.dictateStop(); } catch (e) { meetEvent('end', ''); } return; }
+    try { DICT.web.stop(); } catch (e) { meetEvent('end', ''); }
+  }
+  // Listening has ended, for now or for good. The words are already in the notes.
+  function meetDone(why) {
+    const how = MEET.stopping;
+    clearInterval(MEET.tick); clearTimeout(MEET.again); clearTimeout(MEET.forceT); clearTimeout(MEET.saveT);
+    Object.assign(MEET, { live: false, st: '', stopping: '', running: false, away: false, partial: '', tick: null, again: null, saveT: null, forceT: null });
+    MEET.paused = how === 'pause' || how === 'leave';
+    MEET.why = MEET_WHY[how] ? how : how ? '' : why;
+    const n = meetNotes();
+    if (n) n.secs = Math.round(n.secs);
+    commit();
+    render();
+    if (how === 'leave') toast('<b>Listening has paused</b> because you left the page. Your words are safe. Open Portfolio, Mentor meetings to carry on.', 7000);
+  }
+  // A piece of what was heard, tidied: a capital to start and a full stop to end. Unlike Speak, the words
+  // "comma" or "new line" are left as they were said, because here nobody is dictating.
+  function meetSpoken(raw) {
+    let t = String(raw || '').replace(/\s+/g, ' ').trim();
+    if (!hasWords(t)) return '';
+    t = t.replace(/(^|[.!?]\s+)([a-z])/g, (m, a, b) => a + b.toUpperCase());
+    if (!/[.!?…:;,]$/.test(t)) t += '.';
+    return t;
+  }
+  function meetAdd(raw) {
+    const n = meetNotes();
+    MEET.partial = '';
+    const seg = n ? meetSpoken(raw) : '';
+    if (!seg) { meetPaint(); return; }
+    const t = Date.now();
+    MEET.heardAt = t;
+    let cur = n.text;
+    if (!MEET.stampAt || t - MEET.stampAt >= 5 * 60000) { // the time, every five minutes, so the record can say when
+      const d = now();
+      const stamp = `[${pad(d.getHours())}:${pad(d.getMinutes())}]`;
+      cur = cur.trim() ? `${cur.replace(/\s+$/, '')}\n\n${stamp}\n` : `${stamp}\n`;
+      MEET.stampAt = t;
+    }
+    n.text = joinSpoken(cur, seg).slice(0, MEET_ROOM);
+    // Saved as it goes, so a flat battery loses a few seconds at most: lightly every few seconds, fully every minute.
+    if (!MEET.saveT) MEET.saveT = setTimeout(() => { MEET.saveT = null; if (Date.now() - MEET.savedAt > 60000) { MEET.savedAt = Date.now(); commit(); } else saveLocal(); }, 4000);
+    meetPaint();
+    if (n.text.length >= MEET_ROOM) meetStop('full');
+  }
+  function meetEvent(kind, text) {
+    if (kind === 'final') { meetAdd(text); return; }
+    if (kind === 'partial') { MEET.partial = String(text || ''); MEET.heardAt = Date.now(); if (!MEET.stopping) MEET.st = 'on'; meetPaint(); return; }
+    if (kind === 'ready') { MEET.fails = 0; if (!MEET.stopping) MEET.st = 'on'; meetPaint(); return; }
+    if (kind === 'wait') { if (!MEET.stopping) { MEET.st = 'wait'; MEET.why = String(text || ''); meetPaint(); } return; }
+    if (kind !== 'end') return;
+    const why = String(text || '');
+    MEET.running = false;
+    MEET.partial = '';
+    clearTimeout(MEET.forceT);
+    if (MEET.stopping) { meetDone(''); return; }
+    if (why === 'denied' || why === 'none' || why === 'language') { meetDone(why); return; }
+    const n = meetNotes();
+    if (!n) { meetDone(''); return; }
+    if (n.secs >= MEET_MAX) { meetDone('long'); return; }
+    if (n.text.length >= MEET_ROOM) { meetDone('full'); return; }
+    if (Date.now() - MEET.heardAt >= MEET_QUIET || (why === 'quiet' && canMeet())) { meetDone('quiet'); return; }
+    if (why === 'away' || document.hidden) { MEET.away = true; MEET.st = 'away'; meetPaint(); return; } // meetWake carries on
+    if (why === '' || why === 'quiet') {
+      // The phone stopped by itself (its own time limit, a quiet spell, or the app left the screen for a moment): carry on.
+      MEET.quick = Date.now() - MEET.engineAt < 2500 ? MEET.quick + 1 : 0;
+      if (MEET.quick >= 6) { meetDone('busy'); return; }
+      MEET.st = 'starting';
+      MEET.again = setTimeout(meetEngine, 400);
+    } else {
+      // No signal, or the recogniser dropped out: wait a little and try again, a few times.
+      if (++MEET.fails > 8) { meetDone(why); return; }
+      MEET.st = 'wait';
+      MEET.why = why;
+      MEET.again = setTimeout(meetEngine, 15000);
+    }
+    meetPaint();
+  }
+  function meetTick() {
+    const t = Date.now();
+    const dt = Math.min(5, Math.max(0, (t - MEET.tickAt) / 1000));
+    MEET.tickAt = t;
+    const n = meetNotes();
+    if (!MEET.live || !n) { clearInterval(MEET.tick); MEET.tick = null; return; }
+    if (MEET.stopping) return;
+    if (MEET.running && !MEET.away && MEET.st !== 'wait') n.secs += dt;
+    if (n.secs >= MEET_MAX) { meetStop('long'); return; }
+    if (MEET.running && t - MEET.heardAt >= MEET_QUIET + 20000) { meetStop('quiet'); return; } // the phone should have said so itself
+    meetPaint();
+  }
+  function meetStartSheet() {
+    let noRecogniser = false;
+    if (APP && typeof APP.dictateAvailable === 'function') { try { noRecogniser = APP.dictateAvailable() === false; } catch (e) { noRecogniser = false; } }
+    const cant = !canDictate();
+    const warn = cant
+      ? `<div class="notice warn"><div><b>${APP ? 'Listening needs the newest app' : 'This browser cannot listen'}</b><p>${APP ? `${GET_APP}, open the file and tap Install. Your records stay. Until then you can paste a transcript.` : 'It works in the Cap and Gown app, and in Chrome. You can still paste a transcript.'}</p></div></div>`
+      : noRecogniser ? '<div class="notice warn"><div><b>This phone has no speech recogniser turned on</b><p>Install or turn on “Speech Recognition and Synthesis from Google” in the Play Store, then come back.</p></div></div>'
+        : APP && !canMeet() ? `<div class="notice warn"><div><b>One more install makes this dependable</b><p>This older app listens in short stretches, and the screen can switch off in a quiet spell, which stops it. ${GET_APP}, open the file and tap Install. Your records stay.</p></div></div>` : '';
+    sheet(`<h3>Listen to this meeting</h3>
+      <div class="small">Put the phone on the table between you. It turns what is said into words and keeps only the words, ${MEET_WHERE}. No sound is saved.</div>
+      <ul class="small vlist"><li>Keep this screen open. Listening stops if you leave the app or lock the phone, and carries on when you come back.</li><li>Tap <b>Pause</b> for anything private, such as a named learner.</li><li>It will mishear some words, so take a few notes of your own the first time.</li></ul>
+      <div class="small muted">Your phone’s own speech service does the listening, the same one as the microphone key on the keyboard. It may send the sound to Google to turn it into words.</div>
+      ${warn}
+      <div class="li" style="border:0;padding:0"><div class="grow"><b class="small">My mentor knows and agrees</b><div class="small muted">Ask every time, before you start.</div></div><button class="toggle" role="switch" aria-checked="false" data-act="flip-toggle" id="mt-ok" aria-label="My mentor knows the phone is taking notes and agrees"></button></div>
+      <div class="btnrow"><button class="btn" data-act="meet-start"${cant ? ' disabled' : ''}>${ic('mic', 16)} Start listening</button><button class="btn ghost" data-act="close-sheet">Cancel</button></div>`);
+  }
+  function meetLiveCard() {
+    const n = meetNotes() || { text: '', secs: 0 };
+    return `<div class="card" id="mt-card"><div class="row"><span class="vdot" id="mt-dot" style="visibility:${MEET.st === 'on' ? 'visible' : 'hidden'}"></span><h3 class="grow" id="mt-state" style="min-width:0">${meetStateText()}</h3><span class="mtclock" id="mt-clock">${meetClock(n.secs)}</span></div>
+      <div class="mtlive" id="mt-live">${meetTail()}</div>
+      <div class="small muted" id="mt-count">${meetCount(n)}</div>
+      <div class="btnrow"><button class="btn ghost" data-act="meet-pause">Pause</button><button class="btn" data-act="meet-finish">Finish</button></div>
+      <div class="small muted">Keep this screen open. Listening stops if you leave the app or lock the phone, and carries on when you come back.</div></div>`;
+  }
+  function meetPausedCard(n) {
+    return `<div class="card" id="mt-paused"><div class="row"><h3 class="grow">Paused</h3><span class="mtclock">${meetClock(n.secs)}</span></div>
+      <div class="small">Nothing is being taken down. The ${meetWords(n)} words so far are safe ${MEET_WHERE}.</div>
+      <div class="btnrow"><button class="btn" data-act="meet-resume">${ic('mic', 16)} Carry on listening</button><button class="btn ghost" data-act="meet-finish">Finish</button></div></div>`;
+  }
+  function meetNotesCard(n) {
+    const meta = [shortDate(n.date), n.secs >= 30 ? `${Math.max(1, Math.round(n.secs / 60))} min of listening` : '', `${meetWords(n)} words`].filter(Boolean).join(' · ');
+    const step2 = n.sent ? `<div class="field"><label for="mt-draft">Claude’s draft</label><textarea id="mt-draft" data-input="mtdraft" maxlength="30000" style="min-height:110px" placeholder="When Claude has answered, hold a finger on its reply and tap Copy. Then hold a finger here and tap Paste.">${esc(n.draft || '')}</textarea></div>
+      <button class="btn" data-act="meet-fill" style="align-self:flex-start">Fill my record from this</button>` : '';
+    return `<div class="card" id="mt-notes-card"><h3>The phone’s notes</h3><div class="small muted">${esc(meta)}. Kept ${MEET_WHERE} only, until you save the record.</div>
+      ${MEET.why && MEET_WHY[MEET.why] ? `<div class="notice warn"><div><p>${MEET_WHY[MEET.why]}</p></div></div>` : ''}
+      <div class="field"><label for="mt-notes">What was taken down</label><textarea id="mt-notes" data-input="mtnotes" maxlength="${MEET_ROOM}" style="min-height:150px" placeholder="Paste a transcript here, or tap Listen at the start of your meeting.">${esc(n.text)}</textarea></div>
+      <div class="small">Read it through. Take out learners’ names and anything private, because the next step sends these words to your Claude.</div>
+      <div class="btnrow"><button class="btn${n.sent ? ' ghost' : ''}" data-act="meet-build">${ic('spark', 16)} ${n.sent ? 'Ask Claude again' : 'Build my record with Claude'}</button><button class="btn ghost" data-act="meet-resume">${ic('mic', 16)} ${hasWords(n.text) ? 'Carry on listening' : 'Listen'}</button></div>
+      ${step2}
+      ${sub.mtDrop ? '<div class="notice warn"><div><b>Delete the phone’s notes?</b><p>The words are removed for good. Records you have saved stay.</p><div class="btnrow" style="margin-top:8px"><button class="btn sm danger" data-act="meet-drop">Yes, delete them</button><button class="btn sm ghost" data-act="meet-drop-no">Keep them</button></div></div></div>' : '<div class="btnrow"><button class="btn sm ghost" data-act="meet-write">Write the record myself</button><button class="btn sm ghost danger" data-act="meet-drop-ask">Delete the notes</button></div>'}</div>`;
+  }
+  PP.meetings = () => {
+    const p = state.portfolio;
+    const n = p.meetNotes;
+    const list = p.meetings.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const top = MEET.live ? meetLiveCard() : n && MEET.paused ? meetPausedCard(n) : n ? meetNotesCard(n)
+      : `<div class="card"><h3>Let the phone take the notes</h3><div class="small">Tap Listen at the start of a meeting and put the phone on the table. It turns what is said into words and keeps only the words. No sound is saved. Afterwards Claude sorts them into your record, for you and your mentor to check.</div>
+        <div class="btnrow"><button class="btn" data-act="meet-listen">${ic('mic', 16)} Listen to this meeting</button><button class="btn ghost" data-act="meet-paste">Paste a transcript</button></div></div>`;
+    const row = (m) => `<div class="li top"><button class="grow tap" data-act="meet-open" data-id="${esc(m.id)}" style="text-align:left;min-width:0"><b>${esc(shortDate(m.date))}</b>${m.none ? ' <span class="pill warn">No meeting</span>' : ''}${m.pp ? ' <span class="pill good">In PebblePad</span>' : ''}<div class="small">${esc(m.discussed || '')}</div>${m.actions ? `<div class="small muted">Actions: ${esc(m.actions)}</div>` : ''}</button><button class="iconbtn" data-act="meet-del" data-id="${esc(m.id)}" aria-label="Delete">${ic('trash', 16)}</button></div>`;
+    return `<div class="small muted">Your Mentor Meeting Record. The handbook suggests about 30 minutes a week. No meeting? Note why.</div>
+      ${top}
+      <button class="btn${n || MEET.live ? ' ghost' : ''}" data-act="meet-new">${ic('plus', 16)} Write up a meeting</button>
+      <div class="card"><h3>Meetings</h3>${list.length ? `<div class="list">${list.map(row).join('')}</div>` : '<div class="small muted">No meetings recorded yet.</div>'}</div>`;
+  };
+  // The record form: a new meeting, one opened from the list (opt.m), or Claude's draft from the phone's notes (opt.pre).
+  let meetEdit = null; // { id, fromNotes }
+  function meetSheet(opt = {}) {
+    const m = opt.m || null;
+    const v = m || opt.pre || {};
+    const fromNotes = !!opt.fromNotes && !m;
+    meetEdit = { id: m ? m.id : '', fromNotes };
+    const date = (m && m.date) || opt.date || todayKey();
+    const core = (k) => k === 'discussed' || k === 'actions';
+    const all = !!opt.pre || MEET_FIELDS.some(([k]) => !core(k) && hasWords(v[k]));
+    const box = ([k, label]) => {
+      const id = meetId(k);
+      const hide = all || core(k) ? '' : ' hidden';
+      const ph = esc(MEET_HINT[k] || '');
+      return MEET_SHORT[k]
+        ? `<div class="field mopt"${hide}><label for="${id}">${label}</label><input type="text" id="${id}" maxlength="200" value="${esc(v[k] || '')}" placeholder="${ph}"></div>`
+        : `<div class="field${core(k) ? '' : ' mopt'}"${hide}><label for="${id}">${label}</label><textarea id="${id}" maxlength="6000" placeholder="${ph}">${esc(v[k] || '')}</textarea></div>`;
+    };
+    const sw = (id, label, hint, on) => `<div class="li" style="border:0;padding:0"><div class="grow"><b class="small">${label}</b>${hint ? `<div class="small muted">${hint}</div>` : ''}</div><button class="toggle" role="switch" aria-checked="${!!on}" data-act="flip-toggle" id="${id}" aria-label="${label}"></button></div>`;
+    sheet(`<h3>${m ? 'Mentor meeting' : opt.pre ? 'Check your record' : 'Write up a mentor meeting'}</h3>
+      ${opt.pre ? `<div class="notice"><span class="ic">${ic('spark', 16)}</span><div><b>Claude’s draft, from the phone’s notes</b><p>Check every box against what was really said, and fix anything marked [check]. Then ask your mentor to read it.</p></div></div>` : ''}
+      <div class="field"><label for="m-date">Date</label><input type="date" id="m-date" value="${esc(date)}"></div>
+      ${MEET_FIELDS.map(box).join('')}
+      ${all ? '' : '<button class="linkish" data-act="meet-more" style="align-self:flex-start">Show all the headings</button>'}
+      ${m ? '' : (fromNotes ? '' : sw('m-none', 'No meeting this week', 'Write why in “What you discussed”.', false)) + sw('m-ev', 'Also add to the evidence log', '', true)}
+      ${fromNotes ? sw('m-drop', 'Delete the phone’s notes when I save', 'The words it took down are removed from this phone.', true) : ''}
+      <div class="btnrow"><button class="btn" data-act="meet-save">Save</button><button class="btn ghost" data-act="close-sheet">Cancel</button></div>
+      <button class="btn sm ghost" data-act="pp-take" data-k="meet" style="align-self:flex-start">${ic('out', 14)} Save and take it to PebblePad</button>`);
+  }
+  // Saves the form as a meeting (a new one, or the one that was opened). Returns { m, isNew }, or null if there is nothing to save.
+  function meetSave() {
+    const p = state.portfolio;
+    const on = (id) => { const x = $('#' + id); return !!x && x.getAttribute('aria-checked') === 'true'; };
+    const vals = {};
+    MEET_FIELDS.forEach(([k]) => { vals[k] = (($('#' + meetId(k)) || {}).value || '').trim(); });
+    const none = on('m-none');
+    if (!$('#m-date')) return null;
+    if (!none && !MEET_FIELDS.some(([k]) => vals[k])) { toast('Write what you discussed, or why there was no meeting.'); return null; }
+    let m = meetEdit && meetEdit.id ? p.meetings.find((x) => x.id === meetEdit.id) : null;
+    const isNew = !m;
+    if (isNew) { m = { id: 'mt' + uid(), none }; p.meetings.push(m); }
+    const date = $('#m-date').value;
+    m.date = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : (m.date || todayKey());
+    MEET_FIELDS.forEach(([k]) => { if (vals[k] || k === 'discussed' || k === 'actions') m[k] = vals[k]; else delete m[k]; });
+    if (isNew && !none && on('m-ev')) p.evidence.push({ id: 'e' + uid(), title: `Mentor meeting, ${shortDate(m.date)}`, type: 'Mentor meeting record', date: m.date, link: '', status: 'draft', ksbs: [], notes: m.discussed });
+    if (meetEdit && meetEdit.fromNotes && on('m-drop')) { p.meetNotes = null; Object.assign(MEET, { paused: false, why: '', agreed: false }); }
+    meetEdit = { id: m.id, fromNotes: false };
+    commit();
+    return { m, isNew };
+  }
+  // A saved meeting as plain text, for PebblePad.
+  function meetText(m) {
+    const lines = [`Mentor meeting, ${fmtLong(m.date)}`];
+    if (m.none) lines.push(`No meeting this week. ${m.discussed || ''}`.trim());
+    else MEET_FIELDS.forEach(([k, , head]) => { const t = String(m[k] || '').trim(); if (t) lines.push(`${head[0]}${head.slice(1).toLowerCase()}:\n${t}`); });
+    return lines.join('\n\n');
+  }
+  // What Claude is asked: a factual record from the notes, under fixed headings, nothing added.
+  function meetPrompt() {
+    const n = meetNotes();
+    if (!n) return '';
+    return `Please turn the rough notes below into a draft of my mentor meeting record for my PGCE (further education) portfolio.
+
+The notes were made by my phone listening to the meeting on ${fmtLong(n.date)}. It mishears words and it does not know who is speaking. The times in square brackets are when it was listening.
+
+Rules:
+- Use only what is in the notes. Do not add anything that was not said, and do not guess a target, a date or a name.
+- Where the notes are unclear, or a word looks misheard, write [check] straight after it.
+- Leave out small talk. Do not name any learner: write "a learner".
+- Write in plain British English, in short sentences, as "I" for me and "my mentor" for my mentor.
+- Reply with these headings only, in this order, each on its own line in capitals with its colon, and nothing before or after them:
+${MEET_FIELDS.map((f) => `${f[2]}:`).join('\n')}
+- Under TARGETS AND ACTIONS give each action its own line starting with a dash, with who does it and by when if that was said.
+- If the notes say nothing for a heading, write "Not discussed" under it.
+- This is a factual record that my mentor and I will check and correct. Do not write any reflection for me.
+
+The notes:
+"""
+${n.text.trim()}
+"""`;
+  }
+  // Claude's reply, sorted into the boxes of the record by its headings. With no headings it all goes in "What you discussed".
+  function meetParse(raw) {
+    const text = String(raw || '').replace(/\r/g, '');
+    const marks = [];
+    // Capitals first, as asked for, so a line of the notes that happens to start "Strengths:" is not taken for a heading.
+    MEET_FIELDS.forEach(([k, , head, alts]) => {
+      for (const [name, flags] of [head].concat(alts).map((x) => [x, 'm']).concat([head].concat(alts).map((x) => [x, 'im']))) {
+        const m = new RegExp(`^[ \\t>#*_-]*${name.replace(/ /g, '[ \\t]+')}[ \\t*_]*(?::[ \\t*_]*|$)`, flags).exec(text);
+        if (m) { marks.push({ k, at: m.index, end: m.index + m[0].length }); break; }
+      }
+    });
+    marks.sort((a, b) => a.at - b.at);
+    const clean = (t) => { const c = t.replace(/\*\*|__/g, '').replace(/^[ \t]*[*•][ \t]+/gm, '- ').replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim(); return /^not discussed\.?$/i.test(c) ? '' : c; };
+    const out = {};
+    marks.forEach((mk, i) => { out[mk.k] = clean(text.slice(mk.end, i + 1 < marks.length ? marks[i + 1].at : text.length)); });
+    if (!marks.length) out.discussed = clean(text);
+    return out;
   }
 
   /* ---------- the Listen & speak screen ---------- */
@@ -4439,6 +4802,8 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
         <div class="small muted">Say “full stop”, “comma”, “question mark” or “new paragraph” as you go. It uses your phone’s own speech service, the same one as the microphone key on the keyboard. The app keeps only the text, on this phone, and no sound recording.</div>
         ${noRecogniser ? '<div class="notice warn"><div><b>This phone has no speech recogniser turned on</b><p>Install or turn on “Speech Recognition and Synthesis from Google” in the Play Store, then come back.</p></div></div>' : ''}
         ${dictateOn() ? '' : '<div class="small" style="color:var(--warn)">Speak is switched off in Settings, under Display and audio.</div>'}</div>
+      <div class="card"><h3>In a mentor meeting?</h3><div class="small muted">Let the phone take the notes. It keeps the words and no sound, and Claude sorts them into your meeting record afterwards.</div>
+        <button class="btn ghost" data-act="ppage" data-id="meetings">${ic('mic', 16)} Open Mentor meetings</button></div>
       ${nextObs ? `<div class="card"><h3>Just been observed?</h3><div class="small muted">Say how it went while it is fresh. It is kept as text with that observation. When the feedback arrives, open the observation in Portfolio and build your reflection from it.</div>
         <div class="field"><label for="v-obs">Which observation</label><select id="v-obs">${obsList.map((o) => `<option value="${o.n}"${o.n === nextObs.n ? ' selected' : ''}>${esc(o.label)} · ${esc(o.kind)}${info(o).spoken ? ' · has spoken notes' : ''}</option>`).join('')}</select></div>
         <button class="btn" data-act="obs-speak">${ic('mic', 16)} Speak my reflection now</button></div>` : ''}
@@ -5181,6 +5546,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       <div class="tutor-hole">${chatReady() ? '<div><p><b>Opening Claude…</b></p><p class="small">If this stays, check your connection, then tap the three dots and Reload.</p></div>' : `<div class="card" style="text-align:left"><h3>Your Claude tutor</h3><p class="small">In the Android app, this opens your own Claude account here, with your week ready to paste. In a browser, open Claude in a new tab and paste your question.</p><div class="btnrow"><a class="btn" href="${esc(chatUrl())}" target="_blank" rel="noopener">Open Claude</a><button class="btn ghost" type="button" data-act="copy-week">Copy my week</button></div></div>`}</div>`;
     el.hidden = false;
     tutorOpen = true;
+    meetCheck();
     if (chatReady() && !state.settings.chatTipSeen) { signInHelp(true); return; }
     positionChat();
     if (prompt) setTimeout(() => sendToTutor(prompt), 250);
@@ -5549,13 +5915,59 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       case 'meet-new': meetSheet(); break;
       case 'flip-toggle': el.setAttribute('aria-checked', String(el.getAttribute('aria-checked') !== 'true')); break;
       case 'meet-save': {
-        const m = { id: 'mt' + uid(), date: ($('#m-date') || {}).value || todayKey(), discussed: (($('#m-disc') || {}).value || '').trim(), actions: (($('#m-act') || {}).value || '').trim(), none: ($('#m-none') || {}).getAttribute('aria-checked') === 'true' };
-        if (!m.discussed && !m.none) { toast('Write what you discussed, or why there was no meeting.'); break; }
-        p.meetings.push(m);
-        if (!m.none && ($('#m-ev') || {}).getAttribute('aria-checked') === 'true') p.evidence.push({ id: 'e' + uid(), title: `Mentor meeting, ${shortDate(m.date)}`, type: 'Mentor meeting record', date: m.date, link: '', status: 'draft', ksbs: [], notes: m.discussed });
-        commit(); closeSheet(true); render(); toast('<b>Meeting recorded.</b> Tag the evidence to KSBs when you upload it.');
+        const r = meetSave();
+        if (!r) break;
+        closeSheet(true); render();
+        toast(r.isNew ? '<b>Meeting recorded.</b> Tag the evidence to KSBs when you upload it.' : '<b>Saved.</b>');
         break;
       }
+      case 'meet-open': { const m = p.meetings.find((x) => x.id === id); if (m) meetSheet({ m }); break; }
+      case 'meet-more': document.querySelectorAll('#layer .mopt').forEach((x) => { x.hidden = false; }); el.hidden = true; break;
+      // The phone takes the notes
+      case 'meet-listen': meetStartSheet(); break;
+      case 'meet-start': {
+        const ok = $('#mt-ok');
+        if (!ok || ok.getAttribute('aria-checked') !== 'true') { toast('Ask your mentor first, then switch on <b>My mentor knows and agrees</b>.', 5000); break; }
+        MEET.agreed = true;
+        meetBegin();
+        break;
+      }
+      case 'meet-resume': if (MEET.agreed) meetBegin(); else meetStartSheet(); break;
+      case 'meet-pause': meetStop('pause'); break;
+      case 'meet-finish': if (MEET.live) meetStop('finish'); else { MEET.paused = false; render(); } break;
+      case 'meet-paste': {
+        if (!p.meetNotes) { p.meetNotes = { date: todayKey(), text: '', secs: 0, draft: '', sent: 0 }; commit(); }
+        MEET.paused = false;
+        render();
+        setTimeout(() => { const x = $('#mt-notes'); if (x) x.focus(); }, 60);
+        break;
+      }
+      case 'meet-build': {
+        const n = p.meetNotes;
+        if (!n) break;
+        if (wordCount(n.text) < 20) { toast('There is not enough in the notes yet to build a record from.'); break; }
+        clearTimeout(window.__mtT);
+        n.sent = Date.now();
+        commit(); render();
+        const brief = meetPrompt();
+        const paste = '<b>Copied.</b> Hold a finger in Claude’s message box, tap Paste, then Send.';
+        // An app before this one drops anything over 50,000 letters without saying so, so a long brief is copied instead.
+        if (chatReady() && !canMeet() && brief.length > 49000) { if (!tutorOpen) openTutor(''); copyText(brief, paste); break; }
+        ask(brief);
+        if (chatReady() && !state.settings.chatTipSeen) copyText(brief, paste); // the first-time sign-in help is showing instead
+        break;
+      }
+      case 'meet-fill': {
+        const n = p.meetNotes;
+        if (!n) break;
+        if (!hasWords(n.draft)) { toast('Paste Claude’s reply into the box first.'); break; }
+        meetSheet({ pre: meetParse(n.draft), date: n.date, fromNotes: true });
+        break;
+      }
+      case 'meet-write': meetSheet({ date: (p.meetNotes || {}).date, fromNotes: !!p.meetNotes }); break;
+      case 'meet-drop-ask': sub.mtDrop = true; render(); break;
+      case 'meet-drop-no': sub.mtDrop = false; render(); break;
+      case 'meet-drop': sub.mtDrop = false; p.meetNotes = null; Object.assign(MEET, { paused: false, why: '', agreed: false }); clearTimeout(window.__mtT); commit(); render(); toast('The phone’s notes are deleted.'); break;
       case 'meet-del': p.meetings = p.meetings.filter((m) => m.id !== id); commit(); render(); break;
       case 'pcheck': { if (p.checks[id]) delete p.checks[id]; else p.checks[id] = Date.now(); commit(); render(); break; }
       case 'pduty': { if (p.duties[id]) delete p.duties[id]; else p.duties[id] = Date.now(); commit(); render(); break; }
@@ -5572,6 +5984,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
         if (d.kind === 'obs') p.obs['r' + d.id] = Date.now();
         else if (d.kind === 'ev') { const e = p.evidence.find((x) => x.id === d.id); if (e) e.status = 'uploaded'; }
         else if (d.kind === 'ksb' && KSBS[d.id]) p.ksbDone[d.id] = Date.now();
+        else if (d.kind === 'meet') { const m = p.meetings.find((x) => x.id === d.id); if (m) m.pp = Date.now(); }
         ppCarry = null;
         commit(); closeSheet(true); render();
         toast('<b>Marked as in PebblePad.</b>');
@@ -5779,6 +6192,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const d = el.dataset || {};
     if (d.input === 'refl') { if (reflectDraft) reflectDraft.text = el.value; return; }
     if (d.input === 'vpad') { state.voicePad = el.value; clearTimeout(window.__padT); window.__padT = setTimeout(commit, 600); return; }
+    if (d.input === 'mtnotes' || d.input === 'mtdraft') { const n = state.portfolio.meetNotes; if (n) { n[d.input === 'mtnotes' ? 'text' : 'draft'] = el.value; clearTimeout(window.__mtT); window.__mtT = setTimeout(commit, 600); } return; }
     if (d.input === 'paper') {
       const rec = (state.papers[d.id] = state.papers[d.id] || { answers: {} });
       rec.answers[d.i] = el.value;
@@ -5914,7 +6328,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     syncAlarms();
     if (!loadLocal()) saveLocal();
     window.__capgownGo = (v) => { if (ROUTE_NAMES.includes(routeOf(v))) go(v); };
-    window.__capgownResume = () => { lastDay = todayKey(); heal(); syncAlarms(); render(); takeSavedLinks(); listenSync(); podSync(); setTimeout(liveWaiting, 1500); };
+    window.__capgownResume = () => { lastDay = todayKey(); heal(); syncAlarms(); render(); takeSavedLinks(); listenSync(); podSync(); meetWake(); setTimeout(liveWaiting, 1500); };
     window.__capgownListen = (st) => listenState(st);
     window.__capgownPod = (st) => podState(st);
     window.__capgownPodFeed = (req, d) => { const f = PODF.cb[String(req)]; if (f) f(d); };
@@ -5957,10 +6371,10 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   });
   function newDay() { lastDay = todayKey(); heal(); render(); }
   setInterval(() => { if (todayKey() !== lastDay) newDay(); }, 60000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); if (!document.hidden) meetWake(); });
 
   // Exposed for testing only
-  window.__planner = { deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
+  window.__planner = { deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
 })();
 
 </script>

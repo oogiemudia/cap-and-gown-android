@@ -1176,6 +1176,281 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     }
   }
 
+  // ---------- L. Mentor meetings: the phone takes the notes, Claude drafts the record ----------
+  {
+    const REPLY = '**WHO WAS THERE:** Me and my mentor\nPROGRESS ON LAST TARGETS:\nI tried the hinge question [check].\nStrengths: this line is part of the progress, not a heading.\n\n## WHAT WE DISCUSSED:\n- The starter went well.\n- The plenary was rushed.\n\nSTRENGTHS:\nClear instructions.\nAREAS TO DEVELOP:\nNot discussed\nTARGETS AND ACTIONS:\n* Shorten the plenary, me, by Friday\nNEXT MEETING:\nThursday 3 December';
+    const NOTES = 'We talked about the starter activity and how the learners settled quickly. My mentor said the instructions were clear. Next time I should shorten the plenary and ask a hinge question before the practical.';
+    const mk = () => { const st = JSON.parse(JSON.stringify(rich)); st.settings.pebblepad = 'https://v3.pebblepad.co.uk/login/example'; return st; };
+    const toMeetings = (page) => page.evaluate(() => { const P = window.__planner; P.go('home'); P.sub.ppage = 'meetings'; P.go('portfolio'); });
+    {
+      // the newest app
+      const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-23T15:30:00', state: mk() });
+      const P = (fn, arg) => page.evaluate(fn, arg);
+      const type = (sel, text) => P(([s, t]) => { const el = document.querySelector(s); if (!el) return false; el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); return true; }, [sel, text]);
+      const notes = () => P(() => window.__planner.state.portfolio.meetNotes);
+      const saved = () => P(() => JSON.parse(window.AndroidApp.loadState()).portfolio);
+      const scr = () => P(() => document.querySelector('#screen').textContent);
+      const toastText = () => P(() => document.querySelector('#toast').hidden ? '' : document.querySelector('#toast').textContent);
+      await toMeetings(page);
+      ok('meeting: the page offers to listen, to paste a transcript and to write a meeting up, and shows saved meetings', await P(() => !!document.querySelector('#screen [data-act="meet-listen"]') && !!document.querySelector('#screen [data-act="meet-paste"]') && !!document.querySelector('#screen [data-act="meet-new"]') && /No sound is saved/.test(document.querySelector('#screen').textContent) && /Talked targets/.test(document.querySelector('#screen').textContent)));
+      await click(page, '#screen [data-act="meet-listen"]');
+      const sheet0 = await P(() => document.querySelector('#layer').textContent);
+      ok('meeting: before listening it says what happens to the words and asks about the mentor', /keeps only the words/.test(sheet0) && /No sound is saved/.test(sheet0) && /My mentor knows and agrees/.test(sheet0) && /may send the sound to Google/.test(sheet0) && !/newest app/.test(sheet0), sheet0);
+      await click(page, '#layer [data-act="meet-start"]'); await tick(page);
+      ok('meeting: it will not start until the mentor has agreed', (await calls(page, 'meetingStart')).length === 0 && /Ask your mentor first/.test(await toastText()) && await P(() => !window.__planner.MEET.live && window.__planner.state.portfolio.meetNotes == null));
+      await click(page, '#layer #mt-ok');
+      await click(page, '#layer [data-act="meet-start"]'); await tick(page);
+      ok('meeting: Start asks the phone to listen to a whole meeting, and says Listening', (await calls(page, 'meetingStart')).length === 1 && (await calls(page, 'dictateStart')).length === 0 && await P(() => window.__planner.MEET.live && document.querySelector('#mt-state').textContent === 'Listening' && document.querySelector('#layer').textContent === '' && !!document.querySelector('#screen [data-act="meet-pause"]') && !!document.querySelector('#screen [data-act="meet-finish"]')));
+      ok('meeting: the notes start empty, dated today, and are saved straight away', await P(() => { const n = window.__planner.state.portfolio.meetNotes; const s = JSON.parse(window.AndroidApp.loadState()).portfolio.meetNotes; return n.date === '2026-11-23' && n.text === '' && s && s.date === '2026-11-23'; }));
+      await P(() => window.__say('we talked about the starter activity'));
+      ok('meeting: what is heard goes into the notes, with the time', (await notes()).text === '[15:30]\nWe talked about the starter activity.' && await P(() => /We talked about the starter activity\./.test(document.querySelector('#mt-live').textContent) && /^6 words so far/.test(document.querySelector('#mt-count').textContent)), await notes());
+      await P(() => window.__say('and my mentor said full stop the plenary comma was rushed', 'partial'));
+      ok('meeting: words still being heard show in grey and are not kept yet', await P(() => /the plenary comma was rushed/.test(document.querySelector('#mt-live i').textContent)) && (await notes()).text === '[15:30]\nWe talked about the starter activity.');
+      await P(() => window.__say('and my mentor said full stop the plenary comma was rushed'));
+      ok('meeting: a second piece joins the first, without a second time, and spoken punctuation words are left as said', (await notes()).text === '[15:30]\nWe talked about the starter activity. And my mentor said full stop the plenary comma was rushed.', await notes());
+      await P(() => window.__capgownDictate('wait', 'offline'));
+      ok('meeting: when the signal drops it says so and keeps the words', await P(() => /No connection\. Trying again/.test(document.querySelector('#mt-state').textContent) && window.__planner.MEET.live && document.querySelector('#mt-dot').style.visibility === 'hidden'));
+      await P(() => window.__capgownDictate('ready', ''));
+      ok('meeting: and Listening again when it is back', await P(() => document.querySelector('#mt-state').textContent === 'Listening' && document.querySelector('#mt-dot').style.visibility === 'visible'));
+      await P(() => { const M = window.__planner.MEET; M.tickAt = Date.now() - 3000; window.__planner.meetTick(); });
+      ok('meeting: the clock counts the listening', await P(() => { const n = window.__planner.state.portfolio.meetNotes; return n.secs >= 2.9 && n.secs < 4.5 && /^0:0[34]$/.test(document.querySelector('#mt-clock').textContent); }), await notes());
+      // five minutes on, the time is written again
+      await P(() => { window.__planner.MEET.stampAt -= 5 * 60000; window.__NOW = '2026-11-23T15:35:00'; window.__say('next time shorten the plenary'); });
+      ok('meeting: the time is noted again every five minutes', /\.\n\n\[15:35\]\nNext time shorten the plenary\.$/.test((await notes()).text), await notes());
+      // Speak in a writing box has to wait
+      await click(page, '#screen [data-act="meet-new"]');
+      await click(page, '#m-disc + .vbar [data-act="dictate"]'); await tick(page);
+      ok('meeting: Speak in a writing box is refused while the meeting is being listened to', (await calls(page, 'dictateStart')).length === 0 && /Pause that first/.test(await toastText()) && await P(() => !window.__planner.DICT.on && window.__planner.MEET.live));
+      await click(page, '[data-act="close-sheet"]'); await tick(page);
+      ok('meeting: closing a sheet over the page leaves it listening', await P(() => window.__planner.MEET.live) && (await calls(page, 'dictateStop')).length === 0);
+      // Pause and carry on
+      await click(page, '#screen [data-act="meet-pause"]'); await tick(page);
+      ok('meeting: Pause stops the microphone and keeps the words', (await calls(page, 'dictateStop')).length === 1 && await P(() => !window.__planner.MEET.live && !!document.querySelector('#mt-paused') && /Nothing is being taken down/.test(document.querySelector('#screen').textContent)) && /Next time shorten the plenary\.$/.test((await saved()).meetNotes.text));
+      await P(() => window.__say('this was said while paused'));
+      ok('meeting: nothing said while paused is taken down', !/while paused/.test((await notes()).text));
+      await click(page, '#screen [data-act="meet-resume"]'); await tick(page);
+      ok('meeting: Carry on listens again without asking twice', (await calls(page, 'meetingStart')).length === 2 && await P(() => window.__planner.MEET.live && document.querySelector('#layer').textContent === '' && document.querySelector('#mt-state').textContent === 'Listening'));
+      // the app goes off the screen: the phone stops the microphone, and it carries on when the app is back
+      await P(() => { window.__offScreen = true; Object.defineProperty(document, 'hidden', { configurable: true, get: () => !!window.__hidden }); window.__hidden = true; window.__dictateEnd(''); });
+      await page.waitForTimeout(500);
+      ok('meeting: off the screen it waits and does not ask for the microphone', (await calls(page, 'meetingStart')).length === 2 && await P(() => window.__planner.MEET.live && window.__planner.MEET.st === 'away' && /Waiting for the app to come back/.test(document.querySelector('#mt-state').textContent)));
+      await P(() => { window.__offScreen = false; window.__hidden = false; window.__capgownResume(); }); await tick(page);
+      ok('meeting: back on the screen it carries on listening', (await calls(page, 'meetingStart')).length === 3 && await P(() => window.__planner.MEET.live && document.querySelector('#mt-state').textContent === 'Listening'));
+      // the phone says it is off the screen before the page knows
+      await P(() => { window.__offScreen = true; window.__dictateEnd(''); });
+      await page.waitForTimeout(550);
+      ok('meeting: if the app refuses because it is off the screen, the page waits for it', (await calls(page, 'meetingStart')).length === 4 && await P(() => window.__planner.MEET.live && window.__planner.MEET.st === 'away'));
+      await P(() => { window.__offScreen = false; document.dispatchEvent(new Event('visibilitychange')); }); await tick(page);
+      ok('meeting: and carries on when it is back', (await calls(page, 'meetingStart')).length === 5 && await P(() => document.querySelector('#mt-state').textContent === 'Listening'));
+      // the phone stops by itself (its own limit): the page starts it again
+      await P(() => window.__dictateEnd(''));
+      await page.waitForTimeout(550);
+      ok('meeting: if the phone stops by itself the page starts it again', (await calls(page, 'meetingStart')).length === 6 && await P(() => window.__planner.MEET.live));
+      // leaving the page pauses it
+      const stops = (await calls(page, 'dictateStop')).length;
+      await P(() => window.__planner.go('home')); await tick(page);
+      ok('meeting: leaving the Mentor meetings page pauses the listening and says so', (await calls(page, 'dictateStop')).length === stops + 1 && await P(() => !window.__planner.MEET.live) && /Listening has paused/.test(await toastText()));
+      await toMeetings(page);
+      ok('meeting: coming back shows it paused, with the words safe', await P(() => !!document.querySelector('#mt-paused')) && /Next time shorten the plenary\.$/.test((await notes()).text));
+      // opening the tutor pauses it too
+      await click(page, '#screen [data-act="meet-resume"]'); await tick(page);
+      await click(page, '#fab'); await tick(page);
+      ok('meeting: opening the tutor over the page pauses the listening', await P(() => !window.__planner.MEET.live && !document.querySelector('#tutor').hidden));
+      await click(page, '[data-act="close-tutor"]');
+      // nobody speaks for ten minutes
+      await toMeetings(page);
+      await click(page, '#screen [data-act="meet-resume"]'); await tick(page);
+      await P(() => window.__dictateEnd('quiet')); await tick(page);
+      ok('meeting: ten quiet minutes end the listening, and the notes say why', await P(() => !window.__planner.MEET.live && !!document.querySelector('#mt-notes-card') && /nobody had spoken for 10 minutes/.test(document.querySelector('#mt-notes-card').textContent)));
+      // ninety minutes is the most
+      await click(page, '#screen [data-act="meet-resume"]'); await tick(page);
+      await P(() => { const M = window.__planner.MEET; window.__planner.state.portfolio.meetNotes.secs = 90 * 60 - 1; M.tickAt = Date.now() - 2000; window.__planner.meetTick(); }); await tick(page);
+      ok('meeting: it stops after 90 minutes of listening', await P(() => !window.__planner.MEET.live && /after 90 minutes/.test(document.querySelector('#mt-notes-card').textContent)));
+      await P(() => { window.__planner.state.portfolio.meetNotes.secs = 1500; });
+      // Finish: the notes can be read and corrected
+      await click(page, '#screen [data-act="meet-resume"]'); await tick(page);
+      await click(page, '#screen [data-act="meet-finish"]'); await tick(page);
+      ok('meeting: Finish shows the notes to read through', await P(() => { const n = window.__planner.state.portfolio.meetNotes; const ta = document.querySelector('#mt-notes'); return !window.__planner.MEET.live && ta && ta.value === n.text && /25 min of listening/.test(document.querySelector('#mt-notes-card').textContent) && /Take out learners’ names/.test(document.querySelector('#mt-notes-card').textContent) && !document.querySelector('#mt-draft'); }));
+      await type('#mt-notes', 'Too short.');
+      await click(page, '#screen [data-act="meet-build"]'); await page.waitForTimeout(350);
+      ok('meeting: Claude is not asked to build a record from next to nothing', /not enough in the notes/.test(await toastText()) && await P(() => document.querySelector('#tutor').hidden && !window.__lastInsert));
+      await type('#mt-notes', '[15:30]\n' + NOTES);
+      await page.waitForTimeout(700);
+      ok('meeting: corrections to the notes are saved', (await saved()).meetNotes.text === '[15:30]\n' + NOTES);
+      await click(page, '#screen [data-act="meet-build"]'); await page.waitForTimeout(450);
+      const brief = await P(() => window.__lastInsert || '');
+      ok('meeting: Build my record gives Claude the notes and the headings of the record', ['WHO WAS THERE:', 'PROGRESS ON LAST TARGETS:', 'WHAT WE DISCUSSED:', 'STRENGTHS:', 'AREAS TO DEVELOP:', 'TARGETS AND ACTIONS:', 'NEXT MEETING:'].every((h) => brief.includes('\n' + h + '\n')) && brief.includes(NOTES) && /Monday 23 November/.test(brief), brief);
+      ok('meeting: and tells it to add nothing, to mark doubts, to name no learner and to write no reflection', /Use only what is in the notes/.test(brief) && /\[check\]/.test(brief) && /Do not name any learner/.test(brief) && /Do not write any reflection for me\./.test(brief) && /"Not discussed"/.test(brief), brief);
+      ok('meeting: the tutor opens with it, and nothing is sent by the app itself', await P(() => !document.querySelector('#tutor').hidden && window.__calls.filter((c) => c[0] === 'chatInsert').length === 1));
+      await click(page, '[data-act="close-tutor"]');
+      ok('meeting: a box for Claude’s reply appears', await P(() => !!document.querySelector('#mt-draft') && !!document.querySelector('#screen [data-act="meet-fill"]') && window.__planner.state.portfolio.meetNotes.sent > 0 && /Ask Claude again/.test(document.querySelector('#screen [data-act="meet-build"]').textContent)));
+      await click(page, '#screen [data-act="meet-fill"]');
+      ok('meeting: an empty reply is not turned into a record', /Paste Claude’s reply into the box first/.test(await toastText()) && await P(() => document.querySelector('#layer').textContent === ''));
+      await type('#mt-draft', REPLY);
+      await page.waitForTimeout(700);
+      await click(page, '#screen [data-act="meet-fill"]');
+      const boxes = await P(() => { const v = (id) => (document.querySelector('#' + id) || {}).value; return { title: document.querySelector('#layer h3').textContent, present: v('m-present'), progress: v('m-progress'), disc: v('m-disc'), strengths: v('m-strengths'), develop: v('m-develop'), act: v('m-act'), next: v('m-next'), date: v('m-date'), hidden: document.querySelectorAll('#layer .mopt[hidden]').length, more: !!document.querySelector('#layer [data-act="meet-more"]'), drop: document.querySelector('#m-drop').getAttribute('aria-checked'), ev: document.querySelector('#m-ev').getAttribute('aria-checked'), text: document.querySelector('#layer').textContent }; });
+      ok('meeting: Claude’s reply is sorted into the boxes of the record', boxes.present === 'Me and my mentor' && boxes.progress === 'I tried the hinge question [check].\nStrengths: this line is part of the progress, not a heading.' && boxes.disc === '- The starter went well.\n- The plenary was rushed.' && boxes.strengths === 'Clear instructions.' && boxes.develop === '' && boxes.act === '- Shorten the plenary, me, by Friday' && boxes.next === 'Thursday 3 December', boxes);
+      ok('meeting: the record is dated the day of the meeting, shows every heading and asks for it to be checked', boxes.title === 'Check your record' && boxes.date === '2026-11-23' && boxes.hidden === 0 && !boxes.more && /Check every box against what was really said/.test(boxes.text) && /ask your mentor to read it/.test(boxes.text) && boxes.drop === 'true' && boxes.ev === 'true', boxes);
+      await type('#m-develop', 'Pace of the plenary.');
+      await click(page, '#layer [data-act="meet-save"]');
+      const after = await saved();
+      const m = after.meetings.find((x) => x.date === '2026-11-23');
+      ok('meeting: Save keeps the record with every box, and adds it to the evidence log', !!m && m.present === 'Me and my mentor' && m.discussed === '- The starter went well.\n- The plenary was rushed.' && m.develop === 'Pace of the plenary.' && m.actions === '- Shorten the plenary, me, by Friday' && m.next === 'Thursday 3 December' && m.none === false && after.evidence.some((e) => e.title === 'Mentor meeting, Mon 23 Nov' && e.type === 'Mentor meeting record') && /Meeting recorded/.test(await toastText()), [m, after.evidence.map((e) => e.title)]);
+      ok('meeting: and the phone’s notes are deleted', after.meetNotes === null && await P(() => window.__planner.state.portfolio.meetNotes === null && !!document.querySelector('#screen [data-act="meet-listen"]') && !document.querySelector('#mt-notes')));
+      ok('meeting: no sound and no notes are left anywhere in the saved data', !/starter activity and how the learners settled/.test(JSON.stringify(after)));
+      // open it again, change it, take it to PebblePad
+      await click(page, `#screen [data-act="meet-open"][data-id="${m.id}"]`);
+      ok('meeting: a saved meeting opens with its boxes filled', await P(() => document.querySelector('#layer h3').textContent === 'Mentor meeting' && document.querySelector('#m-present').value === 'Me and my mentor' && document.querySelectorAll('#layer .mopt[hidden]').length === 0 && !document.querySelector('#m-none') && !document.querySelector('#m-drop')));
+      await type('#m-act', '- Shorten the plenary, me, by Friday\n- Send the scheme of work, my mentor, by Monday');
+      await P(() => { window.__lastCopy = ''; window.__calls.length = 0; });
+      await click(page, '#layer [data-act="pp-take"][data-k="meet"]');
+      const pp = await P(() => ({ copy: window.__lastCopy || '', sheet: document.querySelector('#layer').textContent, n: window.__planner.state.portfolio.meetings.length, ev: window.__planner.state.portfolio.evidence.filter((e) => e.type === 'Mentor meeting record').length }));
+      ok('meeting: Take it to PebblePad saves the change and copies the record under its headings', pp.copy === 'Mentor meeting, Monday 23 November\n\nWho was there:\nMe and my mentor\n\nProgress on last targets:\nI tried the hinge question [check].\nStrengths: this line is part of the progress, not a heading.\n\nWhat we discussed:\n- The starter went well.\n- The plenary was rushed.\n\nStrengths:\nClear instructions.\n\nAreas to develop:\nPace of the plenary.\n\nTargets and actions:\n- Shorten the plenary, me, by Friday\n- Send the scheme of work, my mentor, by Monday\n\nNext meeting:\nThursday 3 December' && /Open the PebblePad app/.test(pp.sheet) && /mark this meeting as in PebblePad/.test(pp.sheet), pp);
+      ok('meeting: changing a saved meeting does not add a second one or a second evidence entry', pp.n === 2 && pp.ev === 1, pp);
+      await click(page, '#layer [data-act="pp-done"]');
+      ok('meeting: marking it shows In PebblePad on the list', await P((id) => window.__planner.state.portfolio.meetings.find((x) => x.id === id).pp > 0 && /In PebblePad/.test(document.querySelector(`#screen [data-act="meet-open"][data-id="${id}"]`).textContent), m.id));
+      // an old meeting, written before this page, still opens and saves
+      await click(page, '#screen [data-act="meet-open"][data-id="mt1"]');
+      ok('meeting: a meeting written before this page opens with the two boxes it had', await P(() => document.querySelector('#m-disc').value === 'Talked targets' && document.querySelector('#m-act').value === 'Plan obs 7' && document.querySelectorAll('#layer .mopt[hidden]').length === 5 && !!document.querySelector('#layer [data-act="meet-more"]')));
+      await click(page, '#layer [data-act="meet-more"]');
+      ok('meeting: Show all the headings shows the other boxes', await P(() => document.querySelectorAll('#layer .mopt[hidden]').length === 0 && document.querySelector('#layer [data-act="meet-more"]').hidden));
+      await click(page, '#layer [data-act="meet-save"]');
+      ok('meeting: saving it again changes nothing', await P(() => { const o = window.__planner.state.portfolio.meetings.find((x) => x.id === 'mt1'); return o.discussed === 'Talked targets' && o.actions === 'Plan obs 7' && !('present' in o) && window.__planner.state.portfolio.meetings.length === 2; }) && /Saved/.test(await toastText()));
+      // write one up by hand, as before
+      await click(page, '#screen [data-act="meet-new"]');
+      await click(page, '#layer [data-act="meet-save"]');
+      ok('meeting: an empty write-up is not saved', /Write what you discussed/.test(await toastText()) && await P(() => window.__planner.state.portfolio.meetings.length === 2));
+      await click(page, '#layer #m-none');
+      await type('#m-disc', 'My mentor was on a trip.');
+      await click(page, '#layer [data-act="meet-save"]');
+      ok('meeting: “No meeting this week” is still recorded, without an evidence entry', await P(() => { const p = window.__planner.state.portfolio; const x = p.meetings.find((y) => y.none); return !!x && x.discussed === 'My mentor was on a trip.' && p.evidence.filter((e) => e.type === 'Mentor meeting record').length === 1 && /No meeting/.test(document.querySelector('#screen').textContent); }));
+      // paste a transcript made somewhere else, then delete it
+      await click(page, '#screen [data-act="meet-paste"]');
+      await type('#mt-notes', NOTES);
+      await page.waitForTimeout(700);
+      ok('meeting: a transcript from somewhere else can be pasted in', (await saved()).meetNotes.text === NOTES && await P(() => !!document.querySelector('#screen [data-act="meet-build"]')));
+      await click(page, '#screen [data-act="meet-drop-ask"]');
+      ok('meeting: deleting the notes asks first', /Delete the phone’s notes\?/.test(await scr()) && (await notes()) !== null);
+      await click(page, '#screen [data-act="meet-drop-no"]');
+      ok('meeting: Keep them keeps them', (await notes()).text === NOTES && await P(() => !document.querySelector('#screen [data-act="meet-drop"]')));
+      await click(page, '#screen [data-act="meet-drop-ask"]');
+      await click(page, '#screen [data-act="meet-drop"]');
+      ok('meeting: Yes deletes them from the phone', (await saved()).meetNotes === null && await P(() => !!document.querySelector('#screen [data-act="meet-listen"]')) && /notes are deleted/.test(await toastText()));
+      await click(page, '#screen [data-act="meet-listen"]');
+      ok('meeting: after deleting, the mentor is asked about again', await P(() => !!document.querySelector('#mt-ok') && document.querySelector('#mt-ok').getAttribute('aria-checked') === 'false'));
+      await click(page, '[data-act="close-sheet"]');
+      // the ways in and the About entry
+      await P(() => window.__planner.go('voice'));
+      await click(page, '#screen [data-act="ppage"][data-id="meetings"]');
+      ok('meeting: Listen & speak has a way in to Mentor meetings', await P(() => window.__planner.route === 'portfolio' && window.__planner.sub.ppage === 'meetings'));
+      await P(() => window.__planner.go('about'));
+      ok('meeting: About says what it does', /The phone takes the notes in a mentor meeting/.test(await scr()));
+      // the parser: other spellings, and a reply with no headings
+      const parsed = await P(() => ({ alt: window.__planner.meetParse('Present: Me and Sam\nDiscussion:\nBehaviour.\nActions agreed:\n- Seating plan\nDate of next meeting: 1 December'), none: window.__planner.meetParse('We just chatted about behaviour.'), empty: window.__planner.meetParse('') }));
+      ok('meeting: other spellings of the headings are understood', parsed.alt.present === 'Me and Sam' && parsed.alt.discussed === 'Behaviour.' && parsed.alt.actions === '- Seating plan' && parsed.alt.next === '1 December', parsed.alt);
+      ok('meeting: a reply with no headings goes into What you discussed', parsed.none.discussed === 'We just chatted about behaviour.' && Object.keys(parsed.none).length === 1 && parsed.empty.discussed === '', parsed);
+      ok('meeting: no script errors', errors.length === 0, errors);
+      await ctx.close();
+    }
+    {
+      // Speak is on in a box when Listen is tapped; the microphone is refused; no recogniser
+      const st = mk();
+      st.portfolio.meetNotes = { date: '2026-11-23', text: 'Some words already here from before the break in the meeting, enough of them to count as real notes for the record.', secs: 60, draft: '', sent: 0 };
+      const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-23T15:30:00', state: st });
+      const P = (fn, arg) => page.evaluate(fn, arg);
+      await toMeetings(page);
+      ok('meeting: notes left on the phone are still there when the app opens again', await P(() => !!document.querySelector('#mt-notes-card') && /^Some words already here/.test(document.querySelector('#mt-notes').value) && /Carry on listening/.test(document.querySelector('#screen [data-act="meet-resume"]').textContent)));
+      await click(page, '#mt-notes + .vbar [data-act="dictate"]'); await tick(page);
+      ok('meeting: Speak works in the notes box', await P(() => window.__planner.DICT.on) && (await calls(page, 'dictateStart')).length === 1);
+      await click(page, '#screen [data-act="meet-resume"]');
+      ok('meeting: after the app was closed, the mentor is asked about again', await P(() => !!document.querySelector('#mt-ok')));
+      await click(page, '#layer #mt-ok');
+      await click(page, '#layer [data-act="meet-start"]'); await tick(page); await tick(page);
+      ok('meeting: Speak lets go of the microphone and the meeting starts', (await calls(page, 'dictateStop')).length === 1 && (await calls(page, 'meetingStart')).length === 1 && await P(() => !window.__planner.DICT.on && window.__planner.MEET.live && !window.__planner.MEET.pending));
+      await P(() => window.__say('and now the second half'));
+      ok('meeting: new words are added after the old ones, with the time', await P(() => /^Some words already here .* record\.\n\n\[15:30\]\nAnd now the second half\.$/.test(window.__planner.state.portfolio.meetNotes.text)), await P(() => window.__planner.state.portfolio.meetNotes.text));
+      await P(() => window.__dictateEnd('offline')); await tick(page);
+      ok('meeting: with no signal it waits and tries again by itself', await P(() => window.__planner.MEET.live && window.__planner.MEET.st === 'wait' && /No connection/.test(document.querySelector('#mt-state').textContent)));
+      await click(page, '#screen [data-act="meet-finish"]'); await tick(page);
+      ok('meeting: Finish works while it is waiting', await P(() => !window.__planner.MEET.live && !!document.querySelector('#mt-notes-card')));
+      ok('meeting second phone: no script errors', errors.length === 0, errors);
+      await ctx.close();
+    }
+    for (const who of [{ name: 'the microphone refused', o: { micDenied: true }, re: /microphone/i }, { name: 'no speech recogniser', o: { noRecogniser: true }, re: /speech recogniser/i }]) {
+      const { ctx, page, errors } = await open(browser, Object.assign({ app: true, now: '2026-11-23T15:30:00', state: mk() }, who.o));
+      await toMeetings(page);
+      await click(page, '#screen [data-act="meet-listen"]');
+      const warned = await page.evaluate(() => /no speech recogniser turned on/.test(document.querySelector('#layer').textContent));
+      await click(page, '#layer #mt-ok');
+      await click(page, '#layer [data-act="meet-start"]'); await tick(page); await tick(page);
+      ok(`meeting with ${who.name}: listening ends and the page says why`, await page.evaluate((re) => !window.__planner.MEET.live && new RegExp(re, 'i').test((document.querySelector('#mt-notes-card .notice') || {}).textContent || ''), who.re.source) && (who.o.noRecogniser ? warned : !warned) && errors.length === 0, [await page.evaluate(() => document.querySelector('#screen').textContent.slice(0, 600)), errors]);
+      await ctx.close();
+    }
+    {
+      // the app as it was before it could listen to a whole meeting: short stretches that the page starts again
+      const { ctx, page, errors } = await open(browser, { app: true, app7: true, now: '2026-11-23T15:30:00', state: mk() });
+      const P = (fn, arg) => page.evaluate(fn, arg);
+      await toMeetings(page);
+      await click(page, '#screen [data-act="meet-listen"]');
+      ok('meeting in the older app: the sheet says one more install makes it dependable', await P(() => /One more install makes this dependable/.test(document.querySelector('#layer').textContent) && !!document.querySelector('#layer [data-act="get-app"]') && !document.querySelector('#layer [data-act="meet-start"]').disabled));
+      await click(page, '#layer #mt-ok');
+      await click(page, '#layer [data-act="meet-start"]'); await tick(page);
+      ok('meeting in the older app: it listens with the microphone Speak uses', (await calls(page, 'dictateStart')).length === 1 && await P(() => window.__planner.MEET.live && document.querySelector('#mt-state').textContent === 'Listening'));
+      await P(() => window.__say('first stretch'));
+      await P(() => window.__dictateEnd('quiet'));
+      await page.waitForTimeout(550);
+      ok('meeting in the older app: when a stretch ends in a quiet spell the page starts the next one', (await calls(page, 'dictateStart')).length === 2 && await P(() => window.__planner.MEET.live && /First stretch\.$/.test(window.__planner.state.portfolio.meetNotes.text)));
+      // a phone that keeps stopping straight away is not asked for ever
+      for (let i = 0; i < 6; i++) { await P(() => window.__dictateEnd('')); await page.waitForTimeout(450); }
+      ok('meeting in the older app: a phone that stops at once every time is given up on, with the reason', await P(() => !window.__planner.MEET.live && /busy|did not answer|try again/i.test((document.querySelector('#mt-notes-card .notice') || {}).textContent || '')) && (await calls(page, 'dictateStart')).length <= 8, [await calls(page, 'dictateStart'), await P(() => document.querySelector('#screen').textContent.slice(0, 400))]);
+      // a long brief is copied, not dropped
+      await P(() => { const n = window.__planner.state.portfolio.meetNotes; n.text = 'word '.repeat(10000); window.__lastInsert = ''; window.__lastCopy = ''; window.__planner.go('home'); window.__planner.sub.ppage = 'meetings'; window.__planner.go('portfolio'); });
+      await click(page, '#screen [data-act="meet-build"]'); await page.waitForTimeout(450);
+      ok('meeting in the older app: a very long brief is copied for pasting, because that app drops it', await P(() => !window.__lastInsert && /^Please turn the rough notes/.test(window.__lastCopy) && window.__lastCopy.length > 50000 && !document.querySelector('#tutor').hidden));
+      ok('meeting in the older app: no script errors', errors.length === 0, errors);
+      await ctx.close();
+    }
+    for (const who of [{ name: 'the app before Listen and Speak', o: { app: true, app4: true }, re: /Listening needs the newest app/ }]) {
+      const { ctx, page, errors } = await open(browser, Object.assign({ now: '2026-11-23T15:30:00', state: mk() }, who.o));
+      await toMeetings(page);
+      await click(page, '#screen [data-act="meet-listen"]');
+      ok(`meeting in ${who.name}: it says what is needed, and a transcript can still be pasted`, await page.evaluate((re) => new RegExp(re).test(document.querySelector('#layer').textContent) && document.querySelector('#layer [data-act="meet-start"]').disabled && !!document.querySelector('#screen [data-act="meet-paste"]'), who.re.source) && errors.length === 0, errors);
+      await ctx.close();
+    }
+    {
+      // a browser: its own speech recognition, restarted when it stops
+      const init = `window.SpeechRecognition = window.webkitSpeechRecognition = function () { window.__sr = this; this.start = () => setTimeout(() => this.onstart && this.onstart(), 0); this.stop = () => setTimeout(() => this.onend && this.onend(), 0); };`;
+      const { ctx, page, errors } = await open(browser, { app: false, now: '2026-11-23T15:30:00', state: mk(), init });
+      const P = (fn, arg) => page.evaluate(fn, arg);
+      await toMeetings(page);
+      await click(page, '#screen [data-act="meet-listen"]');
+      await click(page, '#layer #mt-ok');
+      await click(page, '#layer [data-act="meet-start"]'); await tick(page);
+      const has = await P(() => !!window.__sr);
+      if (has) {
+        await P(() => { window.__sr.onstart && window.__sr.onstart(); window.__sr.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: 'hello from the browser' }], { isFinal: true })] }); });
+        ok('meeting in a browser: the browser’s speech recognition takes the notes', await P(() => window.__planner.MEET.live && /Hello from the browser\.$/.test(window.__planner.state.portfolio.meetNotes.text)));
+        await click(page, '#screen [data-act="meet-finish"]'); await tick(page);
+        await P(() => { if (window.__planner.MEET.live && window.__sr && window.__sr.onend) window.__sr.onend(); }); await tick(page);
+        ok('meeting in a browser: Finish ends it', await P(() => !window.__planner.MEET.live && !!document.querySelector('#mt-notes-card')));
+      } else {
+        ok('meeting in a browser without speech: it says so', await P(() => /cannot/.test(document.querySelector('#layer').textContent + document.querySelector('#toast').textContent)));
+      }
+      ok('meeting in a browser: no script errors', errors.length === 0, errors);
+      await ctx.close();
+    }
+    for (const bad of [{ date: 'yesterday', text: 'x' }, 'words', 7, [], { date: '2026-11-23', text: 123, secs: 'long', draft: {}, sent: 'yes' }]) {
+      const st = mk();
+      st.portfolio.meetNotes = bad;
+      st.portfolio.meetings.push({ id: 'mt2', date: '2026-11-12', discussed: 'ok', actions: '', none: false, present: 5, next: ['x'], pp: 'yes' });
+      const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-23T15:30:00', state: st });
+      await toMeetings(page);
+      ok(`meeting: damaged notes (${JSON.stringify(bad).slice(0, 40)}) are repaired and the page opens`, await page.evaluate(() => { const p = window.__planner.state.portfolio; const n = p.meetNotes; const m = p.meetings.find((x) => x.id === 'mt2'); return (n === null || (typeof n.text === 'string' && typeof n.draft === 'string' && typeof n.secs === 'number' && n.sent === 0)) && m && typeof (m.present || '') === 'string' && typeof (m.next || '') === 'string' && !m.pp && !!document.querySelector('#screen [data-act="meet-new"]'); }) && errors.length === 0, errors);
+      await ctx.close();
+    }
+  }
+
   // ---------- H. looks: dark, dyslexia display, small and large phones ----------
   for (const look of [{ name: 'dark', dark: true, width: 360 }, { name: 'dys', width: 360, dys: true }, { name: 'wide', width: 430 }, { name: 'narrow', width: 320 }]) {
     const state = JSON.parse(JSON.stringify(rich));
