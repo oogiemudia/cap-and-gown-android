@@ -413,6 +413,58 @@ public class Bridge {
         return activity.meetingInBackground();
     }
 
+    /**
+     * The app's own listening, which turns a meeting's sound into words on the phone itself, so that it
+     * carries on with the phone locked and nothing leaves the phone. It needs a speech model, downloaded
+     * once, in one of three sizes: small, medium or tiny. ownListen says, as JSON: supported (this phone
+     * can run it), sizes { size: { bytes, ready } }, use (the size meetingStart will listen with, or "" for
+     * the phone's speech service), busy (the size being downloaded), done and total (bytes), error
+     * (offline, space or failed), metered (on mobile data) and broken (it would not start last time).
+     * The page hears of changes through window.__capgownOwn(). That the method exists tells the page
+     * this app can do it.
+     */
+    @JavascriptInterface
+    public String ownListen() {
+        return activity.ownStatus();
+    }
+
+    @JavascriptInterface
+    public void ownDownload(String size) {
+        if (SpeechModel.known(size)) activity.ownDownload(size);
+    }
+
+    @JavascriptInterface
+    public void ownCancel() {
+        SpeechModel.cancel();
+    }
+
+    /** Chooses the size to listen with, or "" for the phone's speech service. */
+    @JavascriptInterface
+    public void ownUse(String size) {
+        if (size == null || size.isEmpty() || SpeechModel.known(size)) activity.ownUse(size == null ? "" : size);
+    }
+
+    @JavascriptInterface
+    public void ownDelete(String size) {
+        if (SpeechModel.known(size)) activity.ownDelete(size);
+    }
+
+    /**
+     * A meeting's finished sentences reach the page as window.__capgownDictate("final", words, number, id).
+     * If the page was held up while the phone was locked, it asks here for the ones after the last number
+     * it had: { id, lines: [[number, words, time]], live }.
+     */
+    @JavascriptInterface
+    public String meetingSince(String id, int seq) {
+        return activity.meetingSince(id == null ? "" : id, seq);
+    }
+
+    /** The page has deleted the meeting's notes. */
+    @JavascriptInterface
+    public void meetingForget() {
+        activity.meetingForget();
+    }
+
     /** A phone toast, used while the chat covers the page. */
     @JavascriptInterface
     public void toast(String message) {

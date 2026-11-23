@@ -14,6 +14,12 @@ android {
         targetSdk 34
         versionCode runNumber
         versionName "1.0.${runNumber}"
+        // The speech engine (the app's own listening) is built for phones' processors. The test build that
+        // runs on an emulator in the checks (-Pemulator) also carries the build for a computer's processor.
+        ndk {
+            abiFilters 'arm64-v8a', 'armeabi-v7a'
+            if (project.hasProperty('emulator')) abiFilters 'x86_64'
+        }
     }
 
     signingConfigs {
@@ -41,5 +47,20 @@ android {
     lint {
         checkReleaseBuilds false
         abortOnError false
+    }
+
+    // Keeps the app file small to download: the speech engine is packed tight and unpacked when the app is installed.
+    packaging {
+        jniLibs {
+            useLegacyPackaging true
+        }
+    }
+}
+
+dependencies {
+    // The app's own listening for mentor meetings (OwnSpeech): Moonshine Voice turns speech into words on the
+    // phone. Only its engine is used, so none of the libraries it lists for its other parts are brought in.
+    implementation('ai.moonshine:moonshine-voice:0.1.6') {
+        transitive = false
     }
 }

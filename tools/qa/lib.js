@@ -64,8 +64,35 @@ function bridgeScript(opts) {
     window.__podPlaces = places;
     window.__podEnd = (done, error) => { if (done) delete places[P.url]; Object.assign(P, { state: 'idle', done: !!done, error: error || '' }); tellPod(); };
     window.__dictating = false;
-    window.__say = (words, kind) => { if (window.__capgownDictate) window.__capgownDictate(kind || 'final', words); };
+    window.__meeting = false; // the listening that is on is a whole meeting
+    // The newest app numbers the finished sentences of a meeting, so that a page that was held up while the
+    // phone was locked can ask for the ones it missed. __sayHeld(words) is a sentence the page never heard, and
+    // __sayLate(words) is the sentence the app was still working on when the microphone was stopped.
+    const HEARD = { id: 'run1', n: 0, lines: [] };
+    window.__heard = HEARD;
+    const canNumber = () => window.__meeting && window.AndroidApp && typeof window.AndroidApp.meetingSince === 'function';
+    const numbered = () => window.__dictating && canNumber();
+    window.__say = (words, kind) => {
+      if (!window.__capgownDictate) return;
+      if ((kind || 'final') === 'final' && numbered()) { HEARD.lines.push([++HEARD.n, words, Date.now()]); window.__capgownDictate('final', words, HEARD.n, HEARD.id); return; }
+      window.__capgownDictate(kind || 'final', words);
+    };
+    window.__sayHeld = (words, at) => { HEARD.lines.push([++HEARD.n, words, at || Date.now()]); };
+    window.__sayLate = (words) => { if (!canNumber()) return; HEARD.lines.push([++HEARD.n, words, Date.now()]); if (window.__capgownDictate) window.__capgownDictate('final', words, HEARD.n, HEARD.id); };
     window.__dictateEnd = (why) => { window.__dictating = false; if (window.__capgownDictate) window.__capgownDictate('end', why || ''); };
+    // The app's own listening (OwnSpeech.java, SpeechModel.java): a speech model in three sizes, downloaded once.
+    // o.own: the sizes already on the phone, such as { small: true }; o.ownUse: the one in use. A test moves a
+    // download on with __ownStep(bytes) and ends it with __ownEnd(error). noOwnEngine is a phone that cannot
+    // run it; ownFails is one where it will not start; metered is a phone on mobile data.
+    const OWN_BYTES = { small: 134217728, medium: 263192576, tiny: 45088768 }; // 128, 251 and 43 MB: not the page's own estimates
+    const W = { supported: !o.noOwnEngine, sizes: {}, use: '', broken: false, busy: '', done: 0, total: 0, error: '', metered: !!o.metered };
+    Object.keys(OWN_BYTES).forEach((k) => { W.sizes[k] = { bytes: o.ownNoSizes ? -1 : OWN_BYTES[k], ready: !!(o.own && o.own[k]) }; });
+    if (o.ownUse && W.sizes[o.ownUse] && W.sizes[o.ownUse].ready) W.use = o.ownUse;
+    const tellOwn = () => setTimeout(() => { if (window.__capgownOwn) window.__capgownOwn(); }, 0);
+    const ownActive = () => W.supported && !W.broken && !!W.use && W.sizes[W.use].ready;
+    window.__own = W;
+    window.__ownStep = (bytes) => { W.done = bytes; tellOwn(); };
+    window.__ownEnd = (error) => { const k = W.busy; W.busy = ''; W.error = error || ''; if (!error && k) { W.sizes[k].ready = true; W.use = k; W.broken = false; } tellOwn(); };
     window.AndroidApp = {
       version: () => '1.0.5',
       saveState: (j) => { native = j; },
@@ -130,6 +157,7 @@ function bridgeScript(opts) {
         if (o.micDenied) { tellSpeak('end', 'denied'); return; }
         if (o.noRecogniser) { tellSpeak('end', 'none'); return; }
         window.__dictating = true;
+        window.__meeting = false;
         tellSpeak('ready');
       },
       dictateStop: () => { rec('dictateStop')(); if (window.__dictating) { window.__dictating = false; tellSpeak('end', ''); } },
@@ -139,10 +167,22 @@ function bridgeScript(opts) {
         rec('meetingStart')();
         if (window.__offScreen) { tellSpeak('end', 'away'); return; }
         if (o.micDenied) { tellSpeak('end', 'denied'); return; }
-        if (o.noRecogniser) { tellSpeak('end', 'none'); return; }
+        const own = typeof window.AndroidApp.ownListen === 'function' && ownActive();
+        if (own && o.ownFails) { W.broken = true; tellSpeak('end', 'engine'); return; }
+        if (!own && o.noRecogniser) { tellSpeak('end', 'none'); return; }
         window.__dictating = true;
-        tellSpeak('ready');
+        window.__meeting = true;
+        tellSpeak('ready', own ? 'own' : '');
       },
+      // The app's own listening: what it says about its speech model, and the download
+      ownListen: () => JSON.stringify(W),
+      ownDownload: (k) => { rec('ownDownload')(k); if (W.busy || !W.sizes[k]) return; Object.assign(W, { busy: k, done: 0, total: Math.max(0, W.sizes[k].bytes), error: '' }); tellOwn(); },
+      ownCancel: () => { rec('ownCancel')(); if (W.busy) { W.busy = ''; tellOwn(); } },
+      ownUse: (k) => { rec('ownUse')(k); if (!k || (W.sizes[k] && W.sizes[k].ready)) { W.use = k || ''; W.broken = false; tellOwn(); } },
+      ownDelete: (k) => { rec('ownDelete')(k); if (W.sizes[k] && W.busy !== k) { W.sizes[k].ready = false; if (W.use === k) W.use = ''; tellOwn(); } },
+      // The sentences of a meeting after number seq (all of them, for a page whose numbers are from another run)
+      meetingSince: (id, seq) => JSON.stringify({ id: HEARD.id, lines: HEARD.lines.filter((l) => id !== HEARD.id || l[0] > seq), live: !!window.__dictating && !!window.__meeting }),
+      meetingForget: () => { rec('meetingForget')(); HEARD.lines = []; },
       // The meeting's own notice is up (MeetingService), so it carries on with the phone locked. That the method
       // exists tells the page this app can do it; noMeetingService is a phone that would not put the notice up.
       meetingInBackground: () => !o.noMeetingService && !!window.__dictating,
@@ -158,6 +198,8 @@ function bridgeScript(opts) {
       setAutoUpdate: (on) => { live.auto = !!on; rec('setAutoUpdate')(on); },
       revertUpdate: rec('revertUpdate')
     };
+    // app9: the app as it was before it could do the listening itself (page 50, build 14).
+    if (o.oldApp || o.app4 || o.app5 || o.app6 || o.app7 || o.app8 || o.app9) ['ownListen', 'ownDownload', 'ownCancel', 'ownUse', 'ownDelete', 'meetingSince', 'meetingForget'].forEach((k) => { delete window.AndroidApp[k]; });
     // app8: the app as it was before it could listen with the phone locked (page 49, build 13).
     if (o.oldApp || o.app4 || o.app5 || o.app6 || o.app7 || o.app8) delete window.AndroidApp.meetingInBackground;
     // app7: the app as it was before it could listen to a whole mentor meeting (page 48).
