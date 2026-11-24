@@ -4,7 +4,8 @@ const { chromium, open, overflow } = require('./lib');
 const { rich } = require('./seed');
 
 const SCREENS = [];
-['home', 'plan', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice', 'coach'].forEach((r) => SCREENS.push({ name: r, route: r, sub: {} }));
+['home', 'plan', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice', 'coach', 'module'].forEach((r) => SCREENS.push({ name: r, route: r, sub: {} }));
+[['module/learn', { mw: 11, ms: 'learn' }], ['module/check', { mw: 11, ms: 'check' }], ['module/ask', { mw: 11, ms: 'ask' }], ['module/after', { mw: 11, ms: 'after' }], ['module/light', { mw: 29 }]].forEach(([n, s]) => SCREENS.push({ name: n, route: 'module', sub: s }));
 [['coach/ksb', { cpath: 'ksb' }], ['coach/cp', { cpath: 'cp' }], ['coach/learn', { cq: '2.1', cs: 'learn', cn: 4 }], ['coach/check', { cq: '2.1', cs: 'check' }], ['coach/plan', { cq: '5.2', cs: 'plan' }], ['coach/write', { cq: '5.2', cs: 'write' }]].forEach(([n, s]) => SCREENS.push({ name: n, route: 'coach', sub: s }));
 ['foryou', 'quiz', 'cards', 'mistakes', 'papers'].forEach((t) => SCREENS.push({ name: 'study/' + t, route: 'study', sub: { stab: t } }));
 ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placements', 'records', 'pd'].forEach((p) => SCREENS.push({ name: 'portfolio/' + p, route: 'portfolio', sub: { ppage: p } }));
