@@ -1787,12 +1787,12 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     await P(() => { window.__planner.sub.lf = 'Course'; window.__planner.go('library'); });
     ok('library: the Course filter shows the courses and no platform card', await P((n) => document.querySelectorAll('#screen .card .list [data-act="res"]').length === n && !document.querySelector('#screen #platcard'), courses.length));
 
-    // where things open: a sign-in course and a YouTube video go outside; an OpenLearn course stays in the reader
+    // where things open: a sign-in course goes outside; a YouTube video and an OpenLearn course stay in the app (page 53)
     const opens = async (id) => { await P(() => { window.__calls.length = 0; window.__opened.length = 0; }); await P((i) => window.__planner.resOpen(i), id); return P(() => ({ out: window.__opened.slice(), reader: window.__calls.filter((c) => c[0] === 'openReader').map((c) => c[1]) })); };
     const seneca = await opens('on71');
     ok('open: a course that needs an account goes to the browser', seneca.out.length === 1 && /app\.senecalearning\.com/.test(seneca.out[0]) && !seneca.reader.length, seneca);
     const yt = await opens('on49');
-    ok('open: a YouTube lesson goes to the browser or the YouTube app', yt.out.length === 1 && yt.out[0] === 'https://www.youtube.com/watch?v=SOmr389LNzM' && !yt.reader.length, yt);
+    ok('open: a YouTube lesson plays inside the app', yt.reader.length === 1 && yt.reader[0] === 'https://www.youtube.com/watch?v=SOmr389LNzM' && !yt.out.length, yt);
     const ol = await opens('on68');
     ok('open: an OpenLearn course opens in the in-app reader', ol.reader.length === 1 && /open\.edu\/openlearn/.test(ol.reader[0]) && !ol.out.length, ol);
     await P(() => { window.__planner.sub.lf = 'All'; window.__planner.sub.q = 'cognitive science for teachers'; window.__planner.go('library'); });
@@ -1842,6 +1842,157 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     await page.evaluate(() => { window.__planner.sub.lf = 'Favourites'; window.__planner.go('library'); });
     ok('removed lessons: old records and favourites for them are ignored quietly', errors.length === 0 && await page.evaluate(() => !document.querySelector('#screen [data-act="res"][data-id="on37"]') && window.__planner.recommend().picks.length >= 2), errors);
     await ctx.close();
+  }
+
+  // ---------- M. videos inside the app, and cards from a finished video (page 53) ----------
+  {
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-24T19:30:00', state: null });
+    const P = (fn, arg) => page.evaluate(fn, arg);
+    const later = (mins) => P((m) => { window.__NOW = new Date(new Date(window.__NOW).getTime() + m * 60000).toISOString(); }, mins);
+    const sheetText = () => P(() => ((document.querySelector('#layer .sheet') || {}).textContent || '').replace(/\s+/g, ' '));
+    const clear = () => P(() => { const c = document.querySelector('[data-act="close-sheet"]'); if (c) c.click(); window.__calls.length = 0; window.__opened.length = 0; });
+    const due = (src) => P((s) => window.__planner.dueCards(null, s || null).map((c) => c.id), src);
+
+    // the cards themselves
+    const vc = await P(() => { const P = window.__planner; return Object.entries(P.VIDEO_CARDS).map(([id, cards]) => { const o = P.ONLINE.find((x) => x.id === id); return { id, kind: o ? o.kind : '', n: cards.length, good: cards.every((c) => Array.isArray(c) && c.length === 2 && c.every((x) => typeof x === 'string' && x.trim().length > 8) && c[0].length <= 300 && c[1].length <= 600) }; }); });
+    ok('video cards: every set belongs to a video in the library and has three good cards', vc.length >= 20 && vc.every((v) => v.kind === 'Watch' && v.n === 3 && v.good), vc.filter((v) => !(v.kind === 'Watch' && v.n === 3 && v.good)));
+    const single = await P(() => window.__planner.ONLINE.filter((o) => o.kind === 'Watch' && /youtube\.com\/watch\?v=/.test(o.url)).map((o) => o.id));
+    ok('video cards: every single YouTube lesson has its own cards', single.length >= 14 && single.every((id) => vc.some((v) => v.id === id)), single.filter((id) => !vc.some((v) => v.id === id)));
+    ok('video cards: no card is said twice', await P(() => { const P = window.__planner; const all = Object.values(P.VIDEO_CARDS).flat().map((c) => c[0]).concat(P.DECK.map((c) => c.f)); return new Set(all).size === all.length; }));
+    ok('video cards: nothing is in your review cards before a video is finished', await P(() => { const P = window.__planner; return !P.allCards().some((c) => /^v-/.test(c.id)) && P.pushedCards().size === 0 && P.dueCards().length === 8; }));
+
+    // watching inside the app, and the browser as a choice
+    await P(() => { const P = window.__planner; P.sub.lf = 'All'; P.sub.q = 'Principles of assessment'; P.go('library'); });
+    await click(page, '#screen [data-act="res"][data-id="on49"]');
+    ok('video sheet: it offers the browser or the YouTube app as a choice', await P(() => { const b = document.querySelector('#layer [data-act="res-open-out"][data-id="on49"]'); return !!b && /Watch in my browser or the YouTube app/.test(b.textContent) && /It plays inside the app/.test(document.querySelector('#layer .sheet').textContent); }), await sheetText());
+    ok('video sheet: no cards are promised before it is finished', await P(() => !document.querySelector('#layer [data-vidcards]')));
+    await P(() => { window.__calls.length = 0; window.__opened.length = 0; });
+    await click(page, '#layer [data-act="res-open-out"][data-id="on49"]');
+    ok('video: "Watch in my browser" goes outside the app', await P(() => window.__opened.length === 1 && window.__opened[0] === 'https://www.youtube.com/watch?v=SOmr389LNzM' && !window.__calls.some((c) => c[0] === 'openReader')), await P(() => [window.__opened, window.__calls]));
+
+    // back within a minute: you only looked, so nothing is asked, then or later
+    await later(0.5);
+    await P(() => window.__capgownResume());
+    ok('video: back within a minute, nothing is asked', await P(() => !document.querySelector('#layer .sheet')));
+    await later(20);
+    await P(() => window.__capgownResume());
+    ok('video: and it is not asked later either', await P(() => !document.querySelector('#layer .sheet')));
+
+    // watched in the app for nine minutes: coming back asks if it stuck
+    await clear();
+    await P(() => window.__planner.resOpen('on49'));
+    ok('video: Watch opens it in the in-app reader', await P(() => window.__calls.filter((c) => c[0] === 'openReader').length === 1 && !window.__opened.length));
+    await P(() => window.__capgownResume());
+    ok('video: nothing is asked while it is only just opening', await P(() => !document.querySelector('#layer .sheet')));
+    await later(9);
+    await P(() => window.__capgownResume());
+    const back = await sheetText();
+    ok('video: coming back asks if it stuck, and says its cards will follow', /Back from the video\. Did it stick\?/.test(back) && /Principles of assessment/.test(back) && /its 3 cards go into your review cards/.test(back) && /Not finished yet/.test(back), back);
+    await P(() => window.__capgownResume());
+    ok('video: it asks once', await P(() => document.querySelectorAll('#layer .sheet').length === 1));
+    await click(page, '#layer [data-act="res-stick"][data-v="Yes"]');
+    const lock = await sheetText();
+    ok('finished: the video is done and the sheet says its cards are in', await P(() => window.__planner.state.res.on49.done > 0) && /Lock it in/.test(lock) && /3 cards from this video are now in your review cards\./.test(lock) && /written from the unit’s criteria/.test(lock) && /not the video’s own words/.test(lock), lock);
+    ok('finished: it offers to review them now and to add your own', await P(() => { const r = document.querySelector('#layer [data-act="vid-cards"][data-id="on49"]'); return !!r && /Review these 3 cards now/.test(r.textContent) && !!document.querySelector('#layer [data-act="vid-card-add"][data-id="on49"]') && !document.querySelector('#layer [data-act="vid-cards-off"]'); }));
+    const d1 = await due();
+    ok('queue: the video’s cards come first, and the day still has eight new cards', d1.slice(0, 3).join() === 'v-on49-0,v-on49-1,v-on49-2' && d1.length === 8, d1);
+    ok('queue: asked for by video, only its cards come', (await due('on49')).join() === 'v-on49-0,v-on49-1,v-on49-2');
+    ok('queue: a video card carries the video’s topic', await P(() => window.__planner.allCards().filter((c) => c.src === 'on49').every((c) => c.t === 'vacsr')));
+
+    // reviewing them
+    await click(page, '#layer [data-act="vid-cards"][data-id="on49"]');
+    ok('cards: the screen shows this video’s cards only', await P(() => { const P = window.__planner; const t = document.querySelector('#screen').textContent; return P.route === 'study' && P.sub.stab === 'cards' && P.sub.cardSrc === 'on49' && /Principles of assessment/.test(t) && /Show all cards/.test(t) && /3 due/.test(t) && /certificate from six years ago/.test(t) && /New card/.test(t); }), await P(() => document.querySelector('#screen').textContent.slice(0, 300)));
+    ok('cards: the tab counts this video’s cards', await P(() => /Cards\s*3/.test(document.querySelector('#screen .seg').textContent)));
+    await click(page, '#screen [data-act="flip"]');
+    await click(page, '#screen [data-act="grade"][data-id="2"]');
+    ok('cards: grading one schedules it and moves to the next', await P(() => { const P = window.__planner; const st = P.state.cards['v-on49-0']; return !!st && st.due > '2026-11-24' && st.first === '2026-11-24' && /copied from a colleague/.test(document.querySelector('#screen .fc').textContent) && P.state.mastery.vacsr > 0; }));
+    await click(page, '#screen [data-act="card-src"]');
+    ok('cards: with all cards showing, a video card says where it came from', await P(() => { const P = window.__planner; const t = document.querySelector('#screen').textContent; return P.sub.cardSrc === null && /From a video you finished: Principles of assessment/.test(t) && /copied from a colleague/.test(t); }));
+    const d2 = await due();
+    ok('queue: after one is reviewed, eight new cards a day still holds', d2.slice(0, 2).join() === 'v-on49-1,v-on49-2' && d2.length === 7, d2);
+
+    // a card in your own words
+    await P(() => { const P = window.__planner; P.sub.lf = 'All'; P.sub.q = 'Principles of assessment'; P.go('library'); });
+    await click(page, '#screen [data-act="res"][data-id="on49"]');
+    const s1 = await sheetText();
+    ok('video sheet: after finishing, it shows the cards it put in', /3 cards from this video in your review cards\./.test(s1) && /Review these 2 cards now/.test(s1) && /Add a card in my own words/.test(s1) && /Take its ready-made cards out/.test(s1), s1);
+    await click(page, '#layer [data-act="vid-card-add"][data-id="on49"]');
+    ok('own card: the sheet asks for a question and an answer, with Speak under each', await P(() => !!document.querySelector('#vc-f') && !!document.querySelector('#vc-b') && document.querySelectorAll('#layer .vbar').length === 2 && /A card in your own words/.test(document.querySelector('#layer .sheet').textContent)));
+    await click(page, '#layer [data-act="vid-card-save"][data-id="on49"]');
+    ok('own card: an empty card is not saved', await P(() => window.__planner.state.extraCards.length === 0 && !!document.querySelector('#vc-f')));
+    await P(() => { document.querySelector('#vc-f').value = '  What did the video say fairness means?  '; document.querySelector('#vc-b').value = 'Every learner gets the same chance to show what they can do.'; });
+    await click(page, '#layer [data-act="vid-card-save"][data-id="on49"]');
+    const mine = await P(() => window.__planner.state.extraCards.map((c) => ({ f: c.f, b: c.b, t: c.t, src: c.src, id: c.id })));
+    ok('own card: it is saved under the video and its topic', mine.length === 1 && mine[0].f === 'What did the video say fairness means?' && mine[0].t === 'vacsr' && mine[0].src === 'on49' && /^x/.test(mine[0].id), mine);
+    const s2 = await sheetText();
+    ok('own card: the video’s sheet lists it, with Remove', /What did the video say fairness means\?/.test(s2) && /Review these 3 cards now/.test(s2) && await P(() => document.querySelectorAll('#layer [data-act="vid-card-del"]').length === 1), s2);
+    ok('own card: it comes to the front with the video’s cards', (await due('on49')).length === 3 && (await due()).slice(0, 3).includes(mine[0].id), await due());
+
+    // the ready-made cards can be taken out and put back; your own card stays
+    await click(page, '#layer [data-act="vid-cards-off"][data-id="on49"]');
+    ok('take out: the ready-made cards leave, your own card stays', await P(() => { const P = window.__planner; return P.state.res.on49.nocards === true && !P.allCards().some((c) => /^v-on49/.test(c.id)) && P.allCards().some((c) => c.src === 'on49') && /ready-made cards are out/.test(document.querySelector('#layer [data-vidcards]').textContent) && /1 card of your own from it stays/.test(document.querySelector('#layer [data-vidcards]').textContent); }), await sheetText());
+    await click(page, '#layer [data-act="vid-cards-on"][data-id="on49"]');
+    ok('put back: they return, and the one already reviewed keeps its date', await P(() => { const P = window.__planner; return !P.state.res.on49.nocards && P.allCards().filter((c) => /^v-on49/.test(c.id)).length === 3 && P.state.cards['v-on49-0'].due > '2026-11-24' && !P.dueCards().some((c) => c.id === 'v-on49-0'); }));
+    await click(page, '#layer [data-act="vid-card-del"]');
+    ok('own card: Remove takes it out of the cards', await P(() => window.__planner.state.extraCards.length === 0 && !document.querySelector('#layer [data-act="vid-card-del"]')));
+
+    // marked not done: its cards leave until it is finished again
+    await click(page, '#layer [data-act="res-undone"][data-id="on49"]');
+    ok('not done: the video’s cards leave the queue', await P(() => { const P = window.__planner; return !P.state.res.on49.done && !P.allCards().some((c) => /^v-on49/.test(c.id)) && P.dueCards().length === 7; }), await due());
+
+    // a video with no cards of its own brings three on its topic to the front; a reading brings none
+    await P(() => { const P = window.__planner; P.resDone('pd50', 'Partly'); P.render(); });
+    const d3 = await due();
+    const topicCards = await P(() => { const P = window.__planner; return P.DECK.filter((c) => ['adaptive', 'agency'].includes(c.t)).slice(0, 3).map((c) => c.id); });
+    ok('no cards of its own: three deck cards on its topic come to the front', topicCards.length === 3 && d3.slice(0, 3).join() === topicCards.join() && d3.length === 7, [d3, topicCards]);
+    await P(() => { const P = window.__planner; P.sub.lf = 'All'; P.sub.q = 'Beyond the Margins'; P.go('library'); });
+    await click(page, '#screen [data-act="res"][data-id="pd50"]');
+    const s3 = await sheetText();
+    ok('no cards of its own: the sheet says so and asks for yours', /3 cards on Adaptive teaching and SEND have moved to the front of your review cards\./.test(s3) && /no cards of its own yet/.test(s3) && /Add a card in my own words/.test(s3), s3);
+    await clear();
+    const n0 = (await due()).length;
+    await P(() => { const P = window.__planner; P.resDone('on01', 'Yes'); P.render(); });
+    ok('a reading brings no cards', (await due()).join() === d3.join() && (await due()).length === n0 && await P(() => window.__planner.pushedCards().size === 3));
+    await P(() => { const P = window.__planner; P.sub.q = ''; P.go('library'); P.resSheet('on01'); });
+    ok('a reading’s sheet has no card block and no browser choice', await P(() => !document.querySelector('#layer [data-vidcards]') && !document.querySelector('#layer [data-act="res-open-out"]')));
+    await clear();
+
+    // For you: a video pick says Watch here
+    await P(() => { const P = window.__planner; P.sub.stab = 'foryou'; P.go('study'); });
+    const R = await picksOf(page);
+    const w = R.picks.find((p) => p.kind === 'Watch');
+    ok('for you: a video pick says Watch here', !!w && await P((id) => /Watch (here|again)/.test(document.querySelector(`#screen .card.rec [data-act="res-open"][data-id="${id}"]`).textContent), w.id), R.picks.map((p) => [p.id, p.kind]));
+    ok('videos: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  // saved cards and records from a video survive a reload, and odd values do no harm
+  {
+    const st = JSON.parse(JSON.stringify(rich));
+    st.res = Object.assign({}, st.res, { on53: { open: Date.parse('2026-11-23T20:00:00'), done: Date.parse('2026-11-23T20:10:00'), stick: 'Yes', n: 1 }, on54: { done: Date.parse('2026-11-23T21:00:00'), nocards: true } });
+    st.extraCards = (st.extraCards || []).concat([{ id: 'xmine1', f: 'My own question', b: 'My own answer', t: 'involve', src: 'on53' }, { f: 'No id and an odd source', b: 'Still a card', t: 'involve', src: 7 }]);
+    st.cards = Object.assign({}, st.cards, { 'v-on53-0': { iv: 3, ease: 2.5, due: '2026-11-26', at: Date.parse('2026-11-23T20:12:00'), first: '2026-11-23' }, 'v-gone-0': { iv: 1, ease: 2.5, due: '2026-11-20', at: 1, first: '2026-11-19' } });
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-24T19:30:00', state: st });
+    const got = await page.evaluate(() => { const P = window.__planner; return { all: P.allCards().filter((c) => c.src).map((c) => [c.id, c.src]), due: P.dueCards(null, 'on53').map((c) => c.id), src: P.state.extraCards.map((c) => c.src) }; });
+    ok('reload: a finished video’s cards and your own card are still there', got.all.filter(([id]) => /^v-on53-/.test(id)).length === 3 && got.all.some(([id, src]) => id === 'xmine1' && src === 'on53') && !got.all.some(([id]) => /^v-on54-/.test(id)), got);
+    ok('reload: the card reviewed yesterday waits for its date; the others are due', got.due.includes('v-on53-1') && got.due.includes('v-on53-2') && got.due.includes('xmine1') && !got.due.includes('v-on53-0'), got.due);
+    ok('reload: an odd source is made safe', got.src.every((x) => x == null || typeof x === 'string'), got.src);
+    for (const scr of ['study', 'library', 'home', 'log', 'progress']) await page.evaluate((s) => window.__planner.go(s), scr);
+    await page.evaluate(() => { const P = window.__planner; P.sub.stab = 'cards'; P.go('study'); P.resSheet('on53'); });
+    ok('reload: no script errors on any screen', errors.length === 0, errors);
+    await ctx.close();
+  }
+  // an app with no in-app reader, and the planner in a browser: a video goes to the browser, and coming back still asks
+  {
+    for (const [name, opts] of [['an older app', { app: true, oldApp: true }], ['a browser', {}]]) {
+      const { ctx, page, errors } = await open(browser, Object.assign({ now: '2026-11-24T19:30:00', state: null }, opts));
+      await page.evaluate(() => { const P = window.__planner; P.go('library'); P.resSheet('on49'); });
+      ok(`${name}: no second button, because a video already opens in the browser`, await page.evaluate(() => !document.querySelector('#layer [data-act="res-open-out"]') && !!document.querySelector('#layer [data-act="res-open"][data-id="on49"]')));
+      await page.evaluate(() => { window.__opened.length = 0; window.__planner.resOpen('on49'); });
+      ok(`${name}: the video opens in the browser`, await page.evaluate(() => window.__opened.length === 1 && /youtube\.com\/watch/.test(window.__opened[0])));
+      await page.evaluate(() => { window.__NOW = new Date(new Date(window.__NOW).getTime() + 8 * 60000).toISOString(); document.dispatchEvent(new Event('visibilitychange')); });
+      ok(`${name}: coming back asks if it stuck`, await page.evaluate(() => /Back from the video\. Did it stick\?/.test((document.querySelector('#layer .sheet') || {}).textContent || '')) && errors.length === 0, errors);
+      await ctx.close();
+    }
   }
 
   await browser.close();

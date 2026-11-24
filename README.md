@@ -2,13 +2,26 @@
 
 The Cap and Gown study planner as an Android app, with real alarms and Claude inside the app.
 
+## Page 53: videos play inside the app, and a finished video brings its cards
+
+Page 52 sent YouTube lessons out to the browser. They now open inside the app again, in the in-app reader, and a finished video puts cards into the review cards. This page change needs no new install.
+
+- **Videos open inside the app.** Only a page that needs a sign-in (`acc: 'account'`) still goes to the phone's browser. A video's sheet has "Watch in my browser or the YouTube app" as a choice, and the reader's own Browser button moves any page out.
+- **Why the reader and not a player on the planner page.** A YouTube frame on the planner page would be able to call the app's bridge (`AndroidApp`), which reads and writes everything saved in the app. The reader is a separate web view with no bridge. YouTube's embedded player also needs the app to name itself in the `Referer`, which the reader cannot do from the page alone, so for now it shows YouTube's own page.
+- **Coming back asks if it stuck.** A video that was open for a minute or more brings up "Back from the video. Did it stick?" when you return (`videoBack`, on the app's resume and on the page becoming visible). Back within a minute, nothing is asked.
+- **A finished video brings cards.** `VIDEO_CARDS` holds three cards for each of 22 lesson videos. They are written from what the lesson is about (for the assessor award, from the unit's criteria), not from the videos' words, and the app says so. A video with no cards of its own brings the first three deck cards on its topic. These cards come first in the review queue, and they count towards the eight new cards a day.
+- **A card in your own words.** After a video, "Add a card in my own words" saves a question and an answer under that video (`extraCards` with `src`), with Speak under each box. The video's sheet lists your cards with Remove, and can take its ready-made cards out (`nocards`) and put them back.
+- **The cards screen** can show one video's cards, and says which video a card came from.
+
+To add cards for a video, add its id to `VIDEO_CARDS` with pairs of question and answer. Check each fact against the unit or the source, and do not copy a video's wording.
+
 ## Page 52: free lessons only, free study platforms, and a way to report a locked link
 
 A lesson the Study tab suggested turned out to be locked to paying customers. This page change needs no new install.
 
 - **Twelve ProTrainings lessons are out.** That course frees only two of its 24 videos, and the lock is set on its server. The one free lesson that fits the unit ("Understanding different types of assessment") stays, with a note to stop there.
 - **Twenty-eight free items are in**, each checked on 24 November 2026 to open without paying (`ck` holds the date): fourteen public YouTube lessons from assessor training providers, the official unit page with every criterion, two City & Guilds guides, a Jisc guide, a short OpenLearn section on Lewin, and eight courses.
-- **Course is a new kind.** OpenLearn and Seneca courses are interactive and done a section at a time, so `m` is minutes a session and For you offers one course beside the read, watch and listen picks. A course that needs a free account (`acc: 'account'`) opens in the phone's browser so you can sign in. YouTube lessons open in the browser or the YouTube app too.
+- **Course is a new kind.** OpenLearn and Seneca courses are interactive and done a section at a time, so `m` is minutes a session and For you offers one course beside the read, watch and listen picks. A course that needs a free account (`acc: 'account'`) opens in the phone's browser so you can sign in. YouTube lessons went to the browser or the YouTube app too, until page 53 brought them back inside the app.
 - **Lengths are honest.** The YouTube lengths could not be read, so those items carry `g` and say "length not checked"; the plan allows eight minutes for each.
 - **Free study platforms** have their own card on Study > For you and in the Library: Gemini Notebook (NotebookLM), OpenLearn, Seneca teacher CPD, AnkiDroid and the ETF Learning Library, each with the one job it does and how you get in.
 - **"It was locked or asked me to pay"** is on every pick you have opened and at the foot of every item's sheet. The item leaves For you until you put it back, the Library marks it Locked, and the next free item on the same topic is offered.

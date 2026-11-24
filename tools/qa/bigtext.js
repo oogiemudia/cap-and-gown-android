@@ -115,6 +115,23 @@ const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placem
     for (const r of ['home', 'voice', 'learn']) { await page.evaluate((x) => window.__planner.go(x), r); await check(r + ' with the player'); }
     const fab = await page.evaluate(() => { const f = document.querySelector('#fab').getBoundingClientRect(); const p = document.querySelector('#player'); return p.hidden ? 'the player is not showing' : f.bottom > p.getBoundingClientRect().top + 1 ? 'Ask tutor covers the player' : ''; });
     if (fab) problems.push(`${where}: ${fab}`);
+    // a video: its sheet with the browser choice, the question on coming back, the cards it brings, a card of your own
+    await page.evaluate(() => { const P = window.__planner; const c = document.querySelector('[data-act="close-sheet"]'); if (c) c.click(); P.go('home'); P.go('library'); P.resSheet('on53'); });
+    await check('video sheet, before watching');
+    await page.evaluate(() => window.__planner.resDoneSheet('on53', true));
+    await check('video, back from it');
+    await page.evaluate(() => document.querySelector('#layer [data-act="res-stick"][data-v="Yes"]').click());
+    await check('video, lock it in with its cards');
+    await page.evaluate(() => document.querySelector('#layer [data-act="vid-card-add"]').click());
+    await check('video, a card in your own words');
+    await page.evaluate(() => { document.querySelector('#vc-f').value = 'What should a learner know before an assessment, who tells them, and when is that agreed with the employer and the workplace mentor?'; document.querySelector('#vc-b').value = 'The criteria, the method, the date, time and place, what to prepare or bring, and how to appeal a decision.'; document.querySelector('#layer [data-act="vid-card-save"]').click(); });
+    await check('video sheet, its cards and one of your own');
+    await page.evaluate(() => document.querySelector('#layer [data-act="vid-cards-off"]').click());
+    await check('video sheet, its cards taken out');
+    await page.evaluate(() => { document.querySelector('#layer [data-act="vid-cards-on"]').click(); document.querySelector('#layer [data-act="vid-cards"]').click(); });
+    await check('cards, from one video');
+    await page.evaluate(() => document.querySelector('#screen [data-act="card-src"]').click());
+    await check('cards, with the video a card came from');
     await ctx.close();
   }
   await browser.close();

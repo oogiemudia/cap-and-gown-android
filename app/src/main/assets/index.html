@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Cap and Gown</title>
-<meta name="capgown-page" content="52">
+<meta name="capgown-page" content="53">
 <meta name="capgown-min-app" content="0">
 <meta name="theme-color" content="#3454D9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -527,7 +527,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       if (e.undo) ['moved', 'weekCap'].forEach((k) => { if (e.undo[k] != null && !isObj(e.undo[k])) delete e.undo[k]; });
       return e;
     });
-    out.extraCards = rows(out.extraCards, (c) => typeof c.f === 'string' && c.f && typeof c.b === 'string').map((c) => { strs(c, ['t']); return withId(c, 'x'); });
+    out.extraCards = rows(out.extraCards, (c) => typeof c.f === 'string' && c.f && typeof c.b === 'string').map((c) => { strs(c, ['t', 'src']); return withId(c, 'x'); });
     out.mistakes = rows(out.mistakes, (m) => str(m.q)).map((m) => {
       ['q', 'your', 'right', 'why', 't'].forEach((k) => { m[k] = str(m[k]); });
       if (!isDay(m.at)) delete m.at;
@@ -1684,6 +1684,122 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     ['Equality Act 2010', 'Protects people from discrimination because of protected characteristics, including in assessment.', 'law']
   ].map(([f, b, t], i) => ({ id: 'd' + i, f, b, t }));
 
+  /* Cards for each lesson video. They join your review cards when you finish the video (see lessonCardsOf).
+     They are written from what the lesson is about (for the assessor award, from the unit's own criteria), not from
+     the video's words: nobody here has watched the videos. Three to a video, each a question that makes you use the idea. */
+  const VIDEO_CARDS = {
+    on02: [
+      ['Name the six strategies for effective learning from the Learning Scientists.', 'Spaced practice, retrieval practice, elaboration, interleaving, concrete examples and dual coding.'],
+      ['What is elaboration, as a study strategy?', 'Asking and answering “how” and “why” questions about an idea, and linking it to what you already know.'],
+      ['Why give several concrete examples of one abstract idea?', 'Abstract ideas are hard to hold on to. Different examples of the same idea help learners see what they have in common.']
+    ],
+    on07: [
+      ['What is the worked example effect?', 'Novices learn more from studying a worked solution than from solving the same problem unaided, because it lowers the load on working memory.'],
+      ['What should follow a worked example?', 'A similar problem with part of the solution left for the learner, then one to do alone. The support is faded.'],
+      ['When do worked examples stop helping?', 'When learners are already skilled. For them the extra guidance gets in the way (the expertise reversal effect).']
+    ],
+    on10: [
+      ['Put Lewin’s three stages of change in order.', 'Unfreeze, change, refreeze.'],
+      ['You want colleagues to start weekly retrieval quizzes. What does the unfreeze stage look like?', 'Showing why the present way is not working, for example results that show learners forgetting earlier units, so people see the need to change.'],
+      ['What is the risk of skipping the refreeze stage?', 'People drift back to the old way, because the change was never built into routines.']
+    ],
+    on13: [
+      ['Name the EEF’s “Five-a-day” for learners with SEND.', 'Explicit instruction, cognitive and metacognitive strategies, scaffolding, flexible grouping, and using technology.'],
+      ['What is flexible grouping?', 'Grouping learners for one task or need and then changing the groups, so that nobody is fixed in a low group.'],
+      ['What is scaffolding?', 'Temporary support, such as a writing frame or a worked example, that is taken away as the learner becomes able.']
+    ],
+    on17: [
+      ['Name three of Dylan Wiliam’s five key strategies of formative assessment.', 'Sharing learning intentions and success criteria; eliciting evidence of learning; feedback that moves learners forward; learners as resources for one another; learners as owners of their own learning.'],
+      ['What makes an assessment formative?', 'The evidence is used to change what happens next in teaching or learning.'],
+      ['Why ask every learner to answer, for example on mini whiteboards, instead of hands up?', 'You see evidence from the whole group, not only the confident few, before you decide what to do next.']
+    ],
+    on18: [
+      ['What does “no hands up” achieve?', 'Every learner has to think about the question, because anyone may be asked.'],
+      ['What is wait time, and why does it matter?', 'Pausing for a few seconds after a question. More learners think, and answers get longer and better.'],
+      ['Feedback should be “more work for the recipient than the donor”. Why?', 'Feedback only helps when the learner has to think about it and act on it.']
+    ],
+    on19: [
+      ['What does “activating learners as resources for one another” mean?', 'Peer assessment and peer support: learners use the success criteria to help each other improve.'],
+      ['What is “two stars and a wish”?', 'A peer feedback routine: two things done well and one thing to improve.'],
+      ['What is the aim of self-assessment in formative assessment?', 'Learners become owners of their learning: they can judge their own work against the criteria and decide what to do next.']
+    ],
+    on49: [
+      ['A learner brings a certificate from six years ago as evidence. Which VACSR check is most in doubt?', 'Current. It may not show what the learner can do now, against today’s standards.'],
+      ['You think a written answer was copied from a colleague. Which VACSR check has failed?', 'Authentic. Evidence has to be the learner’s own work.'],
+      ['One good observation covers only half of the criteria. Which VACSR check is not yet met?', 'Sufficient. There has to be enough evidence to cover every criterion.']
+    ],
+    on50: [
+      ['Name four things an assessor is responsible for.', 'Planning assessment with the learner, judging evidence against the criteria, giving feedback, and keeping accurate records. Also: taking part in standardisation and keeping their own practice up to date.'],
+      ['Who checks the quality of an assessor’s decisions?', 'The internal quality assurer in the centre, and beyond them the awarding organisation’s external quality assurer.'],
+      ['What does an assessor judge evidence against?', 'The published assessment criteria of the qualification or standard. Not personal preference, and not how hard the learner tried.']
+    ],
+    on51: [
+      ['What should an assessment plan tell the learner?', 'What will be assessed, how, when and where, who is involved, and which criteria it covers.'],
+      ['Name two risks to think about when you plan an assessment.', 'For example: health and safety in the workplace, stress or overload for the learner, unfairness or bias, and work that is not the learner’s own.'],
+      ['What does SMART stand for in an assessment plan?', 'Specific, measurable, achievable, relevant and time-bound.']
+    ],
+    on52: [
+      ['Give two benefits of holistic assessment.', 'One activity covers several criteria, which saves time for the learner and the assessor, and it shows the job as it is really done, with less repeated assessment.'],
+      ['What is the main risk of holistic assessment, and how do you manage it?', 'Losing track of which criteria the evidence covers. Map the evidence to each criterion in the plan and in the record.'],
+      ['You observe a learner run a team briefing, and it gives evidence for communication, health and safety and leadership units. What is this approach called?', 'Holistic assessment.']
+    ],
+    on53: [
+      ['Name three points where the learner should be involved in assessment.', 'Planning (agreeing what, how and when), the assessment itself (choosing evidence, self-assessment), and feedback (agreeing next steps).'],
+      ['What should a learner know before an assessment?', 'The criteria, the method, the date, time and place, what to prepare or bring, and how to appeal a decision.'],
+      ['Why does involving the learner make assessment better?', 'They know what is expected, prepare the right evidence and take ownership, so assessment is fairer and quicker.']
+    ],
+    on54: [
+      ['Give one strength and one limit of self-assessment.', 'Strength: the learner reflects and takes ownership of progress. Limit: they may judge themselves too harshly or too kindly, so the assessor still makes the decision.'],
+      ['Give one strength and one limit of peer assessment.', 'Strength: learners learn from each other’s work and get to know the criteria. Limit: peers may be biased or not know enough to judge, so it supports the assessor’s decision and does not replace it.'],
+      ['What do learners need before peer or self-assessment can work?', 'Clear criteria that they understand, and ground rules for giving feedback.']
+    ],
+    on55: [
+      ['The unit asks how to judge whether evidence is three things. Which three?', 'Sufficient, authentic and current.'],
+      ['How can you check that evidence is authentic?', 'Observe the learner yourself, question them about the work, ask for a signed declaration, or get a witness testimony from someone who saw it done.'],
+      ['The evidence meets most of the criteria but not all. What do you do?', 'Record those criteria as not yet met, give feedback, and agree what further evidence is needed.']
+    ],
+    on56: [
+      ['Assessment decisions must be made against the specified criteria and be three things. Which three?', 'Valid, reliable and fair.'],
+      ['A learner you get on well with has slightly weak evidence. What keeps your decision fair?', 'Judging only against the criteria, in the same way as for every learner. Standardisation and sampling by the internal quality assurer then check it.'],
+      ['What should you record with an assessment decision?', 'Which criteria were met, the evidence the decision rests on, the feedback given, the date and your signature.']
+    ],
+    on57: [
+      ['Why does assessment need quality assurance?', 'So that decisions are consistent, fair and accurate across assessors and over time, and the qualification keeps its value.'],
+      ['What is the difference between internal and external quality assurance?', 'Internal: inside the centre, an internal quality assurer samples decisions and supports assessors. External: the awarding organisation checks the centre’s assessment and its internal quality assurance.'],
+      ['What can happen to a centre whose quality assurance fails?', 'The awarding organisation can set actions or sanctions, up to stopping the centre from claiming certificates.']
+    ],
+    on58: [
+      ['What happens in a standardisation meeting?', 'Assessors judge the same piece of evidence, compare their decisions and agree how the criteria should be applied.'],
+      ['Two assessors reach different decisions on the same piece of work. What does that show?', 'Their decisions are not yet reliable, so standardisation is needed.'],
+      ['What should be kept after a standardisation activity?', 'A record of what was compared, what was agreed and any actions, for the internal and external quality assurers.']
+    ],
+    on59: [
+      ['Name three things an internal quality assurer does.', 'Samples assessment decisions, observes assessors and gives them feedback, and leads standardisation. Also: supports new assessors and deals with appeals.'],
+      ['What is a sampling plan?', 'The internal quality assurer’s plan of which assessors, learners, units and methods will be checked, and when, so that every assessor is sampled over time.'],
+      ['The internal quality assurer disagrees with your decision. What happens next?', 'They give you feedback and an action, and the decision is looked at again before a certificate is claimed.']
+    ],
+    on60: [
+      ['What is observation best at assessing?', 'Practical skills and behaviour in real working conditions: you see the learner do the task.'],
+      ['Give two limits of observation as an assessment method.', 'It takes time to arrange, and the learner may behave differently when watched. It also does not show the knowledge behind the skill, so pair it with questioning.'],
+      ['What should an observation record contain?', 'What you saw the learner do, set against the criteria, with the date, the place and both signatures.']
+    ],
+    on61: [
+      ['What is initial assessment for?', 'Finding the learner’s starting point, existing skills and support needs before the programme begins, so that the plan fits them.'],
+      ['Name three initial assessment methods.', 'For example: a skills scan against the standard, English and maths assessments, an interview, and recognition of prior learning.'],
+      ['How is diagnostic assessment different from initial assessment?', 'Initial assessment finds the starting level. Diagnostic assessment looks closely at one area to find particular strengths and gaps.']
+    ],
+    on62: [
+      ['What are initial, formative and summative assessment?', 'Initial: at the start, to find the starting point. Formative: during learning, to guide the next steps. Summative: at the end, to judge what has been achieved.'],
+      ['Formative or summative: a mock practical with feedback, two weeks before the real one?', 'Formative. It is used to improve before the final judgement.'],
+      ['Formative or summative: the final observed assessment, signed off against the criteria?', 'Summative. It judges achievement at the end.']
+    ],
+    on76: [
+      ['What makes feedback constructive?', 'It is specific, tied to the criteria, says what was done well, and says exactly what to do to improve.'],
+      ['When should feedback on an assessment be given?', 'As soon as possible after the assessment, in private where that is needed, and it should be recorded.'],
+      ['Name one way to structure feedback.', 'The praise sandwich: a strength, a point to improve, then a positive next step. Or medal and mission: what was achieved, then what to do next.']
+    ]
+  };
+
   // Short lessons. "Worked example" applies the idea to a T Level Engineering group.
   const LESSONS = {
     retrieval: { sum: 'Retrieval practice means learners pull information out of memory rather than reading it again. A short low-stakes quiz at the start of a lesson is the classic form. Mixing in questions from two or three weeks ago adds spacing, which makes the learning last.', steps: [['The problem', 'Your Electrical group forgot Ohm’s law rearrangements a fortnight after the unit.'], ['Plan the round', 'Five questions: two from last lesson, two from two weeks ago, one from a month ago. At least one asks learners to explain or apply.'], ['Run it low-stakes', 'Five minutes, no names, answers on mini whiteboards, check straight away.'], ['Act on it', 'Note the most-missed question and reteach that step before moving on.'], ['Check later', 'Bring the same idea back in three weeks and compare scores with the first attempt.']] },
@@ -2154,16 +2270,36 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     }
     return { qs, i: 0, picked: null, score: 0, deltas: {}, course: course || null };
   }
-  const allCards = () => DECK.concat(state.extraCards || []);
+  /* A finished video brings cards into your review cards (page 53): its own cards where the library has some
+     (VIDEO_CARDS), or else the first three deck cards on its topic. They come to the front of the queue, ahead of
+     the day's new cards, and cards you write yourself after a video (extraCards with src) join them. */
+  const lessonCardsOf = (it) => (VIDEO_CARDS[it.id] || []).map(([f, b], i) => ({ id: `v-${it.id}-${i}`, f, b, t: it.t, src: it.id }));
+  const ownCardsOf = (id) => (state.extraCards || []).filter((c) => c.src === id);
+  const finishedVideos = () => catalogue().filter((it) => isVideo(it) && resOf(it.id).done && !resOf(it.id).nocards);
+  function videoCards(it) {
+    const own = lessonCardsOf(it);
+    return own.length ? own : DECK.filter((c) => it.ts.includes(c.t)).slice(0, 3);
+  }
+  // Card id -> the video that brought it forward.
+  function pushedCards() {
+    const map = new Map();
+    finishedVideos().forEach((it) => videoCards(it).forEach((c) => { if (!map.has(c.id)) map.set(c.id, it.id); }));
+    return map;
+  }
+  const allCards = () => DECK.concat(finishedVideos().flatMap(lessonCardsOf), state.extraCards || []);
   const NEW_PER_DAY = 8;
-  function dueCards(topic) {
+  function dueCards(topic, src) {
     const today = todayKey();
-    const list = allCards().filter((c) => !topic || c.t === topic);
+    const pushed = pushedCards();
+    const from = (c) => c.src || pushed.get(c.id) || '';
+    const list = allCards().filter((c) => (!topic || c.t === topic) && (!src || from(c) === src));
     const seen = list.filter((c) => state.cards[c.id]);
     const due = seen.filter((c) => state.cards[c.id].due <= today).sort((a, b) => (state.cards[a.id].at || 0) - (state.cards[b.id].at || 0));
     const newToday = Object.values(state.cards).filter((st) => st.first === today).length;
-    const fresh = list.filter((c) => !state.cards[c.id]).slice(0, Math.max(0, NEW_PER_DAY - newToday));
-    return due.concat(fresh);
+    const unseen = list.filter((c) => !state.cards[c.id]);
+    const front = unseen.filter((c) => from(c));
+    const fresh = unseen.filter((c) => !from(c)).slice(0, Math.max(0, NEW_PER_DAY - newToday - front.length));
+    return front.concat(due, fresh);
   }
   function srsNext(st, g) {
     const iv = st ? st.iv : 0;
@@ -2211,8 +2347,11 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   const minsLabel = (it) => (it.g ? 'length not checked' : it.kind === 'Course' ? `${it.m} min a session` : `${it.x ? '' : 'about '}${it.m} min`);
   // How you get in, said plainly wherever a pick is offered.
   const accessNote = (it) => (it.lib ? 'Needs your college library sign-in.' : it.acc === 'account' ? 'Free, with a free account. It opens in your browser so you can sign in.' : '');
-  // A page that needs a sign-in, and a YouTube video, go to the phone's browser or their own app, not the in-app reader.
-  const opensOutside = (it) => it.acc === 'account' || /^https:\/\/((www|m)\.)?(youtube\.com|youtu\.be)\//i.test(it.link || '');
+  // A page that needs a sign-in goes to the phone's browser, where you can sign in. Everything else opens inside the
+  // app, videos included (page 53): the reader's own Browser button, or "Watch in my browser" on the video's sheet, moves one out.
+  const opensOutside = (it) => it.acc === 'account';
+  const isVideo = (it) => !!it && it.kind === 'Watch' && !!it.link;
+  const isYouTube = (it) => /^https:\/\/((www|m)\.)?(youtube\.com|youtu\.be)\//i.test((it && it.link) || '');
   const reMeta = (w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // Files a page under the topic its words point to. Returns null when nothing matches.
   function guessTopic(text) {
@@ -2422,7 +2561,10 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     if (qs.length < n && ts.length) shuffle(QBANK.filter((q) => TOPICS[q.t].c === TOPICS[ts[0]].c && !qs.includes(q))).slice(0, n - qs.length).forEach((q) => qs.push(q));
     return { qs, i: 0, picked: null, score: 0, deltas: {}, course: null, topics: ts };
   }
-  function resOpen(id) {
+  // A video you opened and have not finished: when you come back, the app asks how it went (see videoBack).
+  let watching = null;
+  const WATCH_MIN = 60000; // back within a minute: you only looked, so nothing is asked
+  function resOpen(id, outside) {
     const it = findRes(id);
     if (!it) return;
     if (!it.link) {
@@ -2431,11 +2573,23 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       ask(`In my PGCE project there is a file called "${it.title}". Summarise its key points in five bullet points, then ask me two questions to check I understand it.`);
       return;
     }
-    if (!openLink(it.link, it.title, opensOutside(it))) return;
+    if (!openLink(it.link, it.title, !!outside || opensOutside(it))) return;
     const r = resRec(id); r.open = now().getTime(); r.n = (r.n || 0) + 1;
+    watching = isVideo(it) && !r.done ? { id, at: now().getTime() } : null;
     commit();
     closeSheet(true);
     render();
+  }
+  // Back in the app after a video: ask whether it stuck, so its cards can go into your review cards.
+  function videoBack() {
+    const w = watching;
+    if (!w) return false;
+    const gone = now().getTime() - w.at;
+    if (gone < 1500) return false; // the video has not opened yet
+    watching = null;
+    if (gone < WATCH_MIN || sheetOpen || !findRes(w.id) || resOf(w.id).done) return false;
+    resDoneSheet(w.id, true);
+    return true;
   }
   // The next free thing on the same topic, for when a link turns out to be locked.
   function freeAlt(it) {
@@ -2717,7 +2871,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   let fcFlip = false;
   V.study = () => {
     const tab = ['foryou', 'quiz', 'cards', 'mistakes', 'papers'].includes(sub.stab) ? sub.stab : 'foryou';
-    const due = dueCards(sub.cardTopic).length;
+    const due = dueCards(sub.cardSrc ? null : sub.cardTopic, sub.cardSrc || null).length;
     const seg = `<div class="seg five">${[['foryou', 'For you'], ['quiz', 'Quiz'], ['cards', 'Cards'], ['mistakes', 'Mistakes'], ['papers', 'Papers']].map(([k, l]) => `<button data-act="stab" data-id="${k}" aria-pressed="${tab === k}">${l}${k === 'cards' && due ? ` <span class="num">${due}</span>` : k === 'mistakes' && state.mistakes.length ? ` <span class="num">${state.mistakes.length}</span>` : ''}</button>`).join('')}</div>`;
     return seg + ({ foryou: forYouView, quiz: quizView, cards: cardsView, mistakes: mistakesView, papers: papersView }[tab])();
   };
@@ -2731,7 +2885,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       <div class="why">${s.why.map((w) => esc(w)).join(' ')}</div>
       ${accessNote(it) ? `<div class="small muted">${esc(accessNote(it))}</div>` : ''}
       ${openedToday && !r.done ? `<div class="small muted">Opened today. Tap Done when you finish, and the app learns what works for you.${it.link ? ` <button class="linkish" data-act="res-locked" data-id="${esc(it.id)}">It was locked or asked me to pay</button>` : ''}</div>` : ''}
-      <div class="btnrow">${podOf(it) && podReady() ? `<button class="btn sm" data-act="pod-go" data-id="${esc(it.id)}">${ic(POD.id === it.id && POD.state === 'playing' ? 'pause' : 'play', 14)} ${POD.id === it.id && POD.state !== 'idle' ? (POD.state === 'paused' ? 'Carry on' : 'Playing') : 'Play here'}</button>` : `<button class="btn sm" data-act="res-open" data-id="${esc(it.id)}">${ic(KIND_ICON[it.kind] || 'link', 14)} ${!it.link ? 'Review with tutor' : openedToday ? 'Open again' : 'Open'}</button>`}<button class="btn sm ghost" data-act="res-done" data-id="${esc(it.id)}">${ic('check', 14)} Done</button><button class="btn sm ghost" data-act="res-skip" data-id="${esc(it.id)}">Not for me</button><button class="btn sm ghost" data-act="fav" data-id="${esc(it.id)}" aria-label="${state.favs[it.id] ? 'Remove from favourites' : 'Add to favourites'}" aria-pressed="${!!state.favs[it.id]}"${state.favs[it.id] ? ' style="color:var(--gold)"' : ''}>${ic('star', 14)}</button></div></div>`;
+      <div class="btnrow">${podOf(it) && podReady() ? `<button class="btn sm" data-act="pod-go" data-id="${esc(it.id)}">${ic(POD.id === it.id && POD.state === 'playing' ? 'pause' : 'play', 14)} ${POD.id === it.id && POD.state !== 'idle' ? (POD.state === 'paused' ? 'Carry on' : 'Playing') : 'Play here'}</button>` : `<button class="btn sm" data-act="res-open" data-id="${esc(it.id)}">${ic(KIND_ICON[it.kind] || 'link', 14)} ${!it.link ? 'Review with tutor' : isVideo(it) && canRead() && !opensOutside(it) ? (openedToday ? 'Watch again' : 'Watch here') : openedToday ? 'Open again' : 'Open'}</button>`}<button class="btn sm ghost" data-act="res-done" data-id="${esc(it.id)}">${ic('check', 14)} Done</button><button class="btn sm ghost" data-act="res-skip" data-id="${esc(it.id)}">Not for me</button><button class="btn sm ghost" data-act="fav" data-id="${esc(it.id)}" aria-label="${state.favs[it.id] ? 'Remove from favourites' : 'Add to favourites'}" aria-pressed="${!!state.favs[it.id]}"${state.favs[it.id] ? ' style="color:var(--gold)"' : ''}>${ic('star', 14)}</button></div></div>`;
   }
   const resRow = (it, right) => `<button class="res li tap" data-act="res" data-id="${esc(it.id)}"><span class="ftype k-${esc(it.kind)}">${ic(KIND_ICON[it.kind] || 'link', 18)}</span><span class="restext"><b>${esc(it.title)}</b><span class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(TOPICS[it.t] ? TOPICS[it.t].name : '')}${it.link ? ' · ' + esc(minsLabel(it)) : ''}</span></span>${right != null ? right : resOf(it.id).locked ? '<span class="pill warn">Locked</span>' : resOf(it.id).done ? `<span class="pill good">${ic('check', 12)} Done</span>` : state.favs[it.id] ? `<span style="color:var(--gold)">${ic('star', 16)}</span>` : `<span class="muted">${ic('fwd', 16)}</span>`}</button>`;
   // The free study platforms: each does one job, and each opens in the browser or its own app.
@@ -2787,12 +2941,56 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       </div>
       <button class="btn ghost block" data-act="close-sheet">Close</button>`);
   }
-  function resDoneSheet(id) {
+  function resDoneSheet(id, back) {
     const it = findRes(id);
     if (!it) return;
-    sheet(`<h3>Did it stick?</h3><div class="small muted">${esc(it.title)}. Your answer teaches the app which kind of resource to lead with.</div>
+    const n = isVideo(it) ? videoCards(it).length : 0;
+    sheet(`<h3>${back ? 'Back from the video. Did it stick?' : 'Did it stick?'}</h3><div class="small muted">${esc(it.title)}. Your answer teaches the app which kind of resource to lead with.${n ? ` When you have finished it, ${n === 1 ? 'its card goes' : `its ${n} cards go`} into your review cards.` : ''}</div>
       <div class="btnrow">${['Yes', 'Partly', 'No'].map((a) => `<button class="btn ghost grow" data-act="res-stick" data-id="${esc(id)}" data-v="${a}">${a}</button>`).join('')}</div>
       <button class="btn ghost block" data-act="close-sheet">Not finished yet</button>`);
+  }
+  // What a finished video put into your review cards, and the way to add one of your own.
+  function videoCardsBlock(it, fresh) {
+    if (!isVideo(it) || !resOf(it.id).done) return '';
+    const id = it.id;
+    const mine = ownCardsOf(id);
+    const add = `<button class="btn ghost block" data-act="vid-card-add" data-id="${esc(id)}">${ic('plus', 16)} Add a card in my own words</button>`;
+    if (resOf(id).nocards) {
+      return `<div class="card" data-vidcards="${esc(id)}"><div class="small muted">This video’s ready-made cards are out of your review cards.${mine.length ? ` ${plural(mine.length, 'card')} of your own from it ${mine.length === 1 ? 'stays' : 'stay'}.` : ''}</div>${add}<button class="linkish" data-act="vid-cards-on" data-id="${esc(id)}">Put its cards back</button></div>`;
+    }
+    const own = lessonCardsOf(it);
+    const set = videoCards(it);
+    const n = set.length;
+    const waiting = dueCards(null, id).length;
+    const what = own.length
+      ? `<b>${fresh ? `${plural(n, 'card')} from this video ${n === 1 ? 'is' : 'are'} now in your review cards.` : `${plural(n, 'card')} from this video in your review cards.`}</b> They cover what the lesson is about${TOPICS[it.t].c === 'assess' ? ', written from the unit’s criteria' : ''}. They are not the video’s own words, so add a card for anything it said that you want to keep.`
+      : n ? `<b>${plural(n, 'card')} on ${esc(TOPICS[it.t].name)} ${n === 1 ? 'has' : 'have'} moved to the front of your review cards.</b> This video has no cards of its own yet, so add one for what you want to keep from it.`
+        : '<b>This video has no cards yet.</b> Add one for what you want to keep from it.';
+    return `<div class="card" data-vidcards="${esc(id)}"><div class="small">${what}</div>
+      ${mine.length ? `<div class="list">${mine.map((c) => `<div class="li"><div class="grow"><b>${esc(c.f)}</b><div class="small muted" style="white-space:pre-line">${esc(c.b)}</div></div><button class="linkish" data-act="vid-card-del" data-id="${esc(c.id)}" aria-label="Remove this card">Remove</button></div>`).join('')}</div>` : ''}
+      ${waiting ? `<button class="btn block" data-act="vid-cards" data-id="${esc(id)}">${ic('study', 16)} Review ${waiting === 1 ? 'the card' : `these ${waiting} cards`} now</button>` : (n || mine.length ? '<div class="small muted">None of them is due today. They come back by spaced repetition.</div>' : '')}
+      ${add}
+      ${n && !fresh ? `<button class="linkish" data-act="vid-cards-off" data-id="${esc(id)}">Take its ready-made cards out</button>` : ''}</div>`;
+  }
+  function videoCardSheet(id) {
+    const it = findRes(id);
+    if (!it) return;
+    sheet(`<h3>A card in your own words</h3>
+      <div class="small muted">${esc(it.title)}. A card you write yourself tends to stick better than a ready-made one. One idea to a card: a question on the front, your answer on the back.</div>
+      <div class="field"><label for="vc-f">Question</label><textarea id="vc-f" rows="2" maxlength="300" placeholder="For example: What must an assessment plan tell the learner?"></textarea></div>
+      <div class="field"><label for="vc-b">Answer</label><textarea id="vc-b" rows="3" maxlength="600" placeholder="In your own words"></textarea></div>
+      <button class="btn block" data-act="vid-card-save" data-id="${esc(id)}">Add to my review cards</button>
+      <button class="btn ghost block" data-act="res" data-id="${esc(id)}">Not now</button>`);
+  }
+  function videoCardSave(id) {
+    const it = findRes(id);
+    if (!it) return false;
+    const f = (($('#vc-f') || {}).value || '').trim().slice(0, 300);
+    const b = (($('#vc-b') || {}).value || '').trim().slice(0, 600);
+    if (!f || !b) { toast('Write a question and an answer first.'); return false; }
+    state.extraCards.push({ id: 'x' + uid(), f, b, t: it.t, src: id });
+    commit();
+    return true;
   }
   function resCheckSheet(id, stuck) {
     const it = findRes(id);
@@ -2801,7 +2999,8 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const verb = { Read: 'read', Watch: 'watched', Listen: 'listened to', Course: 'worked through' }[it.kind] || 'reviewed';
     sheet(`<h3>${stuck === 'No' ? 'Noted. Try it another way?' : 'Lock it in'}</h3>
       <div class="small muted">${stuck === 'No' ? 'That kind of resource moves down your list. A quick check or a different explanation often does more than a second read.' : 'Testing yourself straight after is what makes it last.'}</div>
-      ${n >= 2 ? `<button class="btn block" data-act="res-check" data-id="${esc(id)}">${ic('study', 16)} 3-question check on ${esc(TOPICS[it.t].name)}</button>` : ''}
+      ${videoCardsBlock(it, true)}
+      ${n >= 2 ? `<button class="btn ${isVideo(it) ? 'ghost ' : ''}block" data-act="res-check" data-id="${esc(id)}">${ic('study', 16)} 3-question check on ${esc(TOPICS[it.t].name)}</button>` : ''}
       <button class="btn ghost block" data-act="ask" data-q="${esc(`I have just ${verb} "${it.title}"${it.by ? ' (' + it.by + ')' : ''}${it.link ? ', ' + it.link : ''}. Ask me three questions, one at a time, to check what I took from it. Then show me how it links to ${TOPICS[it.t].name} in my ${courseName(TOPICS[it.t].c)} work.`)}">${ic('spark', 16)} Ask the tutor to test me on it</button>
       <button class="btn ghost block" data-act="close-sheet">Not now</button>`);
   }
@@ -2863,18 +3062,24 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     toast(`<b>Mastery updated.</b> ${quiz.score} of ${quiz.qs.length} right.`);
   }
   function cardsView() {
-    const topic = sub.cardTopic || null;
-    const due = dueCards(topic);
-    const filter = topic ? `<div class="row between"><span class="pill info">${esc(TOPICS[topic].name)}</span><button class="linkish" data-act="card-topic" data-id="">Show all topics</button></div>` : '';
-    if (!due.length) return filter + `<div class="card" style="align-items:center;text-align:center"><h3>All caught up</h3><div class="small muted">New cards arrive each day, ${NEW_PER_DAY} at a time. Wrong quiz answers are added automatically.</div></div>`;
+    const vid = sub.cardSrc ? findRes(sub.cardSrc) : null;
+    if (sub.cardSrc && !vid) sub.cardSrc = null;
+    const topic = vid ? null : sub.cardTopic || null;
+    const due = dueCards(topic, vid ? vid.id : null);
+    const filter = vid ? `<div class="row between"><span class="pill info">${ic('play', 12)} ${esc(vid.title)}</span><button class="linkish" data-act="card-src" data-id="">Show all cards</button></div>`
+      : topic ? `<div class="row between"><span class="pill info">${esc(TOPICS[topic].name)}</span><button class="linkish" data-act="card-topic" data-id="">Show all topics</button></div>` : '';
+    if (!due.length) return filter + `<div class="card" style="align-items:center;text-align:center"><h3>All caught up</h3><div class="small muted">${vid ? 'This video’s cards are done for today. They come back by spaced repetition.' : `New cards arrive each day, ${NEW_PER_DAY} at a time. Wrong quiz answers are added automatically, and a video you finish brings its cards.`}</div></div>`;
     const c = due[0];
     const st = state.cards[c.id];
+    const fromId = c.src || pushedCards().get(c.id);
+    const fromVid = fromId && !vid ? findRes(fromId) : null;
     return filter + `<div class="row between"><span class="label">${due.length} due · spaced repetition</span><span class="pill info">${esc(TOPICS[c.t] ? TOPICS[c.t].name : '')}</span></div>
       <button class="fc" data-act="flip" aria-label="Flip card"><span class="label">${fcFlip ? 'Answer' : (st ? 'Question' : 'New card')}</span><div class="face" style="white-space:pre-line">${esc(fcFlip ? c.b : c.f)}</div>${fcFlip ? '' : '<span class="small muted">Tap to show the answer</span>'}</button>
+      ${fromVid ? `<div class="small muted" style="text-align:center">${ic('play', 12)} From a video you finished: ${esc(fromVid.title)}</div>` : ''}
       ${fcFlip ? `<div class="small muted" style="text-align:center">How well did you know it? Each button shows when you will see it again.</div><div class="srs">${['Again', 'Hard', 'Good', 'Easy'].map((l, g) => `<button data-act="grade" data-id="${g}">${l}<small>${ivLabel(srsNext(st, g))}</small></button>`).join('')}</div>` : ''}`;
   }
   function grade(g) {
-    const c = dueCards(sub.cardTopic || null)[0];
+    const c = dueCards(sub.cardSrc ? null : sub.cardTopic || null, sub.cardSrc || null)[0];
     if (!c) return;
     const today = todayKey();
     const st = state.cards[c.id] || { iv: 0, ease: 2.5, first: today };
@@ -3353,7 +3558,9 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       ${r.locked ? `<div class="notice warn"><span class="ic">${ic('bell', 16)}</span><div><b>You said this was locked</b><p>It has been out of your For you list since ${esc(fmt(keyOf(new Date(r.locked)), { day: 'numeric', month: 'short' }))}. If it opens now, put it back.</p></div></div>` : ''}
       ${pod ? `<div data-podpanel="${esc(id)}">${podPanel(it)}</div>` : ''}
       ${online ? `<button class="btn ${pod && podReady() && !pod.direct ? 'ghost ' : ''}block" data-act="res-open" data-id="${esc(id)}">${ic(pod ? 'out' : KIND_ICON[it.kind] || 'link', 16)} ${pod ? (pod.whole ? 'Open the show’s page' : 'Open the episode’s page') : (it.kind === 'Course' && r.open && !r.done ? 'Carry on with it' : esc(KIND_VERB[it.kind] || 'Open') + ' it now')}</button>` : ''}
+      ${isVideo(it) && canRead() && !opensOutside(it) ? `<button class="btn ghost block" data-act="res-open-out" data-id="${esc(id)}">${ic('out', 16)} ${isYouTube(it) ? 'Watch in my browser or the YouTube app' : 'Watch in my browser'}</button><div class="small muted">It plays inside the app. Close brings you back here, and the Browser button at the top moves it out.</div>` : ''}
       ${canHear(it) ? `<button class="btn ghost block" data-act="res-listen" data-id="${esc(id)}">${ic('speaker', 16)} ${online ? 'Listen to it instead' : 'Listen to my note'}</button>` : ''}
+      ${videoCardsBlock(it, false)}
       <button class="btn ${online ? 'ghost ' : ''}block" data-act="ask" data-q="${esc(tutorQ)}">${ic('spark', 16)} ${online ? 'Ask the tutor to test me on it' : 'Ask the tutor about it'}</button>
       ${canCheck ? `<button class="btn ghost block" data-act="res-check" data-id="${esc(id)}">${ic('study', 16)} 3-question check on ${esc(TOPICS[it.t].name)}</button>` : ''}
       ${!online ? `<button class="btn ghost block" data-act="ask" data-q="${esc(`Make me a five-question multiple-choice quiz from the file "${it.title}" in my PGCE project. Ask one question at a time and wait for my answer.`)}">Quiz me on the file</button>` : ''}
@@ -6045,8 +6252,9 @@ ${n.text.trim()}
       case 'quiz-reset': quiz = null; render(); break;
       case 'flip': fcFlip = !fcFlip; render(); break;
       case 'grade': grade(Number(id)); break;
-      case 'card-topic': sub.cardTopic = id || null; render(); break;
-      case 'cards-topic': sub.cardTopic = id; sub.stab = 'cards'; go('study'); break;
+      case 'card-topic': sub.cardTopic = id || null; sub.cardSrc = null; render(); break;
+      case 'card-src': sub.cardSrc = id || null; fcFlip = false; render(); break;
+      case 'cards-topic': sub.cardTopic = id; sub.cardSrc = null; sub.stab = 'cards'; go('study'); break;
       case 'mistake-clear': state.mistakes.splice(Number(id), 1); commit(); render(); break;
       case 'paper': sub.paper = id; go('paper'); break;
       case 'paper-review': { const pp = PAPERS.find((x) => x.id === id); if (pp) { addStudy(pp.mins); commit(); ask(paperPrompt(pp)); } break; }
@@ -6285,6 +6493,20 @@ ${n.text.trim()}
       case 'hub': { const h = HUBS.find((x) => x.id === id); if (h) openLink(h.url, h.title, !!h.out); break; }
       case 'open-url': openLink(el.dataset.url, el.dataset.title || ''); break;
       case 'res-open': resOpen(id); break;
+      case 'res-open-out': resOpen(id, true); break;
+      case 'vid-cards': sub.cardSrc = id; sub.cardTopic = null; sub.stab = 'cards'; fcFlip = false; closeSheet(true); go('study'); break;
+      case 'vid-card-add': videoCardSheet(id); break;
+      case 'vid-card-save': if (videoCardSave(id)) { render(); resSheet(id); toast(`<b>Added to your review cards.</b> <button class="linkish" data-act="vid-card-add" data-id="${esc(id)}">Add another</button>`, 7000); } break;
+      case 'vid-card-del': {
+        const c = (state.extraCards || []).find((x) => x.id === id && x.src);
+        if (!c) break;
+        state.extraCards = state.extraCards.filter((x) => x !== c);
+        delete state.cards[c.id];
+        commit(); render(); resSheet(c.src); toast('Card removed.');
+        break;
+      }
+      case 'vid-cards-off': { resRec(id).nocards = true; commit(); render(); resSheet(id); toast('Its ready-made cards are out of your review cards.'); break; }
+      case 'vid-cards-on': { delete resRec(id).nocards; commit(); render(); resSheet(id); toast('Its cards are back in your review cards.'); break; }
       case 'res-listen': {
         const it = findRes(id);
         if (!it) break;
@@ -6366,7 +6588,7 @@ ${n.text.trim()}
       case 'fy-why': fyWhySheet(); break;
       case 'fy-study': {
         const t = el.dataset.t;
-        if (id === 'cards') { sub.cardTopic = null; sub.stab = 'cards'; fcFlip = false; render(); $('#screen').scrollTop = 0; }
+        if (id === 'cards') { sub.cardTopic = null; sub.cardSrc = null; sub.stab = 'cards'; fcFlip = false; render(); $('#screen').scrollTop = 0; }
         else if (id === 'quiz' && TOPICS[t]) { const qz = buildTopicQuiz([t], 3); if (qz.qs.length) { quiz = qz; sub.stab = 'quiz'; render(); $('#screen').scrollTop = 0; } }
         else if (TOPICS[t]) { fyToday().lesson[t] = 1; saveLocal(); sub.topic = t; sub.stepId = null; sub.fmt = null; sub.steps = 1; go('learn'); }
         break;
@@ -6597,7 +6819,7 @@ ${n.text.trim()}
     syncAlarms();
     if (!loadLocal()) saveLocal();
     window.__capgownGo = (v) => { if (ROUTE_NAMES.includes(routeOf(v))) go(v); };
-    window.__capgownResume = () => { lastDay = todayKey(); heal(); syncAlarms(); render(); takeSavedLinks(); listenSync(); podSync(); meetWake(); setTimeout(liveWaiting, 1500); };
+    window.__capgownResume = () => { lastDay = todayKey(); heal(); syncAlarms(); render(); takeSavedLinks(); listenSync(); podSync(); meetWake(); videoBack(); setTimeout(liveWaiting, 1500); };
     window.__capgownListen = (st) => listenState(st);
     window.__capgownPod = (st) => podState(st);
     window.__capgownPodFeed = (req, d) => { const f = PODF.cb[String(req)]; if (f) f(d); };
@@ -6641,10 +6863,10 @@ ${n.text.trim()}
   });
   function newDay() { lastDay = todayKey(); heal(); render(); }
   setInterval(() => { if (todayKey() !== lastDay) newDay(); }, 60000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); if (!document.hidden) meetWake(); else if (MEET.live) MEET.hidAt = Date.now(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); if (!document.hidden) { meetWake(); videoBack(); } else if (MEET.live) MEET.hidAt = Date.now(); });
 
   // Exposed for testing only
-  window.__planner = { freeAlt, resLocked, resOpen, render, platCard, opensOutside, accessNote, minsLabel, ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
+  window.__planner = { videoBack, videoCards, lessonCardsOf, pushedCards, allCards, isVideo, VIDEO_CARDS, DECK, resDone, resDoneSheet, resSheet, videoCardSheet, freeAlt, resLocked, resOpen, render, platCard, opensOutside, accessNote, minsLabel, ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
 })();
 
 </script>
