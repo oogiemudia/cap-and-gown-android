@@ -3624,7 +3624,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const pats = patterns();
     html += `<div class="notice"><span class="ic">${ic('spark', 16)}</span><div><b>What the app sees in your weeks</b><p>${pats.length ? pats.map(esc).join(' ') : 'After a few weeks of ticks and reflections, this shows which evenings work best for you and what keeps coming up.'}</p></div></div>`;
     const past = Object.entries(state.reflections).filter(([k]) => k !== mon).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 8);
-    if (past.length) html += `<div class="card"><h3>Earlier weeks</h3><div class="list">${past.map(([k, rr]) => `<div class="li top"><div class="grow"><b>${esc(weekLabel(k))}</b> <span class="small muted">${esc((rr.moods || []).join(', '))}</span>${rr.text ? `<div class="small muted">${esc(rr.text)}</div>` : ''}</div>${rr.text ? `<button class="btn sm ghost" data-act="copy" data-q="${esc(rr.text)}">Copy</button>` : ''}</div>`).join('')}</div></div>`;
+    if (past.length) html += `<div class="card"><h3>Earlier weeks</h3><div class="list">${past.map(([k, rr]) => `<div class="li top"><div class="grow"><b>${esc(weekLabel(k))}</b> <span class="small muted">${esc((rr.moods || []).join(', '))}</span>${rr.text ? `<div class="small muted" style="overflow-wrap:anywhere">${esc(rr.text)}</div>` : ''}</div>${rr.text ? `<button class="btn sm ghost" data-act="copy" data-q="${esc(rr.text)}">Copy</button>` : ''}</div>`).join('')}</div></div>`;
     return html;
   };
 

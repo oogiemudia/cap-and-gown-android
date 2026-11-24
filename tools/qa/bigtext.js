@@ -132,6 +132,9 @@ const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placem
     await check('cards, from one video');
     await page.evaluate(() => document.querySelector('#screen [data-act="card-src"]').click());
     await check('cards, with the video a card came from');
+    // an earlier week's note that is one long unbroken word (a pasted link, say) wraps and does not push the screen sideways
+    await page.evaluate(() => { const P = window.__planner; P.saveReflection('2026-11-02', 'https://example.org/' + 'x'.repeat(300), ['Confident', 'Stuck'], 'same'); P.go('home'); P.go('goals'); });
+    await check('goals, an earlier week with one long unbroken note');
     await ctx.close();
   }
   await browser.close();
