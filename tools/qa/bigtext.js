@@ -132,6 +132,27 @@ const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placem
     await check('cards, from one video');
     await page.evaluate(() => document.querySelector('#screen [data-act="card-src"]').click());
     await check('cards, with the video a card came from');
+    // the app's own video player: carry on from where you stopped, the sheet after a video ends, and the For you card
+    await page.evaluate(() => { const P = window.__planner; P.go('home'); P.go('library'); P.state.res.on54 = { open: Date.parse('2026-11-18T19:00:00'), n: 1, pos: 4295, len: 5400 }; P.resSheet('on54'); });
+    await check('video sheet, carry on from where you stopped');
+    await page.evaluate(() => { document.querySelector('[data-act="close-sheet"]').click(); window.__videoLeft = JSON.stringify({ id: 'on55', v: 'x', t: 600, d: 600, ended: true, page: false }); window.__planner.videoTaken(); });
+    await check('video, watched to the end in the player');
+    const carry = await page.evaluate(() => {
+      const P = window.__planner; document.querySelector('[data-act="close-sheet"]').click();
+      // hide the videos the player does not take (other sites, playlists) until the video pick is a YouTube lesson
+      let w = null;
+      for (let i = 0; i < 20; i++) { w = P.recommend().picks.find((x) => x.it.kind === 'Watch'); if (!w || P.playsHere(w.it)) break; (P.state.res[w.it.id] = P.state.res[w.it.id] || {}).skip = Date.parse('2026-11-18T19:00:00'); }
+      if (w) P.state.res[w.it.id] = { open: Date.parse('2026-11-18T19:10:00'), n: 1, pos: 515, len: 590 };
+      P.go('home'); P.sub.stab = 'foryou'; P.go('study');
+      const b = w && document.querySelector(`#screen .card.rec [data-act="res-open"][data-id="${w.it.id}"]`);
+      return b ? b.closest('.card').textContent : '';
+    });
+    if (!/Carry on at 8:35/.test(carry) || !/Watch it to the end and the app marks it done/.test(carry)) problems.push(`${where}: the For you card of a video to carry on with is not showing (${carry.slice(0, 120)})`);
+    await check('For you, a video to carry on with');
+    // the app before it had its own player: the sheet says what the newest app adds
+    await page.evaluate(() => { const P = window.__planner; window.__keepPlay = window.AndroidApp.videoPlay; delete window.AndroidApp.videoPlay; P.go('home'); P.go('library'); P.resSheet('on56'); });
+    await check('video sheet, the app before its own player');
+    await page.evaluate(() => { window.AndroidApp.videoPlay = window.__keepPlay; document.querySelector('[data-act="close-sheet"]').click(); });
     // an earlier week's note that is one long unbroken word (a pasted link, say) wraps and does not push the screen sideways
     await page.evaluate(() => { const P = window.__planner; P.saveReflection('2026-11-02', 'https://example.org/' + 'x'.repeat(300), ['Confident', 'Stuck'], 'same'); P.go('home'); P.go('goals'); });
     await check('goals, an earlier week with one long unbroken note');

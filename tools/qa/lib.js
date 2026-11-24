@@ -191,6 +191,9 @@ function bridgeScript(opts) {
       openPebblePad: () => { rec('openPebblePad')(); return !o.noPebble; },
       openReader: (u, t) => { rec('openReader')(u, t); return /^https:\\/\\//.test(u); },
       takeSavedLinks: () => { const s = saved; saved = '[]'; return s; },
+      // The app's own video player: it takes the request, and a test leaves in window.__videoLeft what the player would
+      videoPlay: (json) => { rec('videoPlay')(json); return !window.__videoRefuse; },
+      videoTake: () => { const s = window.__videoLeft || ''; window.__videoLeft = ''; return typeof s === 'string' ? s : JSON.stringify(s); },
       liveStatus: () => JSON.stringify(live),
       checkUpdate: rec('checkUpdate'),
       applyUpdate: rec('applyUpdate'),
@@ -198,6 +201,8 @@ function bridgeScript(opts) {
       setAutoUpdate: (on) => { live.auto = !!on; rec('setAutoUpdate')(on); },
       revertUpdate: rec('revertUpdate')
     };
+    // app10: the app as it was before it had its own video player (page 53, build 16).
+    if (o.oldApp || o.app4 || o.app5 || o.app6 || o.app7 || o.app8 || o.app9 || o.app10) ['videoPlay', 'videoTake'].forEach((k) => { delete window.AndroidApp[k]; });
     // app9: the app as it was before it could do the listening itself (page 50, build 14).
     if (o.oldApp || o.app4 || o.app5 || o.app6 || o.app7 || o.app8 || o.app9) ['ownListen', 'ownDownload', 'ownCancel', 'ownUse', 'ownDelete', 'meetingSince', 'meetingForget'].forEach((k) => { delete window.AndroidApp[k]; });
     // app8: the app as it was before it could listen with the phone locked (page 49, build 13).

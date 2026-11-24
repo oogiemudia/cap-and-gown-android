@@ -1766,8 +1766,12 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     ok('free: every assessor topic has a video checked to open without paying', assess.length === 8 && assess.every((t) => on.some((o) => o.kind === 'Watch' && o.ck && o.t.includes(t))), assess.filter((t) => !on.some((o) => o.kind === 'Watch' && o.ck && o.t.includes(t))));
     const fresh = on.filter((o) => o.ck);
     ok('free: each newly added item carries its check date and a note', fresh.length >= 25 && fresh.every((o) => /^2026-\d\d-\d\d$/.test(o.ck) && o.note.length > 20 && !o.lib), fresh.filter((o) => !(o.note.length > 20)));
-    ok('free: a length that could not be read is not passed off as known', on.filter((o) => o.g).length >= 12 && on.filter((o) => o.g).every((o) => !o.x && /youtube\.com\/watch/.test(o.url)));
-    ok('free: a length nobody checked says so', await P(() => { const P = window.__planner; const it = P.catalogue().find((x) => x.id === 'on49'); return P.minsLabel(it) === 'length not checked'; }));
+    ok('free: a length that could not be read is not passed off as known', on.filter((o) => o.g).every((o) => !o.x));
+    // page 54: the app's own player measured every YouTube lesson (on the test emulator, 24 November 2026)
+    const tube = on.filter((o) => /youtube\.com\/watch\?v=/.test(o.url) && /^on/.test(o.id));
+    ok('free: every YouTube lesson has its measured length', tube.length === 14 && tube.every((o) => o.x && !o.g && o.m >= 1 && o.m <= 30) && on.find((o) => o.id === 'on53').m === 18 && on.find((o) => o.id === 'on60').m === 25 && on.find((o) => o.id === 'on56').m === 2, tube.map((o) => [o.id, o.m, o.x, o.g]));
+    ok('free: a measured length is shown as it is', await P(() => { const P = window.__planner; const it = P.catalogue().find((x) => x.id === 'on49'); return P.minsLabel(it) === '4 min'; }));
+    ok('free: a length nobody checked would say so', await P(() => window.__planner.minsLabel({ g: true, m: 8, kind: 'Watch' }) === 'length not checked'));
     const courses = on.filter((o) => o.kind === 'Course');
     ok('courses: OpenLearn and Seneca courses are in, sized by the session', courses.length >= 8 && courses.every((o) => o.m === 20) && courses.some((o) => /open\.edu/.test(o.url)) && courses.filter((o) => /senecalearning/.test(o.url)).every((o) => o.acc === 'account'), courses.map((o) => [o.id, o.acc]));
     const R = await picksOf(page);
@@ -1788,13 +1792,13 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     ok('library: the Course filter shows the courses and no platform card', await P((n) => document.querySelectorAll('#screen .card .list [data-act="res"]').length === n && !document.querySelector('#screen #platcard'), courses.length));
 
     // where things open: a sign-in course goes outside; a YouTube video and an OpenLearn course stay in the app (page 53)
-    const opens = async (id) => { await P(() => { window.__calls.length = 0; window.__opened.length = 0; }); await P((i) => window.__planner.resOpen(i), id); return P(() => ({ out: window.__opened.slice(), reader: window.__calls.filter((c) => c[0] === 'openReader').map((c) => c[1]) })); };
+    const opens = async (id) => { await P(() => { window.__calls.length = 0; window.__opened.length = 0; }); await P((i) => window.__planner.resOpen(i), id); return P(() => ({ out: window.__opened.slice(), reader: window.__calls.filter((c) => c[0] === 'openReader').map((c) => c[1]), player: window.__calls.filter((c) => c[0] === 'videoPlay').map((c) => JSON.parse(c[1]).v) })); };
     const seneca = await opens('on71');
     ok('open: a course that needs an account goes to the browser', seneca.out.length === 1 && /app\.senecalearning\.com/.test(seneca.out[0]) && !seneca.reader.length, seneca);
     const yt = await opens('on49');
-    ok('open: a YouTube lesson plays inside the app', yt.reader.length === 1 && yt.reader[0] === 'https://www.youtube.com/watch?v=SOmr389LNzM' && !yt.out.length, yt);
+    ok('open: a YouTube lesson plays inside the app, in its own player', yt.player.length === 1 && yt.player[0] === 'SOmr389LNzM' && !yt.reader.length && !yt.out.length, yt);
     const ol = await opens('on68');
-    ok('open: an OpenLearn course opens in the in-app reader', ol.reader.length === 1 && /open\.edu\/openlearn/.test(ol.reader[0]) && !ol.out.length, ol);
+    ok('open: an OpenLearn course opens in the in-app reader', ol.reader.length === 1 && /open\.edu\/openlearn/.test(ol.reader[0]) && !ol.out.length && !ol.player.length, ol);
     await P(() => { window.__planner.sub.lf = 'All'; window.__planner.sub.q = 'cognitive science for teachers'; window.__planner.go('library'); });
     await click(page, '#screen [data-act="res"][data-id="on71"]');
     ok('sheet: it says when it was checked and that it needs a free account', await P(() => { const t = (document.querySelector('#layer .sheet') || {}).textContent || ''; return /Checked on 24 Nov 2026: it opens without paying\./.test(t) && /needs a free account/.test(t) && /Carry on with it/.test(t); }), await P(() => ((document.querySelector('#layer .sheet') || {}).textContent || '').slice(0, 500)));
@@ -1845,8 +1849,9 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
   }
 
   // ---------- M. videos inside the app, and cards from a finished video (page 53) ----------
+  // The app here is the one before it had its own video player (app10): a video opens in the in-app reader.
   {
-    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-24T19:30:00', state: null });
+    const { ctx, page, errors } = await open(browser, { app: true, app10: true, now: '2026-11-24T19:30:00', state: null });
     const P = (fn, arg) => page.evaluate(fn, arg);
     const later = (mins) => P((m) => { window.__NOW = new Date(new Date(window.__NOW).getTime() + m * 60000).toISOString(); }, mins);
     const sheetText = () => P(() => ((document.querySelector('#layer .sheet') || {}).textContent || '').replace(/\s+/g, ' '));
@@ -1865,6 +1870,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     await P(() => { const P = window.__planner; P.sub.lf = 'All'; P.sub.q = 'Principles of assessment'; P.go('library'); });
     await click(page, '#screen [data-act="res"][data-id="on49"]');
     ok('video sheet: it offers the browser or the YouTube app as a choice', await P(() => { const b = document.querySelector('#layer [data-act="res-open-out"][data-id="on49"]'); return !!b && /Watch in my browser or the YouTube app/.test(b.textContent) && /It plays inside the app/.test(document.querySelector('#layer .sheet').textContent); }), await sheetText());
+    ok('video sheet: this older app is told what the newest one adds', /The newest app plays it on a screen of its own and knows when you have finished\./.test(await sheetText()) && await P(() => !!document.querySelector('#layer .sheet [data-act="get-app"]')));
     ok('video sheet: no cards are promised before it is finished', await P(() => !document.querySelector('#layer [data-vidcards]')));
     await P(() => { window.__calls.length = 0; window.__opened.length = 0; });
     await click(page, '#layer [data-act="res-open-out"][data-id="on49"]');
@@ -1993,6 +1999,146 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
       ok(`${name}: coming back asks if it stuck`, await page.evaluate(() => /Back from the video\. Did it stick\?/.test((document.querySelector('#layer .sheet') || {}).textContent || '')) && errors.length === 0, errors);
       await ctx.close();
     }
+  }
+
+  // ---------- N. the app's own video player (version 11, page 54) ----------
+  {
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-24T19:30:00', state: null });
+    const P = (fn, arg) => page.evaluate(fn, arg);
+    const later = (mins) => P((m) => { window.__NOW = new Date(new Date(window.__NOW).getTime() + m * 60000).toISOString(); }, mins);
+    const sheetText = () => P(() => ((document.querySelector('#layer .sheet') || {}).textContent || '').replace(/\s+/g, ' '));
+    const clear = () => P(() => { const c = document.querySelector('[data-act="close-sheet"]'); if (c) c.click(); window.__calls.length = 0; window.__opened.length = 0; });
+    const calls = () => P(() => ({ player: window.__calls.filter((c) => c[0] === 'videoPlay').map((c) => JSON.parse(c[1])), reader: window.__calls.filter((c) => c[0] === 'openReader').map((c) => c[1]), out: window.__opened.slice() }));
+    const back = (left) => P((l) => { window.__videoLeft = l == null ? '' : typeof l === 'string' ? l : JSON.stringify(l); window.__capgownResume(); }, left);
+    const res = (id) => P((i) => JSON.parse(JSON.stringify(window.__planner.state.res[i] || {})), id);
+    const studied = () => P(() => Object.values(window.__planner.state.study).reduce((a, b) => a + b, 0));
+
+    ok('player: a single YouTube video is told from a playlist, a channel and another site', await P(() => { const y = window.__planner.ytId; return y('https://www.youtube.com/watch?v=SOmr389LNzM') === 'SOmr389LNzM' && y('https://m.youtube.com/watch?feature=share&v=6-47QyT7rNc&t=30s') === '6-47QyT7rNc' && y('https://youtu.be/F_TqiDeXnp8?t=4') === 'F_TqiDeXnp8' && y('https://www.youtube.com/playlist?list=PL_WHYo5KULlfcpKvyf5fXrFEXbA6zroIk') === '' && y('https://www.youtube.com/@DistillED_Newsletter') === '' && y('https://www.youtube.com/watch?v=short') === '' && y('https://education.gov.scot/resources/dylan-wiliam-formative-assessment') === '' && y('') === '' && y(null) === ''; }));
+    ok('player: it takes single YouTube lessons, and nothing else', await P(() => { const P = window.__planner; const c = P.catalogue(); const f = (id) => P.playsHere(c.find((x) => x.id === id)); return P.canPlay() && f('on49') && f('on76') && !f('pd02') && !f('on17') && !f('on62') && !f('on71') && !f('on01'); }));
+
+    // Watch: the player is asked for, from the start
+    await P(() => { const P = window.__planner; P.go('library'); P.resSheet('on49'); });
+    const s0 = await sheetText();
+    ok('sheet: it says the video plays on a screen of its own and its cards follow', /It plays inside the app, on a screen of its own\. When it ends you come back here and its cards join your review cards\./.test(s0) && /Watch in my browser or the YouTube app/.test(s0) && !/newest app/.test(s0), s0);
+    await clear();
+    await P(() => window.__planner.resOpen('on49'));
+    const c1 = await calls();
+    ok('watch: the app’s own player is asked for the video, from the start', c1.player.length === 1 && c1.player[0].id === 'on49' && c1.player[0].v === 'SOmr389LNzM' && c1.player[0].title === 'Principles of assessment' && c1.player[0].start === 0 && !c1.reader.length && !c1.out.length, c1);
+
+    // closed part of the way through: the place and the length are kept, and nothing is asked
+    await later(4);
+    const st0 = await studied();
+    await back({ id: 'on49', v: 'SOmr389LNzM', t: 200, d: 505, ended: false, page: false });
+    const r1 = await res('on49');
+    ok('part way: the place and the measured length are kept, and nothing is asked', r1.pos === 200 && r1.len === 505 && !r1.done && await P(() => !document.querySelector('#layer .sheet')), r1);
+    ok('part way: the length the player measured is the one used', await P(() => { const P = window.__planner; const it = P.catalogue().find((x) => x.id === 'on49'); return it.m === 8 && it.g === false && it.x === true && P.minsLabel(it) === '8 min'; }));
+    ok('part way: what the player left is collected once', await P(() => window.AndroidApp.videoTake() === ''));
+    await later(30);
+    await back('');
+    ok('part way: nothing is asked later either', await P(() => !document.querySelector('#layer .sheet')) && (await res('on49')).pos === 200);
+    await P(() => { const P = window.__planner; P.go('library'); P.resSheet('on49'); });
+    ok('part way: the sheet offers to carry on from where it stopped', await P(() => /Carry on from 3:20/.test(document.querySelector('#layer [data-act="res-open"][data-id="on49"]').textContent)), await sheetText());
+    await clear();
+    await P(() => window.__planner.resOpen('on49'));
+    ok('part way: Watch carries on a few seconds before that', (await calls()).player[0].start === 195, await calls());
+
+    // watched to the end: done by itself, its cards are in, and one question follows
+    await later(6);
+    await back({ id: 'on49', v: 'SOmr389LNzM', t: 505, d: 505, ended: true, page: false });
+    const r2 = await res('on49');
+    const e1 = await sheetText();
+    ok('ended: the video is done without being asked, and its place is forgotten', r2.done > 0 && r2.pos === undefined && r2.stick === undefined, r2);
+    ok('ended: the sheet says it was watched to the end and its cards are in', /You watched it to the end\. Did it stick\?/.test(e1) && /Its 3 cards are in your review cards\./.test(e1) && /Not now/.test(e1) && !/Not finished yet/.test(e1), e1);
+    ok('ended: its cards are at the front of the review cards', await P(() => window.__planner.dueCards().slice(0, 3).map((c) => c.id).join() === 'v-on49-0,v-on49-1,v-on49-2'));
+    ok('ended: study time goes up by the measured length, once', (await studied()) === st0 + 8, [st0, await studied()]);
+    ok('ended: the log says how it was finished', await P(() => { const l = window.__planner.state.log[0]; return l.what === 'Finished: Principles of assessment' && /You watched it to the end in the app\. Its 3 cards are in your review cards\./.test(l.why); }), await P(() => window.__planner.state.log[0]));
+    ok('ended: the kind of resource is not rated until you say', await P(() => !(window.__planner.state.formats['Short video'] || {}).n));
+    await click(page, '#layer [data-act="res-stick"][data-v="Yes"]');
+    const e2 = await sheetText();
+    ok('ended: saying it stuck rates it, without counting the time twice', (await res('on49')).stick === 'Yes' && (await studied()) === st0 + 8 && await P(() => window.__planner.state.formats['Short video'].n === 1 && window.__planner.state.formats['Short video'].yes === 1) && /Lock it in/.test(e2) && /3 cards from this video are now in your review cards\./.test(e2), e2);
+    await clear();
+    await P(() => { const P = window.__planner; P.go('library'); P.resSheet('on49'); });
+    ok('ended: afterwards the sheet says Close brings you back, and starts from the beginning', /on a screen of its own\. Close brings you back here\./.test(await sheetText()) && await P(() => window.__planner.resumeAt('on49') === 0));
+
+    // watched again to the end: nothing is asked and nothing is counted twice
+    await clear();
+    await P(() => window.__planner.resOpen('on49'));
+    await later(9);
+    await back({ id: 'on49', v: 'SOmr389LNzM', t: 505, d: 505, ended: true, page: false });
+    ok('again: a finished video watched again asks nothing and counts nothing twice', await P(() => !document.querySelector('#layer .sheet')) && (await studied()) === st0 + 8);
+
+    // closed in the last few seconds: that is finished too; "Not now" leaves it done
+    await clear();
+    await P(() => window.__planner.resOpen('on50'));
+    await later(8);
+    await back({ id: 'on50', v: 'AXmHpO_Dwu0', t: 430, d: 441, ended: false, page: false });
+    ok('near the end: closing in the last seconds counts as finished', (await res('on50')).done > 0 && /You watched it to the end/.test(await sheetText()));
+    await click(page, '#layer [data-act="close-sheet"]');
+    ok('near the end: Not now leaves it done, with its cards in', (await res('on50')).done > 0 && await P(() => window.__planner.allCards().filter((c) => c.src === 'on50').length === 3));
+
+    // a few seconds only: no place is kept
+    await clear();
+    await P(() => window.__planner.resOpen('on51'));
+    await later(1);
+    await back({ id: 'on51', v: 'xAMqNn5YTpQ', t: 6, d: 380, ended: false, page: false });
+    const r3 = await res('on51');
+    ok('a few seconds: no place is kept, but the length is', r3.pos === undefined && r3.len === 380 && !r3.done, r3);
+
+    // the player could not play it and showed YouTube's page: the app asks, as the reader does
+    await clear();
+    await P(() => window.__planner.resOpen('on52'));
+    await later(9);
+    await back({ id: 'on52', v: 'bF_wUWdX1u8', t: 0, d: 0, ended: false, page: true });
+    ok('YouTube’s own page: the app cannot tell, so it asks if it stuck', /Back from the video\. Did it stick\?/.test(await sheetText()) && !(await res('on52')).done && (await res('on52')).len === undefined, await sheetText());
+    await click(page, '#layer [data-act="close-sheet"]');
+
+    // the player refuses to start: the reader shows the video
+    await clear();
+    await P(() => { window.__videoRefuse = true; window.__planner.resOpen('on53'); window.__videoRefuse = false; });
+    const c2 = await calls();
+    ok('refused: if the player cannot start, the in-app reader shows the video', c2.player.length === 1 && c2.reader.length === 1 && /watch\?v=F_TqiDeXnp8/.test(c2.reader[0]) && !c2.out.length, c2);
+
+    // the choices that do not use the player
+    await clear();
+    await P(() => window.__planner.resOpen('on54', true));
+    const c3 = await calls();
+    ok('browser: "Watch in my browser" does not use the player', !c3.player.length && !c3.reader.length && c3.out.length === 1 && /watch\?v=xoSrxn5DLUU/.test(c3.out[0]), c3);
+    await clear();
+    await P(() => window.__planner.resOpen('on17'));
+    const c4 = await calls();
+    ok('other sites: a video on another site opens in the reader', !c4.player.length && c4.reader.length === 1 && /education\.gov\.scot/.test(c4.reader[0]), c4);
+    await clear();
+    await P(() => window.__planner.resOpen('pd02'));
+    const c5 = await calls();
+    ok('playlists: a YouTube playlist opens in the reader', !c5.player.length && c5.reader.length === 1 && /playlist\?list=/.test(c5.reader[0]), c5);
+
+    // what the player leaves is not trusted
+    await clear();
+    const before = await P(() => JSON.stringify(window.__planner.state.res));
+    for (const junk of ['not json', '[]', '7', '{"id":"nope","t":50,"d":100,"ended":true}', '{"id":"on01","t":50,"d":100,"ended":true}', '{"t":50}', 'null']) await back(junk);
+    ok('junk: odd answers from the player change nothing', await P((b) => JSON.stringify(window.__planner.state.res) === b && !document.querySelector('#layer .sheet'), before));
+    await back({ id: 'on55', v: 'Eju-b8ZlQm8', t: -5, d: 99999999, ended: false, page: false });
+    ok('junk: an impossible length and place are not kept', (await res('on55')).len === undefined && (await res('on55')).pos === undefined);
+
+    // For you: carry on from where you stopped
+    await P(() => { const P = window.__planner; P.state.res.on56 = { open: Date.parse('2026-11-24T19:00:00'), n: 1, pos: 95, len: 400 }; });
+    ok('carry on: the place is shown as minutes and seconds', await P(() => { const P = window.__planner; P.go('library'); P.resSheet('on56'); return /Carry on from 1:35/.test(document.querySelector('#layer [data-act="res-open"][data-id="on56"]').textContent); }));
+    await clear();
+    ok('videos, own player: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  // saved places and lengths from the player survive a reload, and odd values do no harm
+  {
+    const st = JSON.parse(JSON.stringify(rich));
+    st.res = Object.assign({}, st.res, { on57: { open: Date.parse('2026-11-23T20:00:00'), n: 1, pos: 123, len: 300 }, on58: { len: 'long', pos: 'far' }, on59: { len: -4, pos: -9 } });
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-24T19:30:00', state: st });
+    const got = await page.evaluate(() => { const P = window.__planner; const c = P.catalogue(); const f = (id) => c.find((x) => x.id === id); return { m57: f('on57').m, g57: f('on57').g, at57: P.resumeAt('on57'), m58: f('on58').m, g58: f('on58').g, at58: P.resumeAt('on58'), m59: f('on59').m, at59: P.resumeAt('on59') }; });
+    ok('reload: a kept place and length are used', got.m57 === 5 && got.g57 === false && got.at57 === 118, got);
+    ok('reload: odd places and lengths are ignored (the library\'s own length stays)', got.m58 === 3 && got.g58 === false && got.at58 === 0 && got.m59 === 4 && got.at59 === 0, got);
+    for (const scr of ['study', 'library', 'home', 'log', 'progress']) await page.evaluate((s) => window.__planner.go(s), scr);
+    await page.evaluate(() => { const P = window.__planner; P.resSheet('on57'); P.resSheet('on58'); });
+    ok('reload: no script errors on any screen', errors.length === 0, errors);
+    await ctx.close();
   }
 
   await browser.close();

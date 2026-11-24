@@ -132,6 +132,19 @@ public class MainActivity extends Activity implements ReadAloud.Listener, Podcas
         }
     }
 
+    /** Plays a YouTube lesson on its own screen inside the app. If that screen cannot start, the reader shows YouTube's page. */
+    void openVideo(String id, String video, String title, int start) {
+        try {
+            startActivity(new Intent(this, VideoActivity.class)
+                    .putExtra(VideoActivity.EXTRA_ID, id)
+                    .putExtra(VideoActivity.EXTRA_VIDEO, video)
+                    .putExtra(VideoActivity.EXTRA_TITLE, title == null ? "" : title)
+                    .putExtra(VideoActivity.EXTRA_START, start));
+        } catch (Exception e) {
+            openReader(VideoActivity.watchUrl(video, start), title, false);
+        }
+    }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);

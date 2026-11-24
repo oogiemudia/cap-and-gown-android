@@ -107,8 +107,9 @@ jobs:
   engine:
     # The page's test robot cannot run the speech engine, so this job does: it starts an Android emulator,
     # installs a test build, downloads the smallest speech model and plays it a recording of speech.
+    # It also plays a YouTube lesson in the app's own video player, which needs YouTube itself.
     # The test is app/src/debug/java/io/github/oogiemudia/capgown/SelfTest.java, which is not in the app people install.
-    name: The app's own listening on an Android emulator
+    name: The app's own listening and video player on an Android emulator
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -191,6 +192,70 @@ jobs:
             "$ADB" logcat -d -t 300 | grep -Ei "capgown|moonshine|onnx|AndroidRuntime|FATAL|DEBUG   " | tail -n 120 || true
             exit 1
           fi
+
+      - name: The video screen notices where a video was closed and when it ends (a stand-in for the player)
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          "$ADB" logcat -c
+          "$ADB" shell input keyevent 82
+          "$ADB" shell am start -S -W -n "$APP/.SelfTest" --es what screen
+          for i in $(seq 1 30); do
+            "$ADB" logcat -d -s CapGownSelfTest:V CapGownVideo:V > selftest-screen.log || true
+            grep -Eq "SELFTEST (PASS|FAIL) screen" selftest-screen.log && break
+            sleep 5
+          done
+          cat selftest-screen.log
+          if ! grep -q "SELFTEST PASS screen" selftest-screen.log; then
+            "$ADB" logcat -d -t 400 | grep -Ei "capgown|chromium|AndroidRuntime|FATAL" | tail -n 150 || true
+            exit 1
+          fi
+
+      - name: A YouTube lesson plays in the app's own player, and the app knows when it ends
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          "$ADB" logcat -c
+          "$ADB" shell input keyevent 82
+          "$ADB" shell am start -S -W -n "$APP/.SelfTest" --es what video --es video SOmr389LNzM
+          # the words on the screen, as a screen reader would be given them (the player's own message when it refuses)
+          screen_words() {
+            for n in 1 2; do "$ADB" shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1 || true; sleep 2; done
+            "$ADB" shell cat /sdcard/ui.xml 2> /dev/null | tr '>' '\n' | grep -o 'text="[^"]\{1,200\}"\|content-desc="[^"]\{1,200\}"' | sort -u | head -n 50 || true
+          }
+          held=0
+          for i in $(seq 1 60); do
+            "$ADB" logcat -d -s CapGownSelfTest:V CapGownVideo:V > selftest-video.log || true
+            if [ "$held" = 0 ] && grep -q "VIDEO HELD" selftest-video.log; then
+              held=1
+              echo "The player gave an error. The words on its screen:"
+              screen_words | tee selftest-video-player-words.log
+            fi
+            grep -Eq "SELFTEST (PASS|FAIL|SKIP) video" selftest-video.log && break
+            sleep 5
+          done
+          cat selftest-video.log
+          echo "The words on the screen at the end:"
+          screen_words | tee selftest-video-end-words.log
+          # SKIP means YouTube would not play to this emulator (it is choosy about data centres): the log says why.
+          if ! grep -Eq "SELFTEST (PASS|SKIP) video" selftest-video.log; then
+            "$ADB" logcat -d -t 400 | grep -Ei "capgown|chromium|AndroidRuntime|FATAL" | tail -n 150 || true
+            exit 1
+          fi
+
+      - name: Every YouTube lesson in the library is asked for in the player (their lengths go in the log)
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          ids=$(grep -o "youtube\.com/watch?v=[A-Za-z0-9_-]\{11\}" app/src/main/assets/index.html | cut -d= -f2 | sort -u | paste -sd, -)
+          echo "lessons: $ids"
+          "$ADB" logcat -c
+          "$ADB" shell am start -S -W -n "$APP/.SelfTest" --es what lengths --es videos "$ids"
+          for i in $(seq 1 120); do
+            "$ADB" logcat -d -s CapGownSelfTest:V > selftest-lengths.log || true
+            grep -Eq "SELFTEST (DONE|SKIP|FAIL) lengths" selftest-lengths.log && break
+            sleep 5
+          done
+          cat selftest-lengths.log
+          # This step tells and does not judge: a lesson that YouTube has taken down must not stop a change to the app.
+          grep -c "VIDEO LENGTH" selftest-lengths.log || true
 
       - name: The microphone keeps giving sound with the screen off
         run: |

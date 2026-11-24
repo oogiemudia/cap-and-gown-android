@@ -65,6 +65,13 @@
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:hardwareAccelerated="true" />
 
+        <!-- A lesson video plays here, inside the app, in YouTube's own embedded player -->
+        <activity
+            android:name=".VideoActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:hardwareAccelerated="true" />
+
         <activity
             android:name=".AlarmActivity"
             android:exported="false"

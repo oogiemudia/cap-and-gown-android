@@ -479,6 +479,32 @@ public class Bridge {
         return true;
     }
 
+    /**
+     * Plays a YouTube lesson inside the app, on a screen of its own (VideoActivity). The request is JSON:
+     * {id (the library item), v (YouTube's id for the video), title, start (seconds in)}. False if it cannot.
+     */
+    @JavascriptInterface
+    public boolean videoPlay(String json) {
+        try {
+            JSONObject o = new JSONObject(json == null ? "" : json);
+            String id = o.optString("id", "");
+            String v = o.optString("v", "");
+            if (id.isEmpty() || id.length() > 80 || !VideoActivity.isVideoId(v)) return false;
+            String title = o.optString("title", "");
+            int start = Math.max(0, Math.min(o.optInt("start", 0), 86400));
+            activity.runOnUiThread(() -> activity.openVideo(id, v, title.length() > 200 ? title.substring(0, 200) : title, start));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** What the last video did, as JSON ({id, v, t, d, ended, page}), or "" when there is nothing new. Asking empties it. */
+    @JavascriptInterface
+    public String videoTake() {
+        return VideoActivity.take(activity);
+    }
+
     /** The pages saved with the reader's Save button since the last call, as a JSON list of {url, title}. */
     @JavascriptInterface
     public String takeSavedLinks() {
