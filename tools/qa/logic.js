@@ -2344,6 +2344,148 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     await ctx.close();
   }
 
+  // ---------- P. Assessment (page 56): what each course is marked on, and a plan that finishes early ----------
+  {
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-24T19:00:00', state: null });
+    const P = (fn, arg) => page.evaluate(fn, arg);
+    const eff = (id) => P((x) => window.__planner.deadlines().flatMap((d) => d.chunks).find((c) => c.id === x).dateEff, id);
+    const margin = (id) => P((x) => { const p = window.__planner; const m = p.axMargin(p.deadlines().find((d) => d.id === x)); return m ? m.days : null; }, id);
+
+    // the four assessments and the plan itself
+    const A = await P(() => JSON.parse(JSON.stringify(window.__planner.AX)));
+    const DL = await P(() => window.__planner.deadlines().map((d) => ({ id: d.id, due: d.due, course: d.course, chunks: d.chunks.map((c) => ({ id: c.id, date: c.date, mins: c.mins })) })));
+    const byId = Object.fromEntries(DL.map((d) => [d.id, d]));
+    const G = await P(() => JSON.parse(JSON.stringify(window.__planner.AX_GROUPS)));
+    const LIGHT = await P(() => [...window.__planner.AX_LIGHT]);
+    ok('assessment: two for each course, every one with its dates, what is handed in, what top work looks like and a hand-in list', A.length === 4 && A.filter((a) => a.course === 'pgce').length === 2 && A.filter((a) => a.course === 'assess').length === 2 && A.every((a) => a.title && a.sub && a.aim && a.grade && a.from && a.what.length >= 3 && a.top.length >= 4 && a.musts.length >= 7 && a.dls.length >= 3 && a.dls.every((id) => byId[id] && byId[id].course === a.course)), A.map((a) => a.id + ' ' + a.dls.filter((id) => !byId[id]).join(',')));
+    const mustIds = A.flatMap((a) => a.musts.map((m) => m[0]));
+    ok('assessment: hand-in ticks have their own ids, and no planner deadline sits in two assessments', new Set(mustIds).size === mustIds.length && mustIds.every((k) => /^[a-z0-9]{2}-[a-z]$/.test(k)) && new Set(A.flatMap((a) => a.dls)).size === A.flatMap((a) => a.dls).length, mustIds);
+    ok('assessment: only Module 2 is called graded, and the other three say plainly that they are not or that the grid is not held', /Distinction \(74, 81, 89 or 96\)/.test(A[0].grade) && /does not hold the Module 3 marking grid/.test(A[1].grade) && /no distinction grade/.test(A[2].grade) && /No distinction grade/.test(A[3].grade) && A[0].aim === 'Aim: distinction' && A[2].aim === 'Aim: accepted first time');
+    const badPlan = [];
+    const all = {};
+    G.forEach(([dl, steps]) => Object.entries(steps).forEach(([id, day]) => {
+      const d = byId[dl]; const c = d && d.chunks.find((x) => x.id === id);
+      if (!c) { badPlan.push(id + ' is not a step of ' + dl); return; }
+      if (all[id]) badPlan.push(id + ' twice');
+      all[id] = day;
+      const wd = new Date(day + 'T12:00:00').getDay();
+      if (wd === 0 || wd === 6) badPlan.push(id + ' on a weekend');
+      if (!(day < c.date)) badPlan.push(id + ' is not earlier');
+      if (!(day < d.due)) badPlan.push(id + ' is not before the due date');
+    }));
+    ok('early plan: 18 steps, each a real step, earlier than before, on a weekday, before its due date', Object.keys(all).length === 18 && badPlan.length === 0, badPlan);
+    ok('early plan: the small jobs left close to the day are real steps', LIGHT.length === 7 && LIGHT.every((id) => DL.some((d) => d.chunks.some((c) => c.id === id))), LIGHT);
+    ok('early plan: learner 2 keeps its order, and the results slides come after the analysis notes', ['as-l2-1', 'as-l2-2', 'as-l2-3', 'as-l2-4', 'as-l2-5', 'as-l2-6', 'as-l2-7'].every((id, i, a) => i === 0 || all[a[i - 1]] < all[id]) && all['pg-m2-3'] > byId['pg-cp'].chunks.find((c) => c.id === 'pg-cp-e6').date && all['pg-m2-1'] < all['pg-m2-2'] && all['pg-m2-10'] > byId['pg-m2'].chunks.find((c) => c.id === 'pg-m2-9').date && all['pg-m2-10'] < all['pg-m2-11']);
+    ok('early plan: nothing is planned in the Easter break once it is on', !Object.values(all).some((d) => d >= '2027-04-05' && d <= '2027-04-18'));
+
+    // before choosing: Home says the plan is ready, nothing has moved
+    ok('before: nothing moves until you say so', JSON.stringify(await P(() => window.__planner.axEarly())) === '{}' && await eff('pg-m2-1') === '2027-04-12' && await margin('pg-m2') === 8 && await margin('as-l2') === 3);
+    await P(() => window.__planner.go('home'));
+    ok('home: a card says a plan to finish early is ready', await P(() => { const c = document.querySelector('#ax-card'); return !!c && /A plan to finish every assessment early/.test(c.textContent) && /It moves 18 steps to earlier evenings/.test(c.textContent); }));
+    await P(() => window.__planner.go('more'));
+    ok('more: an Assessment tile with the next due date', await P(() => /Assessment\s*Next due Mon 30 Nov/.test(document.querySelector('#screen').textContent)), await P(() => document.querySelector('#screen').textContent.slice(0, 200)));
+    await click(page, '#screen [data-go="assessment"]');
+    ok('screen: both courses, four assessments, and the plan', await P(() => { const p = window.__planner; const t = document.querySelector('#screen').textContent; return p.route === 'assessment' && document.querySelectorAll('#screen [data-act="ax-open"]').length === 4 && /PGCE FE and Skills/.test(t) && /L3 Assessor Awards/.test(t) && /A plan to finish early/.test(t) && /18 steps move to an earlier evening/.test(t) && document.querySelectorAll('#ax-early .li').length === 5 && !!document.querySelector('#ax-early [data-act="ax-later"]'); }), await P(() => document.querySelector('#screen').textContent.slice(0, 400)));
+    ok('screen: each row of the plan says when the work ends now and when it did', await P(() => { const t = document.querySelector('#ax-early').textContent; return /Module 2 presentation slides uploaded\s*Due Fri 21 May · the work ends Fri 7 May \(it was Thu 13 May\)\s*14 days early/.test(t) && /Evidence for learner 2 \(two whole units\)\s*Due Mon 1 Mar · the work ends Fri 12 Feb \(it was Fri 26 Feb\)\s*17 days early/.test(t) && /What moves \(18\)/.test(t) && /agree it with the learner and Andrea/.test(t) && /No evening in it goes over your evening limit\./.test(t); }), await P(() => document.querySelector('#ax-early').textContent.slice(0, 900)));
+
+    // switching it on
+    await click(page, '#ax-early [data-act="ax-early-on"]');
+    ok('on: the choice and the day are saved, and the steps sit on their earlier evenings', JSON.stringify(await P(() => window.__planner.state.ax)) === '{"rate":{},"must":{},"early":true,"since":"2026-11-24"}' && await eff('pg-m2-1') === '2027-03-01' && await eff('pg-m2-10') === '2027-05-07' && await eff('as-l2-7') === '2027-02-12' && await eff('pg-pd-7') === '2027-05-17' && await eff('as-wb-4') === '2026-12-21' && await eff('pg-m2-12') === '2027-05-20' && await eff('pg-m2-9') === '2027-05-06', await P(() => JSON.stringify(window.__planner.state.ax)));
+    ok('on: the real work now ends two weeks or more before each due date', await margin('as-wb') === 17 && await margin('as-std') === 14 && await margin('as-l2') === 17 && await margin('pg-m2') === 14 && await margin('pg-pd') === 21, [await margin('as-wb'), await margin('as-std'), await margin('as-l2'), await margin('pg-m2'), await margin('pg-pd')]);
+    const loads = await P(() => { const p = window.__planner; const load = {}; p.deadlines().flatMap((d) => d.chunks).forEach((c) => { if (!c.done) load[c.dateEff] = (load[c.dateEff] || 0) + (c.mins || 0); }); return [...new Set(Object.values(p.axEarly()))].map((d) => [d, load[d]]); });
+    ok('on: every evening the plan uses stays under an hour', loads.length === 18 && loads.every(([, m]) => m > 0 && m <= 55), loads);
+    ok('on: the last fortnight before the slides are due holds only a file check and the upload', await P(() => { const p = window.__planner; const d = p.deadlines().find((x) => x.id === 'pg-m2'); const late = d.chunks.filter((c) => c.dateEff > '2027-05-07'); return late.map((c) => c.id).join() === 'pg-m2-11,pg-m2-12' && late.every((c) => c.mins <= 15); }));
+    ok('on: the screen says so, the plan log has every move, and Home stops asking', await P(() => { const p = window.__planner; const t = document.querySelector('#ax-early').textContent; const e = p.state.log[0]; return /The early plan is on/.test(t) && /Since Tue 24 Nov, 18 steps sit on an earlier evening/.test(t) && !!document.querySelector('#ax-early [data-act="ax-early-off"]') && e.kind === 'early' && /Early plan on: 18 steps moved to earlier evenings/.test(e.what) && e.lines.length === 18 && e.lines.some((l) => l === 'Plan the slides: what each LO needs: Mon 12 Apr to Mon 1 Mar') && /Early plan on/.test(document.querySelector('#toast').textContent); }) && await P(() => { window.__planner.go('home'); return !document.querySelector('#ax-card'); }), await P(() => JSON.stringify(window.__planner.state.log[0]).slice(0, 300)));
+    ok('on: the alarms follow (the workbook email rings before Christmas)', await P(() => { const al = window.__planner.alarmPlan().alarms; return al.some((a) => a.day === '2026-12-21' && a.lines.some((l) => /Email the workbook/.test(l))); }));
+    await P(() => window.__planner.go('log'));
+    ok('on: How it adapts shows the change and why', await P(() => /Early plan on: 18 steps moved to earlier evenings/.test(document.querySelector('#screen').textContent) && /Switch it off there to put every step back/.test(document.querySelector('#screen').textContent)));
+
+    // a step you moved yourself keeps your date; switching off puts the rest back
+    await P(() => { const p = window.__planner; p.state.moved['pg-m2-2'] = '2027-03-12'; p.sub.ax = null; p.go('assessment'); });
+    ok('yours: a step you moved yourself keeps your date', await eff('pg-m2-2') === '2027-03-12' && await P(() => /17 steps sit on an earlier evening/.test(document.querySelector('#ax-early').textContent)));
+    await click(page, '#ax-early [data-act="ax-early-off"]');
+    ok('off: every other step is back on its first date, and the log says so', await eff('pg-m2-1') === '2027-04-12' && await eff('as-l2-7') === '2027-02-26' && await eff('pg-m2-2') === '2027-03-12' && await margin('as-l2') === 3 && await P(() => { const p = window.__planner; return p.state.ax.early === false && p.state.ax.since === undefined && /Early plan off/.test(p.state.log[0].what) && /A plan to finish early/.test(document.querySelector('#ax-early').textContent) && !document.querySelector('#ax-early [data-act="ax-later"]') && /17 steps move to an earlier evening/.test(document.querySelector('#ax-early').textContent); }), await P(() => document.querySelector('#ax-early').textContent.slice(0, 200)));
+    await P(() => { delete window.__planner.state.moved['pg-m2-2']; });
+    await P(() => { const p = window.__planner; p.state.settings.cap = 40; p.render(); });
+    ok('limit: with a lower evening limit the plan says which evenings go over it', await P(() => /3 evenings in it go over your evening limit, so move a step if that is too much\./.test(document.querySelector('#ax-early').textContent)), await P(() => document.querySelector('#ax-early').textContent.slice(0, 400)));
+    await P(() => { const p = window.__planner; p.state.settings.cap = 60; p.render(); });
+
+    // switched on later in the year: a group whose first evening has passed is left alone, so nothing lands in the past
+    await P(() => { window.__NOW = '2027-03-10T19:00:00'; window.__planner.go('home'); window.__planner.go('assessment'); });
+    const late = await P(() => window.__planner.axEarlyFrom('2027-03-10'));
+    ok('later: only groups that can still start on time are offered', Object.keys(late).sort().join() === 'pg-m2-10,pg-m2-11,pg-pd-7' && Object.values(late).every((d) => d >= '2027-03-10') && await P(() => /3 steps move to an earlier evening/.test(document.querySelector('#ax-early').textContent)), late);
+    await click(page, '#ax-early [data-act="ax-early-on"]');
+    ok('later: the March drafts stay on their April dates, the final edit still moves', await eff('pg-m2-1') === '2027-04-12' && await eff('pg-m2-3') === '2027-04-16' && await eff('pg-m2-10') === '2027-05-07' && await P(() => window.__planner.state.ax.since === '2027-03-10'));
+    await P(() => { window.__NOW = '2027-06-20T19:00:00'; window.__planner.go('home'); window.__planner.go('assessment'); });
+    ok('after the course: the screen still opens, with nothing dated left open', await P(() => document.querySelectorAll('#screen [data-act="ax-open"]').length === 4 && /Nothing dated is open/.test(document.querySelector('#screen').textContent)));
+    await P(() => { window.__NOW = '2026-11-24T19:00:00'; const p = window.__planner; p.state.ax.early = false; delete p.state.ax.since; p.go('home'); });
+
+    // one assessment: the Module 2 page (the first-time sign-in tip for Claude has been seen, as on a phone in use)
+    await P(() => { window.__planner.state.settings.chatTipSeen = true; window.__planner.sub.ax = null; window.__planner.go('assessment'); });
+    await click(page, '#screen [data-act="ax-open"][data-id="m2"]');
+    ok('module 2 page: the brief, the dates, the bands and the hand-in list', await P(() => { const t = document.querySelector('#screen').textContent; return /Module 2 presentation/.test(t) && /Aim: distinction/.test(t) && /20 minutes, then up to 10 minutes of questions/.test(t) && /due on 21 May 2027 by 3pm/.test(t) && /week of 24 May 2027/.test(t) && /Turnitin switch on/.test(t) && /If this page and the handbook differ, the handbook is right/.test(t) && document.querySelectorAll('#ax-dates .li').length === 3 && document.querySelectorAll('#ax-rate .step').length === 4 && document.querySelectorAll('#ax-must [data-act="ax-must"]').length === 9 && /0 of 4 rated/.test(t) && /Weigh, do not list/.test(t); }), await P(() => document.querySelector('#screen').textContent.slice(0, 300)));
+    await click(page, '#ax-rate [data-act="ax-rate"][data-id="1"][data-n="3"]');
+    await click(page, '#ax-rate [data-act="ax-rate"][data-id="3"][data-n="2"]');
+    await click(page, '#ax-rate [data-act="ax-rate"][data-id="2"][data-n="4"]');
+    ok('rating: my own rating is kept, the lowest outcome comes first, and each one says what would lift it', JSON.stringify(await P(() => window.__planner.state.ax.rate)) === '{"1":3,"2":4,"3":2}' && await P(() => { const t = document.querySelector('#ax-rate').textContent; return /3 of 4 rated/.test(t) && /Work on LO3 first/.test(t) && /Pass reads as “some analysis or discussion”\. To lift it: Go past “I included everyone”/.test(t) && /You rate this at the top band\. Check that with your tutor or a peer/.test(t) && document.querySelectorAll('#ax-rate [aria-pressed="true"]').length === 3; }), await P(() => document.querySelector('#ax-rate').textContent.slice(0, 400)));
+    await P(() => { window.__lastInsert = ''; });
+    await click(page, '#ax-rate [data-act="ax-live"]');
+    await page.waitForTimeout(400);
+    const b2 = await P(() => window.__lastInsert || '');
+    ok('tutor: Claude gets the four outcomes, the top band, my own rating, and the AI rule', /where my Module 2 presentation stands against the distinction band/.test(b2) && /LO4, Research: /.test(b2) && /My own rating so far: LO1 \(Your planning and teaching\): Merit; LO2 \(Your subject pedagogy\): Distinction; LO3 \(Inclusion\): Pass; LO4 \(Research\): not rated yet\./.test(b2) && /starting with my lowest/.test(b2) && /Wait for my reply each time/.test(b2) && /do not write slides, a script or paragraphs for my presentation/.test(b2), b2.slice(0, 700));
+    await click(page, '[data-act="close-tutor"]');
+    await click(page, '#ax-rate [data-act="ax-rate"][data-id="3"][data-n="2"]');
+    ok('rating: tapping a rating again takes it off', JSON.stringify(await P(() => window.__planner.state.ax.rate)) === '{"1":3,"2":4}');
+    await click(page, '#ax-must [data-act="ax-must"][data-id="m2-b"]');
+    ok('hand-in list: a tick is kept and counted', await P(() => window.__planner.state.ax.must['m2-b'] === true && /1 of 9/.test(document.querySelector('#ax-must').textContent) && document.querySelector('#ax-must [data-id="m2-b"]').getAttribute('aria-checked') === 'true'));
+    await click(page, '#ax-must [data-act="ax-must"][data-id="m2-b"]');
+    ok('hand-in list: and comes off again', await P(() => window.__planner.state.ax.must['m2-b'] === undefined && /0 of 9/.test(document.querySelector('#ax-must').textContent)));
+    await click(page, '#appbar [data-act="back"]');
+    ok('back: from one assessment to the list, then out', await P(() => window.__planner.route === 'assessment' && !window.__planner.sub.ax && document.querySelectorAll('#screen [data-act="ax-open"]').length === 4));
+    ok('phone back: from one assessment it goes to the list first', await P(() => { const p = window.__planner; p.sub.ax = 'wb'; p.render(); const a = window.__capgownBack(); return a === true && p.route === 'assessment' && !p.sub.ax; }));
+
+    // the other three pages and what each hands to Claude
+    const briefOf = async (id) => { await P((x) => { const p = window.__planner; p.go('home'); p.sub.ax = x; p.go('assessment'); window.__lastInsert = ''; }, id); await click(page, '#screen [data-act="ax-live"]'); await page.waitForTimeout(400); const b = await P(() => window.__lastInsert || ''); const t = await P(() => document.querySelector('#screen').textContent); await click(page, '[data-act="close-tutor"]'); return [b, t]; };
+    const [b3, t3] = await briefOf('m3');
+    ok('module 3 page: says what the app holds and what it does not, and lists what the module looks for', /Module 3 portfolio and professional discussion/.test(t3) && /does not hold the Module 3 marking grid/.test(t3) && /51 KSBs with evidence, 150 lead teaching hours, 10 observations/.test(t3) && /What Module 3 looks for/.test(t3) && /this app’s reading of strong work, not the module’s own criteria/.test(t3), t3.slice(0, 300));
+    ok('module 3 tutor: one duty at a time, all nine named, no stories written for me', /professional discussion/.test(b3) && /9\. Next steps, progression/.test(b3) && /1\. Passion for learning/.test(b3) && /Take one duty at a time/.test(b3) && /Do not write my stories or answers for me/.test(b3), b3.slice(0, 500));
+    const [bw, tw] = await briefOf('wb');
+    ok('workbook page: no distinction grade is claimed, the eight outcomes are listed, and the Coach is one tap away', /no distinction grade/.test(tw) && /The eight outcomes/.test(tw) && /Legal and good practice requirements/.test(tw) && /workbook of 25 questions/.test(tw) && await P(() => !!document.querySelector('#screen [data-go="coach"]')), tw.slice(0, 300));
+    ok('workbook tutor: quizzes me first and does not write my answer', /Unit D\/601\/5313/.test(bw) && /I have written 0 of 25 answers/.test(bw) && /accepted first time/.test(bw) && /Do not write my answer for me/.test(bw), bw.slice(0, 500));
+    const [be, te] = await briefOf('ev');
+    ok('evidence page: the six dated pieces, each with how early the work ends', /Evidence of assessing learners/.test(te) && await P(() => document.querySelectorAll('#ax-dates .li').length === 6) && /Evidence for learner 2 \(two whole units\)\s*Due Mon 1 Mar · 0 of 7 steps done · the work ends Fri 26 Feb\s*3 days early/.test(te), te.slice(300, 900));
+    ok('evidence tutor: checks one record at a time, keeps learners’ names out, writes nothing for me', /internal quality assurer/.test(be) && /valid, authentic, current, sufficient and reliable/.test(be) && /Do not ask for learners’ names/.test(be) && /Do not write the records for me/.test(be), be.slice(0, 500));
+    await click(page, '#screen [data-act="ax-all"]');
+
+    // "Not now" on Home
+    await P(() => { const p = window.__planner; delete p.state.ax.early; p.go('home'); });
+    await click(page, '#ax-card [data-act="ax-later"]');
+    ok('not now: Home stops asking, nothing moves, and the plan stays on the Assessment screen', await P(() => { const p = window.__planner; return p.state.ax.early === false && !document.querySelector('#ax-card') && /stays under More, Assessment/.test(document.querySelector('#toast').textContent); }) && await eff('pg-m2-1') === '2027-04-12');
+    await P(() => { const p = window.__planner; delete p.state.ax.early; p.go('home'); });
+    await click(page, '#ax-card [data-act="ax-all"]');
+    ok('home: “See the plan” opens the Assessment screen at the plan', await P(() => window.__planner.route === 'assessment' && !window.__planner.sub.ax && !!document.querySelector('#ax-early [data-act="ax-early-on"]')));
+    for (const scr of ['home', 'plan', 'study', 'progress', 'deadlines', 'courses', 'log', 'settings']) await P((s) => window.__planner.go(s), scr);
+    ok('assessment: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  // saved assessment choices survive a reload; odd values are dropped; old data opens with the plan off
+  {
+    const st = JSON.parse(JSON.stringify(rich));
+    st.ax = { early: true, since: '2026-11-20', rate: { 1: 3, 2: 9, 5: 2, x: 1 }, must: { 'm2-a': true, 'wb-c': 'yes', zz: true }, extra: 1 };
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-24T19:30:00', state: st });
+    ok('reload: the plan stays on from its day, good ratings and ticks are kept, the rest is dropped', JSON.stringify(await page.evaluate(() => window.__planner.state.ax)) === '{"early":true,"since":"2026-11-20","rate":{"1":3},"must":{"m2-a":true}}' && await page.evaluate(() => window.__planner.deadlines().flatMap((d) => d.chunks).find((c) => c.id === 'pg-m2-1').dateEff === '2027-03-01'), await page.evaluate(() => JSON.stringify(window.__planner.state.ax)));
+    for (const scr of ['assessment', 'home', 'plan', 'more']) await page.evaluate((s) => window.__planner.go(s), scr);
+    ok('reload: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  for (const ax of [undefined, 'junk', [], { early: true }, { early: 'yes', since: '2026-11-24' }, { early: false, since: '2026-11-24' }, { early: true, since: '2026-13-45' }, null]) {
+    const st = JSON.parse(JSON.stringify(rich));
+    if (ax === undefined) delete st.ax; else st.ax = ax;
+    const { ctx, page, errors } = await open(browser, { app: false, now: '2026-11-24T19:30:00', state: st });
+    ok(`old or damaged choice (${JSON.stringify(ax)}): the plan is off, nothing has moved, and the screen opens in a browser too`, await page.evaluate(() => { const p = window.__planner; p.go('assessment'); return p.state.ax.early !== true && p.state.ax.since === undefined && JSON.stringify(p.axEarly()) === '{}' && p.deadlines().flatMap((d) => d.chunks).find((c) => c.id === 'pg-m2-1').dateEff === '2027-04-12' && document.querySelectorAll('#screen [data-act="ax-open"]').length === 4; }) && errors.length === 0, errors);
+    await ctx.close();
+  }
+
   await browser.close();
   const failed = results.filter((r) => !r[0]);
   results.forEach((r) => console.log(`${r[0] ? 'PASS' : 'FAIL'}  ${r[1]}${r[2] ? '\n      ' + r[2].slice(0, 700) : ''}`));

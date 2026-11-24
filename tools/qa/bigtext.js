@@ -2,7 +2,7 @@
 // dyslexia-friendly font: nothing may run off the edge of the screen.
 const { chromium, open, overflow } = require('./lib');
 const { rich } = require('./seed');
-const ROUTES = ['home', 'plan', 'study', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice', 'coach', 'module'];
+const ROUTES = ['home', 'plan', 'study', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice', 'coach', 'module', 'assessment'];
 const STABS = ['foryou', 'quiz', 'cards', 'mistakes', 'papers'];
 const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placements', 'records', 'pd'];
 (async () => {
@@ -54,6 +54,21 @@ const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placem
     await check('review cards from a Module 2 week');
     await page.evaluate(() => { const P = window.__planner; P.sub.cardSrc = null; P.go('home'); });
     await check('home with the class card');
+    // Assessment: the list before and after the early plan is switched on (with its list of moves open), and each
+    // of the four pages, Module 2 with every outcome rated and a tick
+    await page.evaluate(() => { const P = window.__planner; delete P.state.ax.early; delete P.state.ax.since; P.go('home'); });
+    await check('home with the early plan card');
+    await page.evaluate(() => { const P = window.__planner; P.sub.ax = null; P.go('assessment'); document.querySelector('#ax-early details').open = true; });
+    await check('assessment list, plan offered');
+    await page.evaluate(() => { document.querySelector('#ax-early [data-act="ax-early-on"]').click(); document.querySelector('#ax-early details').open = true; });
+    await check('assessment list, plan on');
+    for (const id of ['m2', 'm3', 'wb', 'ev']) {
+      await page.evaluate((x) => { const P = window.__planner; P.go('home'); P.sub.ax = x; if (x === 'm2') { P.state.ax.rate = { 1: 3, 2: 4, 3: 2, 4: 1 }; P.state.ax.must['m2-a'] = true; P.state.ax.must['m2-g'] = true; } P.go('assessment'); }, id);
+      await check('assessment ' + id);
+    }
+    await page.evaluate(() => { const P = window.__planner; P.sub.ax = null; P.state.ax.early = false; delete P.state.ax.since; P.go('log'); });
+    await check('how it adapts, with the early plan entry');
+    await page.evaluate(() => window.__planner.go('home'));
     // PebblePad: the sheet on its own, carrying a reflection across, and as an older app words it
     await page.evaluate(() => { const P = window.__planner; P.go('home'); P.sub.cq = null; P.sub.ppage = 'obs'; P.go('portfolio'); document.querySelector('#appbar [data-act="pebblepad"]').click(); });
     await check('PebblePad sheet');

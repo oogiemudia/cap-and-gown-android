@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Cap and Gown</title>
-<meta name="capgown-page" content="55">
+<meta name="capgown-page" content="56">
 <meta name="capgown-min-app" content="0">
 <meta name="theme-color" content="#3454D9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -427,7 +427,9 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       // version 6: the coach (a small step every day)
       coach: freshCoach(),
       // version 7 (page 55): Module 2 week by week, what you have done for each Wednesday class (see m2U)
-      m2: { w: {} }
+      m2: { w: {} },
+      // version 8 (page 56): Assessment. The early plan (early, since), your own rating of each Module 2 outcome, the hand-in ticks.
+      ax: { rate: {}, must: {} }
     };
   }
   function freshCoach() {
@@ -608,6 +610,14 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       u.own = str(u.own).slice(0, 4000); u.took = str(u.took).slice(0, 6000); u.fog = str(u.fog).slice(0, 4000); u.pn = str(u.pn).slice(0, 6000);
       if (typeof u.nocards !== 'boolean') delete u.nocards;
     });
+    // Assessment: the early plan is on only with the day it was switched on; ratings are 1 to 4; ticks are true.
+    if (!isObj(out.ax)) out.ax = {};
+    keep(out.ax, (v, k) => ['early', 'since', 'rate', 'must'].includes(k));
+    if (typeof out.ax.early !== 'boolean') delete out.ax.early;
+    if (!isDay(out.ax.since) || out.ax.early !== true) delete out.ax.since;
+    if (out.ax.early === true && !out.ax.since) delete out.ax.early;
+    out.ax.rate = isObj(out.ax.rate) ? keep(out.ax.rate, (v, k) => /^[1-4]$/.test(k) && [1, 2, 3, 4].includes(v)) : {};
+    out.ax.must = isObj(out.ax.must) ? keep(out.ax.must, (v, k) => v === true && /^[a-z0-9]{2}-[a-z]$/.test(k)) : {};
     return out;
   }
   function loadLocal() {
@@ -625,7 +635,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   let state = normalise(newest(loadLocal(), loadFromApp()));
   // Six tabs; the other screens open from them (or from More) and have a back button.
   const TABS = ['home', 'plan', 'study', 'portfolio', 'progress', 'more'];
-  const ROUTE_NAMES = TABS.concat(['courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'pp', 'voice', 'coach', 'module']);
+  const ROUTE_NAMES = TABS.concat(['courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'pp', 'voice', 'coach', 'module', 'assessment']);
   const OLD_ROUTES = { today: 'home', chat: 'home', reflect: 'goals', practice: 'study' };
   const routeOf = (v) => (OLD_ROUTES[v] || (ROUTE_NAMES.includes(v) ? v : 'home'));
   let route = 'home';
@@ -710,9 +720,42 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     syncAlarms();
   }
 
+  /* ---------- the early plan (page 56) ----------
+     An earlier evening for some steps, so the real work on an assessment ends about two weeks before it is due and
+     the last fortnight stays light. Steps tied to a class, an observation or a learner's own dates are not in it.
+     Each group moves together. A group is used only if its first evening had not passed on the day the plan was
+     switched on (state.ax.since), so nothing lands in the past and nothing counts as missed. A step you moved
+     yourself keeps your date. No evening in this plan goes over 60 minutes. */
+  const AX_GROUPS = [
+    // the workbook goes to the assessor before the Christmas break, not on the morning it is due
+    ['as-wb', { 'as-wb-4': '2026-12-21' }],
+    // standardisation evidence: any quiet week will do, so it goes before the spring rush
+    ['as-std', { 'as-std-1': '2027-01-25', 'as-std-2': '2027-01-27', 'as-std-3': '2027-02-01' }],
+    // learner 2: the same seven steps, started two weeks sooner, so half term is free
+    ['as-l2', { 'as-l2-1': '2027-01-26', 'as-l2-2': '2027-01-29', 'as-l2-3': '2027-02-02', 'as-l2-4': '2027-02-05', 'as-l2-5': '2027-02-09', 'as-l2-6': '2027-02-11', 'as-l2-7': '2027-02-12' }],
+    // Module 2 slides: planned and drafted in March beside the project, the results slides once the analysis is in,
+    // so a whole first draft exists before Easter and the Easter break is a break
+    ['pg-m2', { 'pg-m2-1': '2027-03-01', 'pg-m2-2': '2027-03-09', 'pg-m2-4': '2027-03-15', 'pg-m2-3': '2027-04-01' }],
+    // Module 2 slides: the final edit two weeks before the hand-in, straight after the peer review
+    ['pg-m2', { 'pg-m2-10': '2027-05-07', 'pg-m2-11': '2027-05-10' }],
+    // Module 3: check the portfolio list three weeks before the discussion, while gaps can still be filled
+    ['pg-pd', { 'pg-pd-7': '2027-05-17' }]
+  ];
+  // Small jobs that belong close to the day: a file check, an upload, an email, speaking practice.
+  const AX_LIGHT = new Set(['pg-m2-11', 'pg-m2-12', 'pg-pres-1', 'as-wb-4', 'pg-pd-4', 'pg-pd-5', 'pg-pd-6']);
+  const AX_DLS = AX_GROUPS.map(([d]) => d).filter((d, i, a) => a.indexOf(d) === i);
+  function axEarlyFrom(since) {
+    const out = {};
+    AX_GROUPS.forEach(([, steps]) => { if (Object.values(steps).sort()[0] >= since) Object.assign(out, steps); });
+    return out;
+  }
+  const axIsDay = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const axEarly = () => { const a = state.ax; return a && a.early === true && axIsDay(a.since) ? axEarlyFrom(a.since) : {}; };
+
   /* ---------- the model ---------- */
   function deadlines() {
     const base = (DATA.deadlines || []).filter((d) => !state.hidden[d.id]);
+    const early = axEarly();
     return base.concat(state.custom || []).map((d) => {
       const course = COURSES[d.course] ? d.course : 'other';
       const due = state.due[d.id] || d.due || null;
@@ -720,7 +763,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
         ...c,
         dl: d.id,
         course,
-        dateEff: state.moved[c.id] || c.date,
+        dateEff: state.moved[c.id] || early[c.id] || c.date,
         done: !!state.done[c.id]
       }));
       const doneCount = chunks.filter((c) => c.done).length;
@@ -3460,6 +3503,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       }
     }
     html += m2HomeCard();
+    html += axHomeCard();
     html += coachHomeCard();
     if (state.settings.energyCheck !== false) {
       html += `<div class="card"><div class="row between"><h3>How's your energy today?</h3>${e === 'low' ? '<span class="pill warn">low</span>' : e === 'high' ? '<span class="pill good">high</span>' : e === 'okay' ? '<span class="pill info">okay</span>' : ''}</div>
@@ -4185,6 +4229,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const tiles = [
       ['coach', 'Coach', (() => { const n = coachToday().length; return n ? `${plural(n, 'small step')} today` : 'A small step every day'; })()],
       ['module', 'Module 2', (() => { const N = m2Now(); return N ? `Week ${N.w.n} · ${fmtShort(N.d)}` : 'Week by week'; })()],
+      ['assessment', 'Assessment', (() => { const list = deadlines(); const n = AX.map((a) => axNext(a, list)).filter(Boolean).sort((x, y) => x.due.localeCompare(y.due))[0]; return n ? `Next due ${fmtShort(n.due)}` : 'Both courses'; })()],
       ['courses', 'Courses', '2 active'],
       ['learn', 'Learn', 'Today’s lesson'],
       ['library', 'Library', `Online library · ${plural(catalogue().length, 'resource')}`],
@@ -4522,7 +4567,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   };
 
   /* ---------- the shell: top bars, six tabs, sheets, toasts ---------- */
-  const TITLES = { plan: 'Planner', study: 'Study', portfolio: 'Portfolio', progress: 'Progress', more: 'More', courses: 'Courses', learn: 'Learn', library: 'Library', voice: 'Listen & speak', terms: 'Key terms & models', goals: 'Goals & reflection', log: 'How it adapts', settings: 'Settings', about: 'What makes it smart', deadlines: 'Deadlines', add: 'Add a deadline', paper: 'Practice paper', coach: 'Coach', module: 'Module 2' };
+  const TITLES = { plan: 'Planner', study: 'Study', portfolio: 'Portfolio', progress: 'Progress', more: 'More', courses: 'Courses', learn: 'Learn', library: 'Library', voice: 'Listen & speak', terms: 'Key terms & models', goals: 'Goals & reflection', log: 'How it adapts', settings: 'Settings', about: 'What makes it smart', deadlines: 'Deadlines', add: 'Add a deadline', paper: 'Practice paper', coach: 'Coach', module: 'Module 2', assessment: 'Assessment' };
   const NAV = [['home', 'Home'], ['plan', 'Plan'], ['study', 'Study'], ['portfolio', 'Portfolio'], ['progress', 'Progress'], ['more', 'More']];
   function renderNav() {
     const top = TABS.includes(route) ? route : (stack.length && TABS.includes(stack[0]) ? stack[0] : 'more');
@@ -4567,6 +4612,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   function back() {
     if (route === 'coach' && sub.cq) { sub.cq = null; render(); $('#screen').scrollTop = 0; return; }
     if (route === 'module' && sub.mw != null) { sub.mw = null; sub.ms = null; render(); $('#screen').scrollTop = 0; return; }
+    if (route === 'assessment' && sub.ax) { sub.ax = null; render(); $('#screen').scrollTop = 0; return; }
     route = stack.pop() || 'home';
     render();
     $('#screen').scrollTop = 0;
@@ -6926,6 +6972,278 @@ ${n.text.trim()}
     render();
   });
 
+  /* ---------- Assessment: what each course is marked on, what top work looks like, and finishing early (page 56) ----------
+     Four assessments across the two courses. Each one is a page: what you hand in, the dates, how it is marked,
+     what top work looks like, and a list to tick before you hand in. The early plan itself is AX_GROUPS, above.
+     state.ax holds: early (true or false once you have chosen), since (the day the early plan was switched on),
+     rate (your own rating of each Module 2 outcome, 1 Refer to 4 Distinction) and must (the hand-in ticks). */
+  const AX_BANDS = ['', 'Refer', 'Pass', 'Merit', 'Distinction'];
+  const AX_BAND_SAYS = ['', 'little or no analysis', 'some analysis or discussion', 'some critical analysis', 'detailed and critical'];
+  // What lifts each Module 2 outcome towards the top band.
+  const AX_LIFT = {
+    1: 'Do not only describe your planning. Say why you planned it that way for these learners, what else you could have done, and what the evidence says about the choice.',
+    2: 'Show how the method was adapted for particular learners: who it worked for, who it did not, and what you changed because of that.',
+    3: 'Go past “I included everyone”. Weigh what inclusion means in your own curriculum, where your practice still falls short, and what the research says about it.',
+    4: 'Use several sources. Say what each one can and cannot tell you about your own classroom, and show what the research changed in your practice.'
+  };
+  const AX_PORT = PORT || { ksbTotal: 51, hoursTarget: 150, observations: new Array(10), los: {} };
+  const AX = [
+    { id: 'm2', course: 'pgce', title: 'Module 2 presentation', sub: 'PGCE Module 2 · 7X-710020', aim: 'Aim: distinction', dls: ['pg-cp', 'pg-m2', 'pg-pres'],
+      what: [
+        'One presentation on your small change project: 20 minutes, then up to 10 minutes of questions. It is the whole mark for Module 2.',
+        'It has to bring your learning together: what is distinct about teaching your subject in your setting, what your learners need, and how research and theory shaped a more adaptive way of teaching.',
+        `The slides are due on ${fmtYear(M2_INFO.slides)} by 3pm, through MS Teams Assignments with the Turnitin switch on.`,
+        `You present on MS Teams in the week of ${fmtYear(M2_INFO.talk)}. It is recorded so that other markers can check the marking.`,
+        `A practice run with peer review is in class on ${fmtYear(M2_INFO.peer)}. Feedback on the real one comes within 15 working days.`,
+        'Late work needs an approved extension. Without one it counts as not handed in.'
+      ],
+      grade: 'Marked in bands on four learning outcomes: Refer (under 50), Pass (50 to 58), Merit (62 to 68) and Distinction (74, 81, 89 or 96).',
+      top: [
+        ['Weigh, do not list.', 'For each choice you made, say why it suited these learners, what the evidence says, and where that evidence is thin.'],
+        ['Stay with your own subject and groups.', 'The top band is about teaching T Level Engineering in your college, not about teaching in general.'],
+        ['Use a range of research and show what it changed.', 'Several sources, what each can and cannot tell you about your own classroom, and what you did differently because of them.'],
+        ['Name who it did not work for.', 'Inclusion is marked on two of the four outcomes. Say who gained least, why that might be, and what you would change.']
+      ],
+      musts: [
+        ['m2-a', 'The opening slide has the module code and title, your name, your student number and the assignment title'],
+        ['m2-b', 'The opening slide says whether you used AI, which tool and how'],
+        ['m2-c', 'If you have a learning contract, the opening slide says so'],
+        ['m2-d', 'The last slide or slides list your references, in APA 7'],
+        ['m2-e', 'Every source on a slide is cited in APA 7, and you have read each one'],
+        ['m2-f', 'The file is PowerPoint (.ppt or .pptx) and has no password'],
+        ['m2-g', 'The file name uses only letters, numbers, hyphens and underscores, and is under 72 characters'],
+        ['m2-h', 'A full run-through fits in 20 minutes'],
+        ['m2-i', 'You can answer a question on each of the four outcomes without your notes']
+      ],
+      from: 'From your Module 2 handbook for 2026 to 2027. If this page and the handbook differ, the handbook is right.',
+      link: ['go', 'module', 'Module 2, week by week'] },
+    { id: 'm3', course: 'pgce', title: 'Module 3 portfolio and professional discussion', sub: 'PGCE Module 3 · 7X-710021', aim: 'Aim: the top standard', dls: ['pg-ksbr', 'pg-osr', 'pg-ap2', 'pg-pd', 'pg-exit'],
+      what: [
+        'A PebblePad portfolio of your practice across the year, then a professional discussion: 30 minutes online with your mentor and your tutor.',
+        'Every piece of evidence has to be in the portfolio before the discussion.',
+        'You choose how to run it: visual storytelling (nine stories) or question and answer (nine questions), one for each occupational duty.',
+        `The portfolio list in this app: ${AX_PORT.ksbTotal} KSBs with evidence, ${AX_PORT.hoursTarget} lead teaching hours, ${AX_PORT.observations.length} observations with reflections, two alternative placements with reflections, and your certificates and records.`
+      ],
+      grade: 'This app does not hold the Module 3 marking grid, so it cannot show bands here. Send the Module 3 handbook and they can be added. Until then the aim is the top standard on every duty.',
+      top: [
+        ['One clear story for each duty.', 'What you did, why you did it (the idea or research behind it), what changed for your learners, and what you would do next.'],
+        ['Point to the evidence.', 'Name the piece in your portfolio that shows it, and the KSBs it covers.'],
+        ['Show how you grew.', 'Use observation feedback and mentor meetings to show what you changed over the year, not only what went well.'],
+        ['Say it out loud before the day.', 'Thirty minutes goes quickly. Practise each duty against a timer.']
+      ],
+      topNote: 'These four points are this app’s reading of strong work, not the module’s own criteria.',
+      musts: [
+        ['m3-a', 'Every KSB has at least one piece of evidence'],
+        ['m3-b', 'Each observation has its feedback form and a reflection'],
+        ['m3-c', 'Teaching hours are logged and the total is shown'],
+        ['m3-d', 'Both alternative placements are logged, each with a reflection'],
+        ['m3-e', 'Safeguarding and Prevent certificates are uploaded'],
+        ['m3-f', 'Stories or questions chosen, with one ready for each of the nine duties'],
+        ['m3-g', 'All nine practised out loud']
+      ],
+      from: 'From what this app already holds about Module 3. Its handbook has not been added yet.',
+      link: ['tab', 'portfolio', 'Portfolio'] },
+    { id: 'wb', course: 'assess', title: 'Knowledge workbook', sub: 'Assessor award · Unit D/601/5313', aim: 'Aim: accepted first time', dls: ['as-o12', 'as-o36', 'as-o78', 'as-wb', 'as-pd'],
+      what: [
+        `Unit D/601/5313, Understanding the principles and practices of assessment: eight learning outcomes, answered in a workbook of ${AW.length} questions.`,
+        'It goes to Andrea by email in parts, then as one complete workbook with her feedback acted on.',
+        'A professional discussion with Andrea follows. Its date is agreed when you send the complete workbook.'
+      ],
+      grade: 'This award has no distinction grade: an answer is accepted, or it comes back for more. So the aim is every answer accepted first time. Ask Andrea if your centre does it differently.',
+      top: [
+        ['Answer the verb.', 'Explain gives reasons. Evaluate weighs strengths and limits and reaches a judgement. Summarise is short and covers the main points.'],
+        ['Cover every part of the criterion.', 'If it asks for two things, give both, in the question’s own terms.'],
+        ['Use your own assessing.', 'One real example from assessing T Level Engineering learners does more than a general statement.'],
+        ['Your own words.', 'Name a source where you use one, and declare any AI tool you used.']
+      ],
+      musts: [
+        ['wb-a', 'Every question is answered, in one document'],
+        ['wb-b', 'Feedback on outcomes 1 and 2 is acted on'],
+        ['wb-c', 'Feedback on outcomes 3 to 6 is acted on'],
+        ['wb-d', 'Feedback on outcomes 7 and 8 is acted on'],
+        ['wb-e', 'Each answer does what its verb asks'],
+        ['wb-f', 'Proofread once, out loud'],
+        ['wb-g', 'Dates offered to Andrea for the professional discussion']
+      ],
+      from: 'From your assessment schedule and the unit’s published criteria.',
+      link: ['go', 'coach', 'Coach: the workbook, question by question'] },
+    { id: 'ev', course: 'assess', title: 'Evidence of assessing learners', sub: 'Assessor award · your own assessing', aim: 'Aim: accepted first time', dls: ['as-l1u1', 'as-obs1', 'as-obs2', 'as-l1u2', 'as-std', 'as-l2'],
+      what: [
+        'Assessment records for two learners: learner 1 one whole unit at a time, then learner 2 with two whole units.',
+        'Andrea observes you assessing a learner, twice.',
+        'Evidence that you attended standardisation meetings.',
+        'Everything goes to Andrea by email. The dates below are from your assessment schedule.'
+      ],
+      grade: 'No distinction grade here either: the evidence is accepted, or Andrea asks for more. The aim is accepted first time, with nothing sent back.',
+      top: [
+        ['A full trail for every decision.', 'The plan, the method, the evidence, the decision and the feedback, each signed and dated.'],
+        ['Each decision tied to the criteria.', 'Say which criteria the evidence meets, and check it is valid, authentic, current, sufficient and reliable.'],
+        ['Methods that fit the learner and the unit.', 'Say why you chose each method, and use more than one where the unit allows.'],
+        ['Feedback the learner can act on.', 'What was met, what was not yet, and the next step.'],
+        ['Keep learners private.', 'Use initials or a number where your centre asks for it, and keep records where they should be kept.']
+      ],
+      musts: [
+        ['ev-a', 'Assessment plan agreed with the learner, signed and dated'],
+        ['ev-b', 'A record of each assessment, with the method named'],
+        ['ev-c', 'Questions asked and the answers given are recorded'],
+        ['ev-d', 'Each decision is mapped to the unit’s criteria'],
+        ['ev-e', 'Feedback to the learner is recorded'],
+        ['ev-f', 'Everything is signed and dated by you and the learner'],
+        ['ev-g', 'Standardisation: the meetings attended, and what changed after each']
+      ],
+      from: 'From your assessment schedule. Andrea’s own checklist comes first where it differs.',
+      link: ['dl', 'assess', 'Assessor deadlines'] }
+  ];
+  const AX_BY = {};
+  AX.forEach((a) => { AX_BY[a.id] = a; });
+
+  const axDl = (id, list) => (list || deadlines()).find((d) => d.id === id) || null;
+  const axDls = (a, list) => a.dls.map((id) => axDl(id, list)).filter(Boolean);
+  const axOpen = (d) => !!d.due && !d.complete && d.due >= todayKey();
+  // The next dated piece of an assessment that is still open.
+  const axNext = (a, list) => axDls(a, list).filter(axOpen).sort((x, y) => x.due.localeCompare(y.due))[0] || null;
+  /* Where the real work on a deadline ends: its last open step, leaving out the small jobs that belong close to the
+     day and any follow-up planned for after an event. With a map of early dates it answers "what if"; without one
+     it reads the plan as it stands. */
+  function axMargin(d, early) {
+    if (!d || !d.due) return null;
+    const open = d.chunks.filter((c) => !c.done && !AX_LIGHT.has(c.id) && !(c.date > d.due));
+    if (!open.length) return null;
+    const last = open.map((c) => (early ? state.moved[c.id] || early[c.id] || c.date : c.dateEff)).sort().pop();
+    return { last, days: daysBetween(last, d.due) };
+  }
+  // The steps the early plan moves (or would move) when switched on that day.
+  function axMoves(since) {
+    const early = axEarlyFrom(since);
+    const out = [];
+    deadlines().forEach((d) => d.chunks.forEach((c) => {
+      const to = early[c.id];
+      if (to && !c.done && !state.moved[c.id] && to !== c.date) out.push({ c, d, from: c.date, to });
+    }));
+    return out.sort((a, b) => a.to.localeCompare(b.to));
+  }
+  const axMust = (a) => a.musts.filter(([id]) => state.ax.must[id]).length;
+  const axRate = (n) => { const v = Number(state.ax.rate[n]); return v >= 1 && v <= 4 ? v : 0; };
+  const axDaysPill = (n) => (n == null ? '' : `<span class="pill ${n >= 10 ? 'good' : n >= 3 ? 'info' : 'warn'} num">${n <= 0 ? 'On the day' : `${plural(n, 'day')} early`}</span>`);
+
+  /* ---------- what Assessment hands to Claude ---------- */
+  function axBrief(a) {
+    if (a.id === 'm2') {
+      const rated = M2_LO.map(([n, name]) => `LO${n} (${name}): ${axRate(n) ? AX_BANDS[axRate(n)] : 'not rated yet'}`).join('; ');
+      return `Act as my tutor and help me see where my Module 2 presentation stands against the distinction band. ${m2Me()}\n\nThe four learning outcomes, with what the top band asks:\n${M2_LO.map(([n, name, , top]) => `LO${n}, ${name}: ${top}`).join('\n')}\n\nMy own rating so far: ${rated}.\n\nTake one outcome at a time, starting with my lowest. Ask me to say, in my own words, what I plan to show for it and what evidence and research I have. Then tell me which band that sounds like, what is missing for the top band, and one question I should be ready for. Wait for my reply each time.\n\n${M2_RULES}`;
+    }
+    if (a.id === 'm3') {
+      const duties = (AX_PORT.duties || []).map((d, i) => `${i + 1}. ${d}`).join('\n');
+      return `Help me get ready for my PGCE Module 3 professional discussion. I teach T Level Engineering in a further education college. The discussion is 30 minutes online with my mentor and my tutor, and I give one story or one answer for each of the nine occupational duties:\n${duties}\n\nTake one duty at a time. Ask me what I did, why I did it, what changed for my learners, which piece of evidence in my portfolio shows it and which KSBs it covers. After each answer, tell me what was strong and what was thin, and ask one follow-up question a tutor might ask. Wait for my reply each time. Do not write my stories or answers for me: I have to say them in my own words.`;
+    }
+    if (a.id === 'wb') {
+      const done = AW.filter((q) => awWritten(awE(q))).length;
+      return `Be my study coach for my Level 3 assessor award workbook, Unit D/601/5313 (Understanding the principles and practices of assessment). I teach T Level Engineering in a further education college and I am training as an assessor. I have written ${done} of ${AW.length} answers. The award is not graded, so my aim is every answer accepted first time.\n\nAsk me which question I am on. Then quiz me on what its verb asks for (explain, evaluate, summarise and so on) and on the idea behind it, one question at a time, and wait for my reply. Tell me what a complete answer has to cover, as a list of points, and ask me for an example from my own assessing. ${COACH_RULES}`;
+    }
+    return `Act as an internal quality assurer looking over my assessment records before I send them to my assessor. I teach T Level Engineering in a further education college and I am working towards my Level 3 assessor awards. My evidence is assessment records for two learners, two observations of me assessing, and notes from standardisation meetings.\n\nAsk me to describe one record at a time: the plan, the method and why I chose it, the evidence, my decision and the feedback I gave. Check each against valid, authentic, current, sufficient and reliable, and tell me what an assessor would send back. Wait for my reply each time. Do not ask for learners’ names, and remind me to leave them out. Do not write the records for me.`;
+  }
+
+  /* ---------- the Assessment screens ---------- */
+  // The card on Home until you have chosen: the early plan is ready to look at.
+  function axHomeCard() {
+    if (state.ax.early != null) return '';
+    const n = axMoves(todayKey()).length;
+    if (!n) return '';
+    return `<div class="card" id="ax-card"><div class="label">Assessment</div>
+      <h3 style="font-size:17px">A plan to finish every assessment early</h3>
+      <div class="small muted">It moves ${plural(n, 'step')} to earlier evenings, so the last two weeks before each hand-in stay light.</div>
+      <div class="row"><button class="btn sm" data-act="ax-all">See the plan</button><button class="btn sm ghost" data-act="ax-later">Not now</button></div></div>`;
+  }
+  function axEarlyCard(list) {
+    const a = state.ax;
+    const on = a.early === true && axIsDay(a.since);
+    const since = on ? a.since : todayKey();
+    const early = axEarlyFrom(since);
+    const moves = axMoves(since);
+    // The evenings the plan uses, added up with everything else on them, against your evening limit.
+    const load = {};
+    (list || deadlines()).forEach((d) => d.chunks.forEach((c) => { if (!c.done) { const k = state.moved[c.id] || early[c.id] || c.date; load[k] = (load[k] || 0) + (c.mins || 0); } }));
+    const over = moves.map((m) => m.to).filter((k, i, a) => a.indexOf(k) === i && (load[k] || 0) > capFor(k)).length;
+    const rows = AX_DLS.map((id) => axDl(id, list)).filter((d) => d && axOpen(d) && d.chunks.some((c) => early[c.id] && !c.done)).map((d) => {
+      const was = axMargin(d, {});
+      const will = axMargin(d, early);
+      if (!will) return '';
+      const same = was && was.days === will.days;
+      return `<div class="li"><span class="cdot" style="background:${colOf(d.course)}"></span><div class="grow" style="min-width:0"><b class="small" style="display:block">${esc(d.title)}</b><span class="small muted" style="display:block">Due ${esc(fmtShort(d.due))} · the work ends ${esc(fmtShort(will.last))}${same || !was ? '' : ` (it was ${esc(fmtShort(was.last))})`}</span></div>${axDaysPill(will.days)}</div>`;
+    }).join('');
+    const what = moves.length ? `<details><summary class="small" style="color:var(--accent);font-weight:700;cursor:pointer">${on ? 'What moved' : 'What moves'} (${moves.length})</summary><ul class="vlist" style="margin-top:6px">${moves.map((m) => `<li class="small">${esc(m.c.title)}: ${esc(fmtShort(m.from))} to <b>${esc(fmtShort(m.to))}</b></li>`).join('')}</ul></details>` : '';
+    if (!on && !moves.length) {
+      return `<div class="card" id="ax-early"><h3>Finishing early</h3><div class="small muted">Nothing is left to move earlier. Every step in the early plan is done, has passed, or has a date you chose yourself.</div></div>`;
+    }
+    return `<div class="card" id="ax-early"><div class="row between"><h3>${on ? 'The early plan is on' : 'A plan to finish early'}</h3>${on ? `<span class="pill good">${ic('check', 12)} On</span>` : ''}</div>
+      <div class="small muted">${on ? `Since ${esc(fmtShort(since))}, ${plural(moves.length, 'step')} ${moves.length === 1 ? 'sits' : 'sit'} on an earlier evening.` : `${plural(moves.length, 'step')} ${moves.length === 1 ? 'moves' : 'move'} to an earlier evening.`} The real work on each of these then ends two weeks or more before it is due. ${over ? `${plural(over, 'evening')} in it ${over === 1 ? 'goes' : 'go'} over your evening limit, so move a step if that is too much.` : 'No evening in it goes over your evening limit.'}</div>
+      <div class="list">${rows}</div>
+      ${what}
+      <div class="small muted">Left close to the day on purpose: a file check, the upload, speaking practice. Steps tied to a class, an observation or a learner’s own dates do not move. Learner 2 starts two weeks sooner in this plan, so agree it with the learner and Andrea.</div>
+      <div class="btnrow">${on ? '<button class="btn sm ghost" data-act="ax-early-off">Switch it off</button>' : `<button class="btn sm" data-act="ax-early-on">Use the early plan</button>${a.early == null ? '<button class="btn sm ghost" data-act="ax-later">Not now</button>' : ''}`}</div></div>`;
+  }
+  V.assessment = () => {
+    const list = deadlines();
+    const open = sub.ax && AX_BY[sub.ax] ? AX_BY[sub.ax] : null;
+    if (open) return axDocView(open, list);
+    const dated = AX.flatMap((a) => axDls(a, list)).filter((d) => d.due);
+    const done = dated.filter((d) => d.complete || d.due < todayKey()).length;
+    const next = dated.filter(axOpen).sort((x, y) => x.due.localeCompare(y.due))[0];
+    const row = (a) => {
+      const n = axNext(a, list);
+      const m = n ? axMargin(n) : null;
+      return `<button class="li tap" data-act="ax-open" data-id="${a.id}" style="width:100%;text-align:left"><span class="grow" style="min-width:0"><b style="display:block">${esc(a.title)}</b><span class="small muted" style="display:block">${esc(a.sub)}</span><span class="small muted" style="display:block">${n ? `Next: ${esc(n.title)}, ${esc(fmtShort(n.due))}` : 'Nothing dated is open'}</span></span>${m ? axDaysPill(m.days) : ''}</button>`;
+    };
+    return `<div class="card"><div class="label">Assessment · both courses</div>
+        <h3 style="font-size:18px">Everything you are marked on</h3>
+        <div class="small muted">${done} of ${dated.length} dated pieces are done or past.${next ? ` Next to hand in: ${esc(next.title)}, ${esc(fmtShort(next.due))} (${daysBetween(todayKey(), next.due) === 0 ? 'today' : `in ${plural(daysBetween(todayKey(), next.due), 'day')}`}).` : ''}</div>
+        <div class="bar"><i style="width:${dated.length ? (done / dated.length) * 100 : 0}%;background:var(--accent)"></i></div>
+        <div class="small muted">The pill beside each one says how many days before its due date the real work ends, as your plan stands.</div></div>
+      ${axEarlyCard(list)}
+      ${['pgce', 'assess'].map((k) => `<div class="card"><div class="row"><span class="cdot" style="background:${colOf(k)}"></span><h3 class="grow">${esc(COURSES[k] ? COURSES[k].name : k)}</h3></div><div class="list">${AX.filter((a) => a.course === k).map(row).join('')}</div></div>`).join('')}`;
+  };
+  function axDocView(a, list) {
+    const dls = axDls(a, list);
+    const ticks = axMust(a);
+    const drow = (d) => {
+      const m = axOpen(d) ? axMargin(d) : null;
+      const when = !d.due ? 'No date yet' : d.complete || d.due < todayKey() ? `${d.kind === 'event' ? 'Was on' : 'Was due'} ${fmtShort(d.due)}` : `${d.kind === 'event' ? 'On' : 'Due'} ${fmtShort(d.due)}`;
+      return `<div class="li"><div class="grow" style="min-width:0"><b class="small" style="display:block">${esc(d.title)}</b><span class="small muted" style="display:block">${esc(when)}${d.chunks.length ? ` · ${d.doneCount} of ${d.chunks.length} steps done` : ''}${m ? ` · the work ends ${esc(fmtShort(m.last))}` : ''}</span></div>${d.due && (d.complete || d.due < todayKey()) ? `<span class="pill">${d.complete && d.chunks.length ? 'Done' : 'Past'}</span>` : m ? axDaysPill(m.days) : ''}</div>`;
+    };
+    const link = a.link[0] === 'go' ? `<button class="btn sm ghost" data-go="${a.link[1]}">${esc(a.link[2])}</button>` : a.link[0] === 'tab' ? `<button class="btn sm ghost" data-tab="${a.link[1]}">${esc(a.link[2])}</button>` : `<button class="btn sm ghost" data-act="deadlines-for" data-id="${a.link[1]}">${esc(a.link[2])}</button>`;
+    let html = `<div class="card"><div class="label">${esc(a.sub)}</div>
+        <h3 style="font-size:18px">${esc(a.title)}</h3>
+        <span class="pill gold" style="align-self:flex-start">${esc(a.aim)}</span>
+        <div class="small muted">${esc(a.grade)}</div></div>
+      <div class="card"><h3>What you hand in</h3><ul class="vlist">${a.what.map((t) => `<li class="small">${esc(t)}</li>`).join('')}</ul>
+        <div class="small muted">${esc(a.from)}</div></div>
+      <div class="card" id="ax-dates"><h3>Dates and steps</h3><div class="list">${dls.map(drow).join('') || '<div class="small muted">Nothing in your plan for this one yet.</div>'}</div>
+        <div class="btnrow"><button class="btn sm ghost" data-act="deadlines-for" data-id="${a.course}">Open the steps</button><button class="btn sm ghost" data-act="ax-all">The early plan</button></div></div>`;
+    if (a.id === 'm2') {
+      const rated = M2_LO.filter(([n]) => axRate(n));
+      const low = rated.length ? rated.slice().sort((x, y) => axRate(x[0]) - axRate(y[0]) || x[0] - y[0])[0] : null;
+      html += `<div class="card" id="ax-rate"><div class="row between"><h3>Where is my work now?</h3><span class="pill info num">${rated.length} of 4 rated</span></div>
+        <div class="small muted">Rate your plan or draft against each outcome, honestly. The top band asks for detailed, critical analysis on all four.</div>
+        ${M2_LO.map(([n, name, , top]) => `<div class="step"><b class="small">LO${n}: ${esc(name)}</b><div class="small muted">Top band: ${esc(top)}</div>
+          <div class="chips wrap">${[1, 2, 3, 4].map((b) => `<button class="chip" data-act="ax-rate" data-id="${n}" data-n="${b}" aria-pressed="${axRate(n) === b}">${AX_BANDS[b]}</button>`).join('')}</div>
+          ${axRate(n) ? `<div class="small muted">${axRate(n) === 4 ? 'You rate this at the top band. Check that with your tutor or a peer before you rely on it.' : `${AX_BANDS[axRate(n)]} reads as “${AX_BAND_SAYS[axRate(n)]}”. To lift it: ${esc(AX_LIFT[n])}`}</div>` : ''}</div>`).join('')}
+        ${low && axRate(low[0]) < 4 ? `<div class="notice"><div><p><b>Work on LO${low[0]} first.</b> It is your lowest, and the presentation is only as strong as its weakest outcome.</p></div></div>` : ''}
+        <div class="btnrow"><button class="btn sm" data-act="ax-live" data-id="${a.id}">${ic('spark', 14)} Check it against the top band with Claude</button><button class="btn sm ghost" data-act="m2-ladder">The ladder</button></div></div>`;
+    } else if (a.id === 'm3') {
+      const los = (AX_PORT.los && Object.entries(AX_PORT.los).find(([k]) => /Module 3/.test(k))) || null;
+      if (los) html += `<div class="card"><h3>What Module 3 looks for</h3><ul class="vlist">${los[1].map((t) => `<li class="small">${esc(t)}</li>`).join('')}</ul></div>`;
+    } else if (a.id === 'wb') {
+      html += `<div class="card"><h3>The eight outcomes</h3><ol class="steps">${AW_LO.slice(1).map((t) => `<li class="small">${esc(t)}</li>`).join('')}</ol>
+        <div class="small muted">${AW.filter((q) => awWritten(awE(q))).length} of ${AW.length} answers written in the Coach.</div></div>`;
+    }
+    html += `<div class="card"><h3>What top work looks like</h3><ol class="steps">${a.top.map(([h, b]) => `<li><b>${esc(h)}</b> ${esc(b)}</li>`).join('')}</ol>${a.topNote ? `<div class="small muted">${esc(a.topNote)}</div>` : ''}
+        ${a.id === 'm2' ? '' : `<div class="btnrow"><button class="btn sm" data-act="ax-live" data-id="${a.id}">${ic('spark', 14)} ${a.id === 'm3' ? 'Practise the discussion with Claude' : a.id === 'wb' ? 'Get ready to write with Claude' : 'Check my records with Claude'}</button></div>`}</div>
+      <div class="card" id="ax-must"><div class="row between"><h3>Before you hand it in</h3><span class="pill ${ticks === a.musts.length ? 'good' : 'info'} num">${ticks} of ${a.musts.length}</span></div>
+        <div class="list">${a.musts.map(([id, t]) => `<button class="li tap" data-act="ax-must" data-id="${id}" role="checkbox" aria-checked="${!!state.ax.must[id]}" style="width:100%;text-align:left"><span class="cotick${state.ax.must[id] ? ' on' : ''}">${state.ax.must[id] ? ic('check', 14) : ''}</span><span class="grow small" style="min-width:0">${esc(t)}</span></button>`).join('')}</div></div>
+      <div class="btnrow">${link}<button class="btn sm ghost" data-act="ax-all">All assessments</button></div>`;
+    return html;
+  }
+
   /* ---------- Ask tutor: your own Claude account, inside the app ----------
      On Android a second web view with claude.ai sits under the tutor's top bar.
      Suggestions and "Ask tutor" buttons put your week and the question into the message box. */
@@ -7115,6 +7433,39 @@ ${n.text.trim()}
       case 'm2-date-reset': { const w = M2_BY[Number(id)]; if (w) { delete m2Set(w.n).d; commit(); render(); } break; }
       case 'm2-cardsw': { const w = M2_BY[Number(id)]; if (w) { const u = m2Set(w.n); if (u.nocards) delete u.nocards; else u.nocards = true; commit(); render(); } break; }
       case 'm2-cards': { const w = M2_BY[Number(id)]; if (w) { sub.stab = 'cards'; sub.cardSrc = m2Src(w); sub.cardTopic = null; fcFlip = false; go('study'); } break; }
+      // Assessment
+      case 'ax-all': closeSheet(true); sub.ax = null; if (route !== 'assessment') go('assessment'); else { render(); $('#screen').scrollTop = 0; } break;
+      case 'ax-open': if (AX_BY[id]) { sub.ax = id; if (route !== 'assessment') go('assessment'); else { render(); $('#screen').scrollTop = 0; } } break;
+      case 'ax-early-on': {
+        const moves = axMoves(todayKey());
+        if (!moves.length) { render(); break; }
+        state.ax.early = true;
+        state.ax.since = todayKey();
+        addLog({
+          kind: 'early',
+          what: `Early plan on: ${plural(moves.length, 'step')} moved to ${moves.length === 1 ? 'an earlier evening' : 'earlier evenings'}`,
+          why: 'You switched on the early plan under More, Assessment. The real work on each assessment now ends two weeks or more before it is due. Switch it off there to put every step back.',
+          lines: moves.map((m) => `${m.c.title}: ${fmtShort(m.from)} to ${fmtShort(m.to)}`)
+        });
+        commit();
+        render();
+        toast(`<b>Early plan on.</b> ${APP ? 'Your steps and alarms have moved.' : 'Your steps have moved.'}`);
+        break;
+      }
+      case 'ax-early-off': {
+        if (state.ax.early !== true) break;
+        state.ax.early = false;
+        delete state.ax.since;
+        addLog({ kind: 'early', what: 'Early plan off: every step is back on its first date', why: 'You switched off the early plan under More, Assessment. Steps you moved yourself stay where you put them.' });
+        commit();
+        render();
+        toast('<b>Early plan off.</b> Steps are back on their first dates.');
+        break;
+      }
+      case 'ax-later': if (state.ax.early == null) { state.ax.early = false; commit(); render(); toast('The plan stays under More, Assessment.'); } break;
+      case 'ax-rate': { const n = Number(id); const b = Number(el.dataset.n); if ([1, 2, 3, 4].includes(n) && [1, 2, 3, 4].includes(b)) { if (state.ax.rate[n] === b) delete state.ax.rate[n]; else state.ax.rate[n] = b; commit(); render(); } break; }
+      case 'ax-must': if (AX.some((a) => a.musts.some(([k]) => k === id))) { if (state.ax.must[id]) delete state.ax.must[id]; else state.ax.must[id] = true; commit(); render(); } break;
+      case 'ax-live': if (AX_BY[id]) { closeSheet(true); ask(axBrief(AX_BY[id])); } break;
       // the coach
       case 'co-path': if (COACH_PATHS.some(([k]) => k === id)) { sub.cpath = id; state.coach.path = id; sub.cq = null; commit(); render(); } break;
       case 'co-how': coachHow(); break;
@@ -7845,7 +8196,7 @@ ${n.text.trim()}
       if (DICT.on) dictStop();
       if (sheetOpen) { closeSheet(); return true; }
       if (tutorOpen) { closeTutor(); return true; }
-      if (stack.length || (route === 'coach' && sub.cq) || (route === 'module' && sub.mw != null)) { back(); return true; }
+      if (stack.length || (route === 'coach' && sub.cq) || (route === 'module' && sub.mw != null) || (route === 'assessment' && sub.ax)) { back(); return true; }
       if (route !== 'home') { go('home'); return true; }
       return false;
     };
@@ -7881,7 +8232,7 @@ ${n.text.trim()}
   document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); if (!document.hidden) { meetWake(); videoTaken(); videoBack(); } else if (MEET.live) MEET.hidAt = Date.now(); });
 
   // Exposed for testing only
-  window.__planner = { M2, M2_BY, M2_LO, M2_BREAKS, m2Now, m2Date, m2Revised, m2CardsOf, m2CardWeeks, m2Brief, m2HomeCard, m2AlarmWeeks, m2Set, m2U, m2OfSrc, videoTaken, ytId, canPlay, playsHere, resumeAt, videoBack, videoCards, lessonCardsOf, pushedCards, allCards, isVideo, VIDEO_CARDS, DECK, resDone, resDoneSheet, resSheet, videoCardSheet, freeAlt, resLocked, resOpen, render, platCard, opensOutside, accessNote, minsLabel, ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
+  window.__planner = { AX, AX_BY, AX_GROUPS, AX_LIGHT, AX_DLS, axEarly, axEarlyFrom, axMoves, axMargin, axBrief, axHomeCard, axNext, M2, M2_BY, M2_LO, M2_BREAKS, m2Now, m2Date, m2Revised, m2CardsOf, m2CardWeeks, m2Brief, m2HomeCard, m2AlarmWeeks, m2Set, m2U, m2OfSrc, videoTaken, ytId, canPlay, playsHere, resumeAt, videoBack, videoCards, lessonCardsOf, pushedCards, allCards, isVideo, VIDEO_CARDS, DECK, resDone, resDoneSheet, resSheet, videoCardSheet, freeAlt, resLocked, resOpen, render, platCard, opensOutside, accessNote, minsLabel, ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
 })();
 
 </script>
