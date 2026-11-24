@@ -15,8 +15,8 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
   {
     const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-18T19:30:00', state: null });
     const R = await picksOf(page);
-    ok('fresh: has a study step and up to three picks', R.study && R.picks.length >= 2 && R.picks.length <= 3, R);
-    ok('fresh: one pick of each kind at most', new Set(R.picks.map((p) => (p.kind === 'Watch' || p.kind === 'Listen' ? p.kind : 'Read'))).size === R.picks.length, R.picks);
+    ok('fresh: has a study step and up to four picks', R.study && R.picks.length >= 2 && R.picks.length <= 4, R);
+    ok('fresh: one pick of each kind at most', new Set(R.picks.map((p) => (p.kind === 'Watch' || p.kind === 'Listen' || p.kind === 'Course' ? p.kind : 'Read'))).size === R.picks.length, R.picks);
     ok('fresh: every pick says why', R.picks.every((p) => p.why.length >= 1 && p.why.every((w) => w.length > 10)), R.picks);
     ok('fresh: picks point at what is due soon', R.picks.some((p) => R.heat.includes(p.t)), R);
     ok('fresh: page told the app it works', await page.evaluate((n) => window.__calls.some((c) => c[0] === 'pageReady' && c[1] === n), N));
@@ -109,7 +109,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     await page.evaluate(() => { window.__planner.sub.lf = 'All'; window.__planner.go('library'); });
     await page.click('#libq');
     await page.keyboard.type('metacog', { delay: 5 });
-    ok('library: search narrows and keeps focus', await page.evaluate(() => document.activeElement && document.activeElement.id === 'libq' && document.activeElement.value === 'metacog' && document.querySelectorAll('#screen [data-act="res"]').length >= 1 && document.querySelectorAll('#screen [data-act="res"]').length <= 4), await page.evaluate(() => [document.activeElement && document.activeElement.id, document.querySelectorAll('#screen [data-act="res"]').length]));
+    ok('library: search narrows and keeps focus', await page.evaluate(() => document.activeElement && document.activeElement.id === 'libq' && document.activeElement.value === 'metacog' && document.querySelectorAll('#screen [data-act="res"]').length >= 1 && document.querySelectorAll('#screen [data-act="res"]').length <= 6), await page.evaluate(() => [document.activeElement && document.activeElement.id, document.querySelectorAll('#screen [data-act="res"]').length]));
     await page.fill('#libq', 'zzzzqq');
     ok('library: no match is said plainly', await page.evaluate(() => /Nothing here yet/.test(document.querySelector('#screen').textContent)));
     await page.fill('#libq', '');
@@ -1751,6 +1751,96 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     st.settings.baseCount = v;
     const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-23T19:30:00', state: st });
     ok(`baseline: a damaged switch (${JSON.stringify(v)}) is repaired to on`, await page.evaluate(() => window.__planner.state.settings.baseCount === true && window.__planner.ksbCovered().size >= 31) && errors.length === 0, errors);
+    await ctx.close();
+  }
+
+  // ---------- L. free lessons, free platforms and links that lock (page 52) ----------
+  {
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-24T19:30:00', state: null });
+    const P = (fn, arg) => page.evaluate(fn, arg);
+    const on = await P(() => window.__planner.ONLINE.map((o) => ({ id: o.id, kind: o.kind, url: o.url, t: o.t, m: o.m, g: !!o.g, x: !!o.x, acc: o.acc || '', ck: o.ck || '', note: o.note || '', lib: !!o.lib })));
+    const pro = on.filter((o) => /protrainings/i.test(o.url));
+    ok('free: the only ProTrainings link left is the lesson that course gives free', pro.length === 1 && /understanding-different-types-of-assessment$/.test(pro[0].url) && /paying customers/.test(pro[0].note), pro);
+    ok('free: the twelve lessons that lock are gone', !['on31', 'on33', 'on35', 'on36', 'on37', 'on41', 'on42', 'on43', 'on44', 'on45', 'on46', 'on47'].some((id) => on.some((o) => o.id === id)));
+    const assess = await P(() => Object.entries(window.__planner.TOPICS).filter(([, t]) => t.c === 'assess').map(([k]) => k));
+    ok('free: every assessor topic has a video checked to open without paying', assess.length === 8 && assess.every((t) => on.some((o) => o.kind === 'Watch' && o.ck && o.t.includes(t))), assess.filter((t) => !on.some((o) => o.kind === 'Watch' && o.ck && o.t.includes(t))));
+    const fresh = on.filter((o) => o.ck);
+    ok('free: each newly added item carries its check date and a note', fresh.length >= 25 && fresh.every((o) => /^2026-\d\d-\d\d$/.test(o.ck) && o.note.length > 20 && !o.lib), fresh.filter((o) => !(o.note.length > 20)));
+    ok('free: a length that could not be read is not passed off as known', on.filter((o) => o.g).length >= 12 && on.filter((o) => o.g).every((o) => !o.x && /youtube\.com\/watch/.test(o.url)));
+    ok('free: a length nobody checked says so', await P(() => { const P = window.__planner; const it = P.catalogue().find((x) => x.id === 'on49'); return P.minsLabel(it) === 'length not checked'; }));
+    const courses = on.filter((o) => o.kind === 'Course');
+    ok('courses: OpenLearn and Seneca courses are in, sized by the session', courses.length >= 8 && courses.every((o) => o.m === 20) && courses.some((o) => /open\.edu/.test(o.url)) && courses.filter((o) => /senecalearning/.test(o.url)).every((o) => o.acc === 'account'), courses.map((o) => [o.id, o.acc]));
+    const R = await picksOf(page);
+    ok('courses: For you offers one course beside the read, watch and listen picks', R.picks.filter((p) => p.kind === 'Course').length === 1, R.picks.map((p) => [p.id, p.kind]));
+    await P(() => window.__planner.go('study'));
+    ok('courses: the pick says Course and minutes a session', await P(() => [...document.querySelectorAll('#screen .card.rec .kpill')].some((x) => /Course · 20 min a session/.test(x.textContent))));
+
+    // the five platforms, on For you and in the Library, each opening outside the in-app reader
+    const plats = await P(() => window.__planner.HUBS.filter((h) => h.plat).map((h) => ({ id: h.id, url: h.url, out: !!h.out, acc: h.acc || '', note: h.note || '' })));
+    ok('platforms: five, each with a link, a job and how you get in', plats.length === 5 && plats.every((h) => /^https:\/\/[^\s"<>]+$/.test(h.url) && h.out && h.acc.length > 5 && h.note.length > 20), plats);
+    ok('platforms: the card is on For you with all five', await P(() => { const c = document.querySelector('#screen #platcard'); return !!c && /Free study platforms/.test(c.textContent) && /24 Nov 2026/.test(c.textContent) && c.querySelectorAll('[data-act="hub"]').length === 5; }));
+    await P(() => { window.__calls.length = 0; window.__opened.length = 0; });
+    await click(page, '#screen #platcard [data-act="hub"][data-id="hub-seneca"]');
+    ok('platforms: one opens in the browser, not the in-app reader', await P(() => window.__opened.length === 1 && window.__opened[0] === 'https://senecalearning.com/en-GB/teacher-development/' && !window.__calls.some((c) => c[0] === 'openReader')), await P(() => [window.__opened, window.__calls]));
+    await P(() => { window.__planner.sub.lf = 'All'; window.__planner.sub.q = ''; window.__planner.sub.lt = ''; window.__planner.go('library'); });
+    ok('platforms: the Library shows them apart from the reading lists', await P(() => { const c = document.querySelector('#screen #platcard'); const lists = [...document.querySelectorAll('#screen .card')].find((x) => /Online library/.test(x.textContent)); return !!c && c.querySelectorAll('[data-act="hub"]').length === 5 && !!lists && lists.querySelectorAll('[data-act="hub"]').length === 4; }));
+    await P(() => { window.__planner.sub.lf = 'Course'; window.__planner.go('library'); });
+    ok('library: the Course filter shows the courses and no platform card', await P((n) => document.querySelectorAll('#screen .card .list [data-act="res"]').length === n && !document.querySelector('#screen #platcard'), courses.length));
+
+    // where things open: a sign-in course and a YouTube video go outside; an OpenLearn course stays in the reader
+    const opens = async (id) => { await P(() => { window.__calls.length = 0; window.__opened.length = 0; }); await P((i) => window.__planner.resOpen(i), id); return P(() => ({ out: window.__opened.slice(), reader: window.__calls.filter((c) => c[0] === 'openReader').map((c) => c[1]) })); };
+    const seneca = await opens('on71');
+    ok('open: a course that needs an account goes to the browser', seneca.out.length === 1 && /app\.senecalearning\.com/.test(seneca.out[0]) && !seneca.reader.length, seneca);
+    const yt = await opens('on49');
+    ok('open: a YouTube lesson goes to the browser or the YouTube app', yt.out.length === 1 && yt.out[0] === 'https://www.youtube.com/watch?v=SOmr389LNzM' && !yt.reader.length, yt);
+    const ol = await opens('on68');
+    ok('open: an OpenLearn course opens in the in-app reader', ol.reader.length === 1 && /open\.edu\/openlearn/.test(ol.reader[0]) && !ol.out.length, ol);
+    await P(() => { window.__planner.sub.lf = 'All'; window.__planner.sub.q = 'cognitive science for teachers'; window.__planner.go('library'); });
+    await click(page, '#screen [data-act="res"][data-id="on71"]');
+    ok('sheet: it says when it was checked and that it needs a free account', await P(() => { const t = (document.querySelector('#layer .sheet') || {}).textContent || ''; return /Checked on 24 Nov 2026: it opens without paying\./.test(t) && /needs a free account/.test(t) && /Carry on with it/.test(t); }), await P(() => ((document.querySelector('#layer .sheet') || {}).textContent || '').slice(0, 500)));
+    await click(page, '[data-act="close-sheet"]');
+
+    // a link that locks: reported from the card, it leaves For you, the Library marks it, and it can be put back
+    await P(() => { window.__planner.sub.q = ''; window.__planner.go('study'); });
+    const before = await picksOf(page);
+    const target = before.picks.find((p) => p.kind === 'Watch') || before.picks[0];
+    ok('locked: before opening, the card does not offer the report', await P((id) => !document.querySelector(`#screen [data-act="res-locked"][data-id="${id}"]`), target.id));
+    await P((id) => { window.__planner.resOpen(id); window.__planner.render(); }, target.id);
+    ok('locked: after opening, the card offers "It was locked or asked me to pay"', await P((id) => { const b = document.querySelector(`#screen [data-act="res-locked"][data-id="${id}"]`); return !!b && /locked or asked me to pay/.test(b.textContent); }, target.id));
+    await click(page, `#screen [data-act="res-locked"][data-id="${target.id}"]`);
+    const after = await picksOf(page);
+    ok('locked: it leaves For you and the next in line', !after.picks.some((p) => p.id === target.id) && !after.more.includes(target.id) && !after.scored.some((s) => s[0] === target.id), after.picks.map((p) => p.id));
+    const toast = await P(() => (document.querySelector('.toast') || {}).textContent || '');
+    const alt = await P((id) => { const P = window.__planner; const a = P.freeAlt(P.catalogue().find((x) => x.id === id)); return a ? { id: a.id, title: a.title, lib: !!a.lib, ts: a.ts } : null; }, target.id);
+    ok('locked: a free item on the same topic is offered instead', /Taken out of your list/.test(toast) && !!alt && !alt.lib && alt.id !== target.id && alt.ts.some((t) => target.ts.includes(t)) && toast.includes(alt.title), { toast, alt });
+    ok('locked: the report is saved and logged', await P((id) => { const s = JSON.parse(window.AndroidApp.loadState()); return s.res[id].locked > 0 && /^Locked: /.test(s.log[0].what); }, target.id));
+    await P(() => { window.__planner.sub.lf = 'All'; window.__planner.sub.q = ''; window.__planner.go('library'); });
+    ok('locked: the Library row is marked Locked', await P((id) => { const r = document.querySelector(`#screen .card .list [data-act="res"][data-id="${id}"]`); return !!r && /Locked/.test(r.textContent); }, target.id));
+    await click(page, `#screen .card .list [data-act="res"][data-id="${target.id}"]`);
+    ok('locked: its sheet says so and offers to put it back', await P(() => { const s = document.querySelector('#layer .sheet'); return !!s && /You said this was locked/.test(s.textContent) && !!s.querySelector('[data-act="res-unlock"]') && !s.querySelector('[data-act="res-locked"]'); }));
+    await click(page, '#layer [data-act="res-unlock"]');
+    const back = await picksOf(page);
+    ok('locked: put back, it can be suggested again', back.scored.some((s) => s[0] === target.id) && await P((id) => !JSON.parse(window.AndroidApp.loadState()).res[id].locked, target.id));
+    // from the sheet, for something never opened
+    await P(() => { window.__planner.sub.q = 'iqa cycle'; window.__planner.go('library'); });
+    await click(page, '#screen [data-act="res"][data-id="on38"]');
+    await click(page, '#layer [data-act="res-locked"]');
+    ok('locked: reporting from the sheet works too', await P(() => { const P = window.__planner; return P.state.res.on38.locked > 0 && !P.recommend().scored.some((s) => s.it.id === 'on38'); }));
+    ok('access: the note says what a sign-in item needs, and nothing for an open one', await P(() => { const P = window.__planner; const c = P.catalogue(); return P.accessNote(c.find((x) => x.lib)) === 'Needs your college library sign-in.' && /free account/.test(P.accessNote(c.find((x) => x.id === 'on71'))) && P.accessNote(c.find((x) => x.id === 'on49')) === ''; }));
+    await P(() => { const P = window.__planner; ['on68', 'on69', 'on70', 'on72', 'on73', 'on74', 'on75'].forEach((id) => { P.state.res[id] = { done: Date.parse('2026-11-23T20:00:00') }; }); P.sub.q = ''; P.go('study'); });
+    ok('access: a course that needs an account says so on its For you card', await P(() => { const b = document.querySelector('#screen .card.rec [data-act="res-open"][data-id="on71"]'); return !!b && /Free, with a free account\. It opens in your browser/.test(b.closest('.card').textContent); }), await P(() => window.__planner.recommend().picks.map((p) => [p.it.id, p.it.kind])));
+    ok('free: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  // saved records for lessons that were taken out do no harm
+  {
+    const st = JSON.parse(JSON.stringify(rich));
+    st.res = Object.assign({}, st.res, { on37: { open: Date.parse('2026-11-23T20:00:00'), n: 2 }, on31: { done: Date.parse('2026-11-20T20:00:00'), stick: 'Yes' } });
+    st.favs = Object.assign({}, st.favs, { on37: true });
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-24T19:30:00', state: st });
+    for (const scr of ['study', 'library', 'home', 'log']) await page.evaluate((s) => window.__planner.go(s), scr);
+    await page.evaluate(() => { window.__planner.sub.lf = 'Favourites'; window.__planner.go('library'); });
+    ok('removed lessons: old records and favourites for them are ignored quietly', errors.length === 0 && await page.evaluate(() => !document.querySelector('#screen [data-act="res"][data-id="on37"]') && window.__planner.recommend().picks.length >= 2), errors);
     await ctx.close();
   }
 

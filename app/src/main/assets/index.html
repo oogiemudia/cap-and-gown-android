@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Cap and Gown</title>
-<meta name="capgown-page" content="51">
+<meta name="capgown-page" content="52">
 <meta name="capgown-min-app" content="0">
 <meta name="theme-color" content="#3454D9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -288,6 +288,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 .k-Read{background:var(--accent-soft);color:var(--accent)}
 .k-Watch{background:var(--bad-soft);color:var(--bad)}
 .k-Listen{background:var(--gold-soft);color:var(--gold)}
+.k-Course{background:var(--good-soft);color:var(--good)}
 .k-File,.k-Note{background:var(--surface2);color:var(--muted)}
 .kpill svg{width:12px;height:12px}
 .rec h3{font-size:16px;line-height:1.3;overflow-wrap:anywhere}
@@ -1733,9 +1734,16 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 
   /* ---------- the online library ----------
      HUBS: whole reading lists and collections that open inside the app.
-     ONLINE: single readings, videos and podcasts, each opened and checked on 18 November 2026.
-       kind: Read, Watch or Listen. t: the topics it helps with, best match first.
-       m: minutes. x: true when the source states the length; otherwise m is an estimate for planning.
+       plat: a free study platform, listed on the Study tab. out: it opens in the phone's browser or its own app,
+       where you can sign in. acc: how you get in, in a few words.
+     ONLINE: single readings, videos, podcasts and courses. on01 to on48 and the pd items were opened and checked on
+       18 November 2026. An item with ck carries the date it was last checked to open without paying.
+       kind: Read, Watch, Listen or Course. t: the topics it helps with, best match first.
+       m: minutes (for a Course, minutes a session). x: true when the source states the length; otherwise m is an
+       estimate for planning. g: true when the length could not be checked at all.
+       acc: 'account' when it needs a free account; it then opens in the phone's browser so you can sign in.
+     Nothing goes in ONLINE unless it opens without paying. Page 52 took out twelve ProTrainings lessons that lock
+       to paying customers, and kept the one lesson that course gives free.
      pod: the show a podcast comes from (see SHOWS), so it plays inside the app. ep: words from the episode's title,
        for when the link is not the episode's own page.
      To add one, copy a line, give it a new id and bump the page number in the head of this file. */
@@ -1743,8 +1751,15 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     { id: 'hub-padlet', main: true, title: 'ITE reading, website and resources list', by: 'LTE Group · Padlet', url: 'https://padlet.com/ltegroup/ite-reading-website-and-resources-list-tagxk7ayowk78d6l', note: 'Your course library: reading, websites and resources, kept up to date by the ITE team.' },
     { id: 'hub-gravells', main: true, title: 'Ann Gravells reading list', by: 'anngravells.com', url: 'https://www.anngravells.com/information/reading-list', note: 'Textbooks and reading for teaching, assessment and quality assurance qualifications.' },
     { id: 'hub-gravells-video', title: 'Ann Gravells: videos by topic', by: 'anngravells.com', url: 'https://www.anngravells.com/videos1/index', note: 'Videos for FE and skills practitioners, grouped by qualification and topic.' },
-    { id: 'hub-eef-pod', title: 'Evidence into Action: every episode', by: 'Education Endowment Foundation podcast', url: 'https://evidenceintoaction.podbean.com/', note: 'Each episode page has its own player.' }
+    { id: 'hub-eef-pod', title: 'Evidence into Action: every episode', by: 'Education Endowment Foundation podcast', url: 'https://evidenceintoaction.podbean.com/', note: 'Each episode page has its own player.' },
+    // Free study platforms, each checked on 24 November 2026 (see PLAT_CHECKED) to have a free way in.
+    { id: 'hub-notebook', plat: true, out: true, icon: 'spark', title: 'Gemini Notebook (NotebookLM)', by: 'Google · free app', acc: 'Free with a Google account', url: 'https://play.google.com/store/apps/details?id=com.google.android.apps.labs.language.tailwind&hl=en_GB', note: 'Load your unit criteria and your standard, then ask it to quiz you or make an audio summary.' },
+    { id: 'hub-openlearn', plat: true, out: true, icon: 'book', title: 'OpenLearn free courses', by: 'The Open University', acc: 'Free to read. A free account adds quizzes and a certificate', url: 'https://www.open.edu/openlearn/education/free-courses', note: 'Structured courses on assessment, reflection, change and postgraduate writing.' },
+    { id: 'hub-seneca', plat: true, out: true, icon: 'study', title: 'Seneca teacher CPD', by: 'Seneca', acc: 'Free account, no card', url: 'https://senecalearning.com/en-GB/teacher-development/', note: 'Courses of about an hour that question you as you go and end in a certificate.' },
+    { id: 'hub-anki', plat: true, out: true, icon: 'list', title: 'AnkiDroid flashcards', by: 'Free app, open source', acc: 'Free, no account', url: 'https://play.google.com/store/apps/details?id=com.ichi2.anki&hl=en_GB', note: 'Your own cards, brought back after a gap. Good for VACSR and your KSB wording.' },
+    { id: 'hub-etf', plat: true, out: true, icon: 'folder', title: 'ETF Learning Library', by: 'Education and Training Foundation', acc: 'Free MyETF login', url: 'https://www.etfoundation.co.uk/learning-library/', note: 'Sector courses: look for the ones marked Free, such as safeguarding and Prevent. Trainees can join free while they study.' }
   ];
+  const PLAT_CHECKED = '2026-11-24';
   const ONLINE = [
     // PGCE: retrieval, memory and cognitive load
     { id: 'on01', kind: 'Read', title: 'Six strategies for effective learning: a summary for teachers', by: 'The Learning Scientists', url: 'https://www.learningscientists.org/blog/2019/11/28-1', t: ['retrieval', 'memory'], m: 6, note: 'Spacing, interleaving, retrieval, concrete examples, elaboration and dual coding on one page.' },
@@ -1783,24 +1798,43 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     { id: 'on29', kind: 'Read', title: 'Reflective practice examples for teachers: Gibbs and Kolb', by: 'Structural Learning', url: 'https://www.structural-learning.com/post/reflective-practice-for-teachers', t: ['reflect'], m: 12, note: 'Gibbs, Kolb, Schön, Brookfield and Driscoll compared, with teaching examples.' },
     { id: 'on30', kind: 'Read', title: 'Academic Phrasebank: being critical', by: 'University of Manchester', url: 'https://www.phrasebank.manchester.ac.uk/being-critical', t: ['reflect', 'change'], m: 5, note: 'Sentence starters for weighing up sources and theories in your written work.' },
     // Assessor award
-    { id: 'on31', kind: 'Watch', title: 'VACSR', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/vacsr', t: ['vacsr'], m: 4, x: true, note: 'Valid, authentic, current, sufficient, reliable as an assessor’s checklist. The site may ask you to sign up free to watch.' },
     { id: 'on32', kind: 'Read', title: 'Principles of assessment', by: 'Agored Cymru', url: 'https://www.agored.cymru/Centres/Assessment/Principles-of-Assessment', t: ['vacsr', 'decisions'], m: 5, note: 'An awarding body’s own wording of the principles, including fair and manageable.' },
-    { id: 'on33', kind: 'Watch', title: 'Functions of assessments', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/functions-of-assessments', t: ['methods', 'vacsr'], m: 4, x: true, note: 'Initial, formative and summative assessment, formal and informal methods, and the assessment cycle.' },
     { id: 'on34', kind: 'Read', title: 'What are assessment methods?', by: 'Cloud Assess', url: 'https://cloudassess.com/blog/assessment-methods/', t: ['methods'], m: 10, note: 'Each method with its strengths. Written for Australia, so the rule names differ but the methods are the same.' },
-    { id: 'on35', kind: 'Watch', title: 'Planning assessments', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/planning-assessments', t: ['planning', 'involve'], m: 3, x: true, note: 'What to agree with the learner before an assessment: criteria, logistics and feedback.' },
-    { id: 'on36', kind: 'Watch', title: 'Holistic assessments and risk assessments', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/holistic-assessments-and-risk-assessments', t: ['planning', 'methods'], m: 4, x: true, note: 'Assessing several criteria in one real task, and the risks to plan for.' },
-    { id: 'on37', kind: 'Watch', title: 'Making assessment decisions and standardisation in practice', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/making-assessment-decisions-and-standardisation-in-practice', t: ['decisions', 'qa'], m: 3, x: true, note: 'Reaching a fair decision from the evidence, and how standardisation keeps assessors consistent.' },
     { id: 'on38', kind: 'Read', title: 'The IQA cycle', by: 'ASDAN', url: 'https://asdan.org.uk/media/zggg5srt/asdan-iqa-cycle.pdf', t: ['qa', 'records'], m: 5, note: 'One awarding body’s internal quality assurance cycle, stage by stage. A PDF, so it opens in your browser.' },
     { id: 'on39', kind: 'Read', title: 'A guide to the data protection principles', by: 'Information Commissioner’s Office', url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/data-protection-principles/a-guide-to-the-data-protection-principles/', t: ['records', 'law'], m: 10, note: 'The seven UK GDPR principles: what they mean for keeping assessment records.' },
     { id: 'on40', kind: 'Read', title: 'Equality Act 2010: technical guidance on further and higher education', by: 'Equality and Human Rights Commission', url: 'https://www.equalityhumanrights.com/guidance/home/technical-guidance-further-and-higher-education', t: ['law', 'adaptive'], m: 20, note: 'The legal detail behind reasonable adjustments. Dip into the chapter you need.' },
-    { id: 'on41', kind: 'Watch', title: 'Involving learners in assessment', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/involving-learners', t: ['involve'], m: 3, x: true, note: 'How peer and self-assessment make assessment clearer and more shared. May ask for a free sign-up.' },
-    { id: 'on42', kind: 'Watch', title: 'Management of information', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/management-of-information', t: ['records'], m: 3, x: true, note: 'Accurate, secure assessment records that track progress and follow data protection rules. May ask for a free sign-up.' },
-    { id: 'on43', kind: 'Watch', title: 'Quality assurance and appeals', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/quality-assurance-and-appeals-', t: ['qa'], m: 3, x: true, note: 'Where quality assurance sits around your decisions, and what happens when a learner appeals. May ask for a free sign-up.' },
-    { id: 'on44', kind: 'Watch', title: 'Policies, procedures and record keeping', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/policies-procedures-and-record-keeping', t: ['records', 'law'], m: 3, x: true, note: 'The policies an assessor works within and the records to keep. May ask for a free sign-up.' },
-    { id: 'on45', kind: 'Watch', title: 'Inclusive assessment and reasonable adjustments', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/inclusive-assessment-and-reasonable-adjustments', t: ['law', 'adaptive'], m: 3, x: true, note: 'Removing barriers without changing the criteria: neurodiversity, language, culture and technology. May ask for a free sign-up.' },
-    { id: 'on46', kind: 'Watch', title: 'Questioning and professional discussion techniques', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/questioning-and-professional-discussion-techniques', t: ['methods', 'decisions'], m: 2, x: true, note: 'Question types, fair questioning, and how to run and record a professional discussion. May ask for a free sign-up.' },
-    { id: 'on47', kind: 'Watch', title: 'How to conduct professional observations', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/how-to-conduct-professional-observations2', t: ['methods', 'records'], m: 3, x: true, note: 'Planning, running and recording an observation, then feedback that leaves a clear audit trail. May ask for a free sign-up.' },
     { id: 'on48', kind: 'Listen', pod: 'ofsted', title: 'Renewed education inspections', by: 'Ofsted Talks podcast', url: 'https://ofstedtalks.podbean.com/e/renewed-education-inspections/', t: ['ofsted'], m: 30, note: 'Ofsted’s own account of the renewed framework, the main changes and the first pilot inspections, including further education and skills.' },
+    // Assessor: free lessons. Each link was checked on 24 November 2026 to open without paying. The YouTube ones were
+    // confirmed public by title and channel; their lengths could not be read, so they carry g.
+    { id: 'on49', kind: 'Watch', title: 'Principles of assessment', by: 'The Education and Training Academy · YouTube', url: 'https://www.youtube.com/watch?v=SOmr389LNzM', t: ['vacsr'], m: 8, g: true, ck: '2026-11-24', note: 'From a training provider’s free series for the assessor certificate. Fits outcome 1 of your unit.' },
+    { id: 'on50', kind: 'Watch', title: 'Responsibilities of the assessor', by: 'The Education and Training Academy · YouTube', url: 'https://www.youtube.com/watch?v=AXmHpO_Dwu0', t: ['vacsr', 'law'], m: 8, g: true, ck: '2026-11-24', note: 'From a training provider’s free series for the assessor certificate. Fits the question on what an assessor is responsible for.' },
+    { id: 'on51', kind: 'Watch', title: 'Planning assessments', by: 'The Education and Training Academy · YouTube', url: 'https://www.youtube.com/watch?v=xAMqNn5YTpQ', t: ['planning'], m: 8, g: true, ck: '2026-11-24', note: 'From a training provider’s free series for the assessor certificate. Fits outcome 3, planning assessment.' },
+    { id: 'on52', kind: 'Watch', title: 'Holistic assessment', by: 'Semester: Learning & Development · YouTube', url: 'https://www.youtube.com/watch?v=bF_wUWdX1u8', t: ['planning', 'methods'], m: 8, g: true, ck: '2026-11-24', note: 'A training channel’s free lesson on holistic assessment, which your unit asks you to explain and plan.' },
+    { id: 'on53', kind: 'Watch', title: 'How to involve learners throughout the assessment process', by: 'Brooks and Kirk Assessor Training · YouTube', url: 'https://www.youtube.com/watch?v=F_TqiDeXnp8', t: ['involve'], m: 8, g: true, ck: '2026-11-24', note: 'An assessor training provider’s free video. Fits outcome 4, involving learners and others.' },
+    { id: 'on54', kind: 'Watch', title: 'Peer and self assessment', by: 'A2A Qualifications · YouTube', url: 'https://www.youtube.com/watch?v=xoSrxn5DLUU', t: ['involve'], m: 8, g: true, ck: '2026-11-24', note: 'A free video from an assessor course, numbered 4.3 to match the peer and self-assessment criterion.' },
+    { id: 'on55', kind: 'Watch', title: 'Judging evidence', by: 'The Education and Training Academy · YouTube', url: 'https://www.youtube.com/watch?v=Eju-b8ZlQm8', t: ['decisions', 'vacsr'], m: 8, g: true, ck: '2026-11-24', note: 'From a training provider’s free series for the assessor certificate. Fits outcome 5, how to judge whether evidence is enough.' },
+    { id: 'on56', kind: 'Watch', title: 'Assessment decisions', by: 'The Education and Training Academy · YouTube', url: 'https://www.youtube.com/watch?v=AuEqQB18ExI', t: ['decisions'], m: 8, g: true, ck: '2026-11-24', note: 'From a training provider’s free series for the assessor certificate. Fits outcome 5, making assessment decisions.' },
+    { id: 'on57', kind: 'Watch', title: 'Importance of quality assurance', by: 'The Education and Training Academy · YouTube', url: 'https://www.youtube.com/watch?v=w3iHkmutKGM', t: ['qa'], m: 8, g: true, ck: '2026-11-24', note: 'From a training provider’s free series for the assessor certificate. Fits outcome 6, why quality assurance matters.' },
+    { id: 'on58', kind: 'Watch', title: 'Quality assurance and standardisation', by: 'The Education and Training Academy · YouTube', url: 'https://www.youtube.com/watch?v=F6kw9jjpy4c', t: ['qa', 'decisions'], m: 8, g: true, ck: '2026-11-24', note: 'From a training provider’s free series for the assessor certificate. Fits outcome 6, quality assurance and standardisation.' },
+    { id: 'on59', kind: 'Watch', title: 'The function of internal quality assurance (IQA)', by: 'ITG Instructor Training · YouTube', url: 'https://www.youtube.com/watch?v=Z41A6ZHUDA4', t: ['qa'], m: 8, g: true, ck: '2026-11-24', note: 'A training provider’s free video on what internal quality assurance is for.' },
+    { id: 'on60', kind: 'Watch', title: 'CAVA observation explained', by: 'Train Aid · YouTube', url: 'https://www.youtube.com/watch?v=lMol4JdphPo', t: ['methods'], m: 8, g: true, ck: '2026-11-24', note: 'A training provider’s free video on observation as an assessment method.' },
+    { id: 'on61', kind: 'Watch', title: 'Initial assessment methods', by: 'Brooks and Kirk Assessor Training · YouTube', url: 'https://www.youtube.com/watch?v=6-47QyT7rNc', t: ['methods'], m: 8, g: true, ck: '2026-11-24', note: 'A free video made for a Level 4 teaching course. Initial assessment is also one of the functions of assessment in your unit.' },
+    { id: 'on76', kind: 'Watch', title: 'How to give constructive criticism', by: 'Brooks and Kirk Assessor Training · YouTube', url: 'https://www.youtube.com/watch?v=yyJLWeGzN9g', t: ['records'], m: 8, g: true, ck: '2026-11-24', note: 'An assessor training provider’s free video on giving constructive feedback. Fits the question on how feedback contributes to assessment.' },
+    { id: 'on62', kind: 'Watch', title: 'Understanding different types of assessment', by: 'ProTrainings', url: 'https://www.protrainings.uk/courses/instructor/assessing-competence/videos/understanding-different-types-of-assessment', t: ['methods'], m: 4, x: true, ck: '2026-11-24', note: 'One of the two lessons this paid course gives free. The lessons before and after it are for paying customers, so stop at this one.' },
+    { id: 'on63', kind: 'Read', title: 'Your assessor unit: every criterion on one page', by: 'Gateway Qualifications', url: 'https://www.gatewayqualifications.org.uk/unit/1719/', t: ['vacsr', 'methods', 'planning', 'decisions'], m: 6, ck: '2026-11-24', note: 'The official page for unit D/601/5313: eight learning outcomes, each opening to show its assessment criteria. Use it as your checklist.' },
+    { id: 'on64', kind: 'Read', title: 'What each criterion expects: City & Guilds handbook, unit 305', by: 'City & Guilds', url: 'https://www.cityandguilds.com/-/media/productdocuments/learning/training_and_development/6317/6317-first-teaching-september-2026/level-3/6317-61-67-l3-training-assessment-and-quality-assurance-qhb-v1,-d-,0-pdf.pdf', t: ['vacsr', 'planning', 'involve', 'qa'], m: 15, ck: '2026-11-24', note: 'A long PDF. Find unit 305: it has the same eight outcomes as your unit and says what each criterion is looking for.' },
+    { id: 'on65', kind: 'Read', title: 'Guidance on internal quality assurance', by: 'City & Guilds', url: 'https://www.cityandguilds.com/-/media/cityandguilds-site/documents/what-we-offer/centres/centre-document-library/guidance-on-internal-quality-assurance-of-qualifications-pdf.pdf', t: ['qa', 'records'], m: 15, ck: '2026-11-24', note: 'Version 2.1, April 2026. Read the parts on sampling and standardisation to see what happens around your decisions.' },
+    { id: 'on66', kind: 'Read', title: 'Principles of good assessment and feedback', by: 'Jisc', url: 'https://www.jisc.ac.uk/guides/principles-of-good-assessment-and-feedback', t: ['afl', 'records'], m: 15, ck: '2026-11-24', note: 'Seven principles for assessment and feedback, starting with helping learners understand what good looks like.' },
+    { id: 'on67', kind: 'Read', title: 'Lewin’s change management model', by: 'OpenLearn · The Open University', url: 'https://www.open.edu/openlearn/money-business/hybrid-working-change-management/content-section-9.1', t: ['change'], m: 5, ck: '2026-11-24', note: 'One short section of a free course: unfreezing, change and refreezing, with a video and its transcript.' },
+    // Courses: interactive, done a section at a time. m is minutes a session.
+    { id: 'on68', kind: 'Course', title: 'Exploring innovative assessment methods', by: 'OpenLearn · The Open University', url: 'https://www.open.edu/openlearn/education-development/exploring-innovative-assessment-methods', t: ['methods', 'afl'], m: 20, ck: '2026-11-24', note: 'A free 12-hour course. Read it without an account; a free account adds the quizzes and a statement of participation. Do one section a session.' },
+    { id: 'on69', kind: 'Course', title: 'Learning to teach: becoming a reflective practitioner', by: 'OpenLearn · The Open University', url: 'https://www.open.edu/openlearn/education-development/learning-teach-becoming-reflective-practitioner/content-section-0', t: ['reflect'], m: 20, ck: '2026-11-24', note: 'A free 5-hour course. Read it without an account; a free account adds the quizzes and a statement of participation.' },
+    { id: 'on70', kind: 'Course', title: 'Succeeding in postgraduate study', by: 'OpenLearn · The Open University', url: 'https://www.open.edu/openlearn/education-development/succeeding-postgraduate-study/content-section-overview', t: ['reflect', 'change'], m: 20, ck: '2026-11-24', note: 'A free course of about 24 hours at Master’s level, for the reading and writing your PGCE assignments ask for. Dip into the sections you need.' },
+    { id: 'on71', kind: 'Course', title: 'Cognitive Science for Teachers: Level 1', by: 'Seneca', url: 'https://app.senecalearning.com/classroom/course/9f6bf15c-23fe-401c-810a-3bc66d761885', t: ['memory', 'retrieval'], m: 20, acc: 'account', ck: '2026-11-24', note: 'A free course of about an hour that questions you as you go and ends in a certificate.' },
+    { id: 'on72', kind: 'Course', title: 'Cognitive Science for Teachers: Level 2', by: 'Seneca', url: 'https://app.senecalearning.com/classroom/course/aebdbb79-c863-4eca-ab3f-31e5120f5fb0', t: ['retrieval', 'memory'], m: 20, acc: 'account', ck: '2026-11-24', note: 'The follow-on to Level 1: about an hour, with questions as you go and a certificate at the end.' },
+    { id: 'on73', kind: 'Course', title: 'Metacognition for Teachers', by: 'Seneca', url: 'https://app.senecalearning.com/classroom/course/d1277cd6-7205-4511-8d95-1f1ed341ae69', t: ['agency'], m: 20, acc: 'account', ck: '2026-11-24', note: 'A free course of about an hour on helping learners plan, check and steer their own learning. Ends in a certificate.' },
+    { id: 'on74', kind: 'Course', title: 'Assessment for Teachers', by: 'Seneca', url: 'https://app.senecalearning.com/classroom/course/04e36b88-c9c6-47ac-8a4b-54b9ceeea532', t: ['afl'], m: 20, acc: 'account', ck: '2026-11-24', note: 'A free course of about an hour on assessment, with questions as you go and a certificate at the end.' },
+    { id: 'on75', kind: 'Course', title: 'Dual Coding for Teachers', by: 'Seneca', url: 'https://app.senecalearning.com/classroom/course/9375f141-2704-49d8-a754-e142c7aad967/section/3ed336fc-89f0-4dba-b853-4c9f61a0d3ed/session', t: ['memory'], m: 20, acc: 'account', ck: '2026-11-24', note: 'A free course of about an hour on pairing words with visuals. Ends in a certificate.' },
     // From the course Padlet (ITE reading, website and resources list), read on 18 November 2026.
     // p: on the Padlet. w: a whole website to browse. lib: a book in the college library (sign in). post: opens the Padlet post.
     { id: 'pd01', kind: 'Read', title: 'Rosenshine’s Principles in Action', by: 'Tom Sherrington · book', url: 'https://research.ebsco.com/c/bwbwmc/search/details/jm7hdfxrpb?limiters=FT%3AY%2CFT1%3AY&q=rosenshines&searchMode=all', t: ['memory', 'retrieval', 'afl'], m: 30, p: 1, lib: 1, note: 'A short book on Rosenshine’s ten principles with classroom examples. Read one strand a night.' },
@@ -2159,22 +2193,26 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   }
 
   /* ---------- the library catalogue ---------- */
-  const KIND_FMT = { Read: 'Reading', Watch: 'Short video', Listen: 'Podcast', File: 'Reading', Note: 'Reading' };
-  const KIND_VERB = { Read: 'Read', Watch: 'Watch', Listen: 'Listen', File: 'Review', Note: 'Review' };
-  const KIND_ICON = { Read: 'book', Watch: 'play', Listen: 'head', File: 'folder', Note: 'list' };
+  const KIND_FMT = { Read: 'Reading', Watch: 'Short video', Listen: 'Podcast', Course: 'Short course', File: 'Reading', Note: 'Reading' };
+  const KIND_VERB = { Read: 'Read', Watch: 'Watch', Listen: 'Listen', Course: 'Start', File: 'Review', Note: 'Review' };
+  const KIND_ICON = { Read: 'book', Watch: 'play', Listen: 'head', Course: 'study', File: 'folder', Note: 'list' };
   const KIND_NAMES = [['Read', 'Reading'], ['Watch', 'Video'], ['Listen', 'Podcast'], ['Note', 'Note'], ['File', 'File']];
   const kindOfMine = (u) => (KIND_VERB[u.kind] ? u.kind : ({ Link: 'Read', Note: 'Note' }[u.type] || 'File'));
   // One list of everything: your own saved pages first, then the online library, then your PGCE project files.
   function catalogue() {
     const mine = state.library.map((u) => ({ ...u, kind: kindOfMine(u), ts: [TOPICS[u.t] ? u.t : 'reflect'], t: TOPICS[u.t] ? u.t : 'reflect', src: 'mine', by: u.meta || 'Yours', m: clamp(Number(u.m) || 10, 1, 240) }));
-    const on = ONLINE.map((o) => ({ id: o.id, kind: o.kind, title: o.title, by: o.by, link: o.url, t: o.t[0], ts: o.t, c: TOPICS[o.t[0]].c, m: o.m, x: !!o.x, note: o.note, src: 'online', p: !!o.p, w: !!o.w, lib: !!o.lib, post: !!o.post, pod: o.pod || '', ep: o.ep || '' }));
+    const on = ONLINE.map((o) => ({ id: o.id, kind: o.kind, title: o.title, by: o.by, link: o.url, t: o.t[0], ts: o.t, c: TOPICS[o.t[0]].c, m: o.m, x: !!o.x, note: o.note, src: 'online', p: !!o.p, w: !!o.w, lib: !!o.lib, post: !!o.post, pod: o.pod || '', ep: o.ep || '', g: !!o.g, acc: o.acc || '', ck: o.ck || '' }));
     const files = LIBRARY.map((f) => ({ ...f, kind: 'File', ts: [f.t], src: 'project', by: f.meta, m: 15 }));
     return mine.concat(on, files);
   }
   const findRes = (id) => catalogue().find((x) => x.id === id) || null;
   const resOf = (id) => state.res[id] || {};
   const resRec = (id) => (state.res[id] = state.res[id] || {});
-  const minsLabel = (it) => `${it.x ? '' : 'about '}${it.m} min`;
+  const minsLabel = (it) => (it.g ? 'length not checked' : it.kind === 'Course' ? `${it.m} min a session` : `${it.x ? '' : 'about '}${it.m} min`);
+  // How you get in, said plainly wherever a pick is offered.
+  const accessNote = (it) => (it.lib ? 'Needs your college library sign-in.' : it.acc === 'account' ? 'Free, with a free account. It opens in your browser so you can sign in.' : '');
+  // A page that needs a sign-in, and a YouTube video, go to the phone's browser or their own app, not the in-app reader.
+  const opensOutside = (it) => it.acc === 'account' || /^https:\/\/((www|m)\.)?(youtube\.com|youtu\.be)\//i.test(it.link || '');
   const reMeta = (w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // Files a page under the topic its words point to. Returns null when nothing matches.
   function guessTopic(text) {
@@ -2195,11 +2233,11 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   }
   const canRead = () => !!(APP && typeof APP.openReader === 'function');
   // Opens a web page: inside the app where the app can, otherwise in the browser. PDFs always go to the browser.
-  function openLink(url, title) {
+  function openLink(url, title, outside) {
     const u = String(url || '').trim();
     if (!/^https?:\/\//i.test(u)) { toast('That link does not look right. It should start with https://'); return false; }
     const file = /\.(pdf|docx?|pptx?|xlsx?)($|[?#])/i.test(u);
-    if (canRead() && /^https:\/\//i.test(u) && !file) { try { if (APP.openReader(u, String(title || ''))) return true; } catch (e) { /* open it outside */ } }
+    if (!outside && canRead() && /^https:\/\//i.test(u) && !file) { try { if (APP.openReader(u, String(title || ''))) return true; } catch (e) { /* open it outside */ } }
     // In the app this hands the link to the phone's browser; in a browser it opens a new tab.
     try {
       if (APP) window.open(u, '_blank');
@@ -2291,6 +2329,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const r = resOf(it.id);
     if (r.done && ctx.now - r.done < 45 * 86400000) return null;
     if (r.skip && ctx.now - r.skip < 21 * 86400000) return null;
+    if (r.locked) return null; // you said it was locked or asked for payment
     if (!it.link && it.src !== 'project') return null; // your own notes and files without a link are for the Library, not the list
     let best = null;
     it.ts.forEach((t, i) => {
@@ -2310,7 +2349,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       v *= it.kind === 'Listen' ? 1.25 : it.kind === 'Watch' ? 1.15 : it.m <= 6 ? 1 : 0.75;
       if (it.m > 20 && it.kind !== 'Listen') v *= 0.7;
       if (light) why.push('Light enough for a low-energy evening.');
-    } else if (ctx.energy === 'high' && it.kind === 'Read' && it.m >= 10) v *= 1.1;
+    } else if (ctx.energy === 'high' && (it.kind === 'Read' || it.kind === 'Course') && it.m >= 10) v *= 1.1;
     if (it.m > ctx.budget) v *= it.kind === 'Listen' ? 0.85 : 0.6;
     const fr = formatRate(KIND_FMT[it.kind]);
     const fn = (state.formats[KIND_FMT[it.kind]] || {}).n || 0;
@@ -2350,15 +2389,16 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const picks = [];
     const usedTopic = {};
     const usedDue = {};
-    const slotOf = (k) => (k === 'Watch' ? 'Watch' : k === 'Listen' ? 'Listen' : 'Read');
-    ['Read', 'Watch', 'Listen'].map((slot) => scored.find((s) => slotOf(s.it.kind) === slot)).filter(Boolean).sort((a, b) => b.v - a.v).forEach((first) => {
+    const slotOf = (k) => (k === 'Watch' || k === 'Listen' || k === 'Course' ? k : 'Read');
+    ['Read', 'Watch', 'Listen', 'Course'].map((slot) => scored.find((s) => slotOf(s.it.kind) === slot)).filter(Boolean).sort((a, b) => b.v - a.v).forEach((first) => {
       const slot = slotOf(first.it.kind);
       const pool = scored.filter((s) => slotOf(s.it.kind) === slot && !picks.includes(s));
       // a second pick on the same topic, or for the same deadline, has to be clearly better to win the slot
       const pick = pool.map((s) => ({ s, v: s.v * (usedTopic[s.t] ? 0.5 : 1) * (s.due && usedDue[s.due] ? 0.75 : 1) })).sort((a, b) => b.v - a.v)[0];
       if (pick) { picks.push(pick.s); usedTopic[pick.s.t] = true; if (pick.s.due) usedDue[pick.s.due] = true; }
     });
-    if (ctx.energy === 'low') picks.sort((a, b) => (a.it.kind === 'Read' ? 1 : 0) - (b.it.kind === 'Read' ? 1 : 0) || b.v - a.v);
+    const heavy = (p) => (p.it.kind === 'Read' || p.it.kind === 'Course' ? 1 : 0);
+    if (ctx.energy === 'low') picks.sort((a, b) => heavy(a) - heavy(b) || b.v - a.v);
     else picks.sort((a, b) => b.v - a.v);
     const study = studyAction(ctx);
     // Fill the time you have; what does not fit is offered as "if you have more time".
@@ -2391,11 +2431,30 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       ask(`In my PGCE project there is a file called "${it.title}". Summarise its key points in five bullet points, then ask me two questions to check I understand it.`);
       return;
     }
-    if (!openLink(it.link, it.title)) return;
+    if (!openLink(it.link, it.title, opensOutside(it))) return;
     const r = resRec(id); r.open = now().getTime(); r.n = (r.n || 0) + 1;
     commit();
     closeSheet(true);
     render();
+  }
+  // The next free thing on the same topic, for when a link turns out to be locked.
+  function freeAlt(it) {
+    const pool = recommend().scored.map((s) => s.it).filter((x) => x.id !== it.id && x.link && !x.lib && !x.w && !x.post && x.ts.some((t) => it.ts.includes(t)));
+    return pool.find((x) => x.kind === it.kind && x.t === it.t) || pool.find((x) => x.t === it.t) || pool.find((x) => x.kind === it.kind) || pool[0] || null;
+  }
+  // A link that locked or asked for payment leaves For you until you say it opens again.
+  function resLocked(id) {
+    const it = findRes(id);
+    if (!it || !it.link) return;
+    const r = resRec(id);
+    r.locked = now().getTime();
+    delete r.skip;
+    addLog({ kind: 'study', what: `Locked: ${it.title}`, why: 'You said this link was locked or asked you to pay, so it is out of your For you list. It stays in your Library, marked Locked.' });
+    commit();
+    closeSheet(true);
+    render();
+    const alt = freeAlt(it);
+    toast(`<b>Taken out of your list.</b> ${alt ? `Free on the same topic: ${esc(alt.title)}. <button class="linkish" data-act="res" data-id="${esc(alt.id)}">See it</button>` : 'It stays in your Library, marked Locked.'}`, 9000);
   }
   function resDone(id, stuck) {
     const it = findRes(id);
@@ -2662,7 +2721,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const seg = `<div class="seg five">${[['foryou', 'For you'], ['quiz', 'Quiz'], ['cards', 'Cards'], ['mistakes', 'Mistakes'], ['papers', 'Papers']].map(([k, l]) => `<button data-act="stab" data-id="${k}" aria-pressed="${tab === k}">${l}${k === 'cards' && due ? ` <span class="num">${due}</span>` : k === 'mistakes' && state.mistakes.length ? ` <span class="num">${state.mistakes.length}</span>` : ''}</button>`).join('')}</div>`;
     return seg + ({ foryou: forYouView, quiz: quizView, cards: cardsView, mistakes: mistakesView, papers: papersView }[tab])();
   };
-  const kindPill = (it) => `<span class="pill kpill k-${esc(it.kind)}">${ic(KIND_ICON[it.kind] || 'link', 12)} ${esc(KIND_VERB[it.kind] || 'Open')}${it.link ? ' · ' + esc(minsLabel(it)) : ''}</span>`;
+  const kindPill = (it) => `<span class="pill kpill k-${esc(it.kind)}">${ic(KIND_ICON[it.kind] || 'link', 12)} ${esc(it.kind === 'Course' ? 'Course' : KIND_VERB[it.kind] || 'Open')}${it.link ? ' · ' + esc(minsLabel(it)) : ''}</span>`;
   function recCard(s) {
     const it = s.it;
     const r = resOf(it.id);
@@ -2670,10 +2729,19 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     return `<div class="card rec"><div class="row between">${kindPill(it)}${r.done ? `<span class="pill good">${ic('check', 12)} Done before</span>` : ''}</div>
       <h3>${esc(it.title)}</h3><div class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(TOPICS[s.t].name)}</div>
       <div class="why">${s.why.map((w) => esc(w)).join(' ')}</div>
-      ${openedToday && !r.done ? '<div class="small muted">Opened today. Tap Done when you finish, and the app learns what works for you.</div>' : ''}
+      ${accessNote(it) ? `<div class="small muted">${esc(accessNote(it))}</div>` : ''}
+      ${openedToday && !r.done ? `<div class="small muted">Opened today. Tap Done when you finish, and the app learns what works for you.${it.link ? ` <button class="linkish" data-act="res-locked" data-id="${esc(it.id)}">It was locked or asked me to pay</button>` : ''}</div>` : ''}
       <div class="btnrow">${podOf(it) && podReady() ? `<button class="btn sm" data-act="pod-go" data-id="${esc(it.id)}">${ic(POD.id === it.id && POD.state === 'playing' ? 'pause' : 'play', 14)} ${POD.id === it.id && POD.state !== 'idle' ? (POD.state === 'paused' ? 'Carry on' : 'Playing') : 'Play here'}</button>` : `<button class="btn sm" data-act="res-open" data-id="${esc(it.id)}">${ic(KIND_ICON[it.kind] || 'link', 14)} ${!it.link ? 'Review with tutor' : openedToday ? 'Open again' : 'Open'}</button>`}<button class="btn sm ghost" data-act="res-done" data-id="${esc(it.id)}">${ic('check', 14)} Done</button><button class="btn sm ghost" data-act="res-skip" data-id="${esc(it.id)}">Not for me</button><button class="btn sm ghost" data-act="fav" data-id="${esc(it.id)}" aria-label="${state.favs[it.id] ? 'Remove from favourites' : 'Add to favourites'}" aria-pressed="${!!state.favs[it.id]}"${state.favs[it.id] ? ' style="color:var(--gold)"' : ''}>${ic('star', 14)}</button></div></div>`;
   }
-  const resRow = (it, right) => `<button class="res li tap" data-act="res" data-id="${esc(it.id)}"><span class="ftype k-${esc(it.kind)}">${ic(KIND_ICON[it.kind] || 'link', 18)}</span><span class="restext"><b>${esc(it.title)}</b><span class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(TOPICS[it.t] ? TOPICS[it.t].name : '')}${it.link ? ' · ' + esc(minsLabel(it)) : ''}</span></span>${right != null ? right : resOf(it.id).done ? `<span class="pill good">${ic('check', 12)} Done</span>` : state.favs[it.id] ? `<span style="color:var(--gold)">${ic('star', 16)}</span>` : `<span class="muted">${ic('fwd', 16)}</span>`}</button>`;
+  const resRow = (it, right) => `<button class="res li tap" data-act="res" data-id="${esc(it.id)}"><span class="ftype k-${esc(it.kind)}">${ic(KIND_ICON[it.kind] || 'link', 18)}</span><span class="restext"><b>${esc(it.title)}</b><span class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(TOPICS[it.t] ? TOPICS[it.t].name : '')}${it.link ? ' · ' + esc(minsLabel(it)) : ''}</span></span>${right != null ? right : resOf(it.id).locked ? '<span class="pill warn">Locked</span>' : resOf(it.id).done ? `<span class="pill good">${ic('check', 12)} Done</span>` : state.favs[it.id] ? `<span style="color:var(--gold)">${ic('star', 16)}</span>` : `<span class="muted">${ic('fwd', 16)}</span>`}</button>`;
+  // The free study platforms: each does one job, and each opens in the browser or its own app.
+  function platCard(list) {
+    const hubs = list || HUBS.filter((h) => h.plat);
+    if (!hubs.length) return '';
+    return `<div class="card" id="platcard"><div class="row between"><h3>Free study platforms</h3><span class="pill good">${ic('check', 12)} Free</span></div>
+      <div class="small muted">Each does one job and has a free way in, checked on ${esc(fmt(PLAT_CHECKED, { day: 'numeric', month: 'short', year: 'numeric' }))}. They open in your browser or their own app.</div>
+      ${hubs.map((h) => `<button class="hubbtn" data-act="hub" data-id="${esc(h.id)}"><span class="ftype k-Course">${ic(h.icon || 'study', 18)}</span><span class="restext"><b>${esc(h.title)}</b><span class="small muted">${esc(h.note)}</span><span class="small" style="color:var(--good);font-weight:700">${esc(h.acc)}</span></span><span class="muted">${ic('out', 16)}</span></button>`).join('')}</div>`;
+  }
   function forYouView() {
     const R = recommend();
     const st = R.study;
@@ -2697,6 +2765,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     if (!R.picks.length) html += '<div class="card small muted">You have worked through everything suggested for now. Browse the Library, open the online library, or add a page of your own, and it joins this list.</div>';
     if (extra.length) html += `<div class="label">If you have more time</div>` + extra.map(recCard).join('');
     if (R.more.length) html += `<div class="card"><div class="row between"><h3>Next in line</h3><button class="linkish" data-go="library">Whole library</button></div><div class="list">${R.more.map((s) => resRow(s.it)).join('')}</div></div>`;
+    html += platCard();
     html += `<div class="card"><h3>Browse by topic</h3><div class="small muted">The topics that matter most right now, from your deadlines and scores.</div><div class="chips wrap">${browse.map((t) => `<button class="chip" data-act="lib-topic" data-id="${esc(t)}">${esc(TOPICS[t].name)}</button>`).join('')}</div>
       <div class="btnrow">${HUBS.filter((h) => h.main).map((h) => `<button class="btn sm ghost" data-act="hub" data-id="${esc(h.id)}">${ic('out', 14)} ${esc(h.id === 'hub-padlet' ? 'Course reading list' : 'Ann Gravells list')}</button>`).join('')}</div></div>`;
     return html;
@@ -2713,8 +2782,8 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
         <div class="li top"><div class="grow"><b class="small">Weakest topics</b><div class="small muted">${weak.map((t) => `${esc(t.name)} (${t.m == null ? 'not checked' : t.m + '%'})`).join(', ')}</div></div></div>
         <div class="li top"><div class="grow"><b class="small">What is due</b><div class="small muted">${heat.length ? heat.map(([t, h]) => `${esc(h.d.title)}, ${dueText(h.n)}: ${esc(TOPICS[t].name)}`).join('. ') + '.' : 'Nothing due in the next eight weeks.'}</div></div></div>
         <div class="li top"><div class="grow"><b class="small">Tonight</b><div class="small muted">Energy: ${c.energy === 'low' ? 'low' : c.energy === 'high' ? 'good' : c.energy === 'okay' ? 'okay' : 'not set (set it on Home)'}. Free time after planned steps: ${c.free} min. The list is sized for ${c.budget} min.</div></div></div>
-        <div class="li top"><div class="grow"><b class="small">What sticks for you</b><div class="small muted">Reading: ${rate('Reading')}. Video: ${rate('Short video')}. Podcast: ${rate('Podcast')}. Tap Done on a pick and say if it stuck, and this sharpens.</div></div></div>
-        <div class="li top"><div class="grow"><b class="small">What is left out</b><div class="small muted">Anything you finished in the last six weeks, and anything you marked Not for me in the last three.</div></div></div>
+        <div class="li top"><div class="grow"><b class="small">What sticks for you</b><div class="small muted">Reading: ${rate('Reading')}. Video: ${rate('Short video')}. Podcast: ${rate('Podcast')}. Course: ${rate('Short course')}. Tap Done on a pick and say if it stuck, and this sharpens.</div></div></div>
+        <div class="li top"><div class="grow"><b class="small">What is left out</b><div class="small muted">Anything you finished in the last six weeks, anything you marked Not for me in the last three, and any link you said was locked.</div></div></div>
       </div>
       <button class="btn ghost block" data-act="close-sheet">Close</button>`);
   }
@@ -2729,7 +2798,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const it = findRes(id);
     if (!it) return;
     const n = QBANK.filter((q) => it.ts.includes(q.t)).length;
-    const verb = { Read: 'read', Watch: 'watched', Listen: 'listened to' }[it.kind] || 'reviewed';
+    const verb = { Read: 'read', Watch: 'watched', Listen: 'listened to', Course: 'worked through' }[it.kind] || 'reviewed';
     sheet(`<h3>${stuck === 'No' ? 'Noted. Try it another way?' : 'Lock it in'}</h3>
       <div class="small muted">${stuck === 'No' ? 'That kind of resource moves down your list. A quick check or a different explanation often does more than a second read.' : 'Testing yourself straight after is what makes it last.'}</div>
       ${n >= 2 ? `<button class="btn block" data-act="res-check" data-id="${esc(id)}">${ic('study', 16)} 3-question check on ${esc(TOPICS[it.t].name)}</button>` : ''}
@@ -3161,7 +3230,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const r = portfolioReadiness();
     const parts = portfolioParts();
     const weak = parts.slice().sort((a, b) => a.pct - b.pct).slice(0, 3);
-    const fmtsList = ['Worked example', 'Practice quiz', 'Flashcards', 'Audio summary', 'Short video', 'Reading', 'Podcast'].map((n) => [n, state.formats[n] || { n: 0 }]);
+    const fmtsList = ['Worked example', 'Practice quiz', 'Flashcards', 'Audio summary', 'Short video', 'Reading', 'Podcast', 'Short course'].map((n) => [n, state.formats[n] || { n: 0 }]);
     const rated = fmtsList.map(([n, f]) => [n, f, formatRate(n)]).filter(([, f]) => f.n).sort((a, b) => (b[2] || 0) - (a[2] || 0));
     let html = `<div class="card"><div class="label">Portfolio progress · Module 3</div>
       <div class="row" style="align-items:flex-end;gap:16px;flex-wrap:wrap"><div><div style="font-family:var(--f-display);font-size:34px;font-weight:700" class="num">${r.pct}%</div><div class="small muted">today</div></div><div style="padding-bottom:6px" class="muted">→</div><div><div style="font-family:var(--f-display);font-size:34px;font-weight:700;color:var(--accent)" class="num">${r.expected}%</div><div class="small muted">expected by now</div></div><span class="pill ${r.band[0]}" style="margin-left:auto;margin-bottom:8px">${r.band[1]}</span></div>
@@ -3231,7 +3300,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       <div class="btnrow"><button class="btn sm ghost" data-act="deadlines-for" data-id="${k}">Deadlines</button>${k === 'pgce' ? '<button class="btn sm ghost" data-tab="portfolio">Portfolio</button>' : ''}</div></div>`;
   }).join('') + '<button class="btn ghost" data-go="add">+ Add a deadline</button>';
 
-  const LIB_FILTERS = ['All', 'Read', 'Watch', 'Listen', 'Padlet', 'Files', 'Mine', 'Favourites', 'Done'];
+  const LIB_FILTERS = ['All', 'Read', 'Watch', 'Listen', 'Course', 'Padlet', 'Files', 'Mine', 'Favourites', 'Done'];
   V.library = () => {
     const q = (sub.q || '').trim().toLowerCase();
     const f = LIB_FILTERS.includes(sub.lf) ? sub.lf : 'All';
@@ -3247,15 +3316,18 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     // Most useful for you first; finished items sink to the bottom.
     const order = (it) => (resOf(it.id).done && f !== 'Done' ? 2000 : 0) + (rank[it.id] != null ? rank[it.id] : 1000);
     items = items.map((it, i) => [it, i]).sort((a, b) => order(a[0]) - order(b[0]) || a[1] - b[1]).map((x) => x[0]);
-    const hubs = HUBS.filter((h) => !q || (h.title + ' ' + h.by + ' ' + h.note).toLowerCase().includes(q));
+    const hubHit = (h) => !q || (h.title + ' ' + h.by + ' ' + h.note).toLowerCase().includes(q);
+    const hubs = HUBS.filter((h) => !h.plat && hubHit(h));
+    const plats = !lt && f === 'All' ? HUBS.filter((h) => h.plat && hubHit(h)) : [];
     const plain = !q && f === 'All' && !lt;
     const picked = plain ? R.picks.slice(0, 3) : [];
     const hubBtn = (h) => `<button class="hubbtn" data-act="hub" data-id="${esc(h.id)}"><span class="ftype k-Read">${ic(h.id === 'hub-eef-pod' ? 'head' : h.id === 'hub-gravells-video' ? 'play' : 'book', 18)}</span><span class="restext"><b>${esc(h.title)}</b><span class="small muted">${esc(h.by)}</span></span><span class="muted">${ic(canRead() ? 'fwd' : 'out', 16)}</span></button>`;
-    const counts = { Read: all.filter((x) => x.kind === 'Read').length, Watch: all.filter((x) => x.kind === 'Watch').length, Listen: all.filter((x) => x.kind === 'Listen').length, Padlet: all.filter((x) => x.p).length };
+    const counts = { Read: all.filter((x) => x.kind === 'Read').length, Watch: all.filter((x) => x.kind === 'Watch').length, Listen: all.filter((x) => x.kind === 'Listen').length, Course: all.filter((x) => x.kind === 'Course').length, Padlet: all.filter((x) => x.p).length };
     return `${hubs.length ? `<div class="card"><div class="row between"><h3>Online library</h3><span class="pill info">Live</span></div>
         <div class="small muted">${canRead() ? 'Your course reading lists open here, inside the app. Tap Save at the top of any page to keep it in your Library.' : 'Your course reading lists. They open in a new tab.'}</div>
         ${hubs.map(hubBtn).join('')}</div>` : ''}
-      <div class="search">${ic('search', 18)}<input id="libq" type="search" placeholder="Search readings, videos, podcasts" value="${esc(sub.q || '')}" autocomplete="off" aria-label="Search the library"></div>
+      ${platCard(plats)}
+      <div class="search">${ic('search', 18)}<input id="libq" type="search" placeholder="Search readings, videos, podcasts, courses" value="${esc(sub.q || '')}" autocomplete="off" aria-label="Search the library"></div>
       <div class="chips">${LIB_FILTERS.map((x) => `<button class="chip" data-act="lf" data-id="${x}" aria-pressed="${f === x}">${x}${counts[x] ? ` <span class="num muted">${counts[x]}</span>` : ''}</button>`).join('')}</div>
       <div class="field"><label class="sr-only" for="lib-topic">Topic</label><select id="lib-topic" data-sub="lt"><option value="">All topics</option>${['pgce', 'assess'].map((c) => `<optgroup label="${esc(courseName(c))}">${topicList(c).map(([id, t]) => `<option value="${id}"${lt === id ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</optgroup>`).join('')}</select></div>
       ${picked.length ? `<div class="card"><div class="row between"><h3>Picked for you</h3><button class="linkish" data-act="fy-open" style="white-space:nowrap">See why</button></div><div class="list">${picked.map((s) => resRow(s.it)).join('')}</div></div>` : ''}
@@ -3268,24 +3340,27 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const r = resOf(id);
     const mine = it.src === 'mine';
     const names = it.ts.filter((t) => TOPICS[t]).map((t) => TOPICS[t].name).join(' · ');
-    const verb = { Read: 'read', Watch: 'watched', Listen: 'listened to' }[it.kind] || 'reviewed';
+    const verb = { Read: 'read', Watch: 'watched', Listen: 'listened to', Course: 'worked through part of' }[it.kind] || 'reviewed';
     const online = !!it.link;
+    const access = [it.ck ? `Checked on ${fmt(it.ck, { day: 'numeric', month: 'short', year: 'numeric' })}: it opens without paying.` : '', it.acc === 'account' ? 'It needs a free account, so it opens in your browser.' : ''].filter(Boolean).join(' ');
     const tutorQ = online
       ? `I have just ${verb} "${it.title}"${it.by && !mine ? ' (' + it.by + ')' : ''}, ${it.link}. Ask me three questions, one at a time, to check what I took from it. Then show me how it links to ${TOPICS[it.t].name} in my ${courseName(TOPICS[it.t].c)} work.`
       : `In my PGCE project there is a file called "${it.title}". Summarise its key points in five bullet points, then ask me two questions to check I understand it.`;
     const canCheck = QBANK.filter((q) => it.ts.includes(q.t)).length >= 2;
     const pod = podOf(it);
     sheet(`<div class="row wrap">${kindPill(it)}${r.done ? `<span class="pill good">${ic('check', 12)} Done${r.stick ? ' · stuck: ' + esc(String(r.stick).toLowerCase()) : ''}</span>` : ''}</div>
-      <h3>${esc(it.title)}</h3><div class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(names)}</div>${it.note ? `<div class="step">${esc(it.note)}</div>` : ''}${it.p ? `<div class="small muted">${ic('list', 12)} On your course Padlet.${it.lib ? ' A book in the college library: sign in with your college account to read it.' : it.post ? ' Opens the post on the Padlet.' : it.w ? ' A whole website: browse for what fits your topic.' : ''}</div>` : ''}
+      <h3>${esc(it.title)}</h3><div class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(names)}</div>${it.note ? `<div class="step">${esc(it.note)}</div>` : ''}${it.p ? `<div class="small muted">${ic('list', 12)} On your course Padlet.${it.lib ? ' A book in the college library: sign in with your college account to read it.' : it.post ? ' Opens the post on the Padlet.' : it.w ? ' A whole website: browse for what fits your topic.' : ''}</div>` : ''}${access ? `<div class="small muted">${ic('check', 12)} ${esc(access)}</div>` : ''}
+      ${r.locked ? `<div class="notice warn"><span class="ic">${ic('bell', 16)}</span><div><b>You said this was locked</b><p>It has been out of your For you list since ${esc(fmt(keyOf(new Date(r.locked)), { day: 'numeric', month: 'short' }))}. If it opens now, put it back.</p></div></div>` : ''}
       ${pod ? `<div data-podpanel="${esc(id)}">${podPanel(it)}</div>` : ''}
-      ${online ? `<button class="btn ${pod && podReady() && !pod.direct ? 'ghost ' : ''}block" data-act="res-open" data-id="${esc(id)}">${ic(pod ? 'out' : KIND_ICON[it.kind] || 'link', 16)} ${pod ? (pod.whole ? 'Open the show’s page' : 'Open the episode’s page') : esc(KIND_VERB[it.kind] || 'Open') + ' it now'}</button>` : ''}
+      ${online ? `<button class="btn ${pod && podReady() && !pod.direct ? 'ghost ' : ''}block" data-act="res-open" data-id="${esc(id)}">${ic(pod ? 'out' : KIND_ICON[it.kind] || 'link', 16)} ${pod ? (pod.whole ? 'Open the show’s page' : 'Open the episode’s page') : (it.kind === 'Course' && r.open && !r.done ? 'Carry on with it' : esc(KIND_VERB[it.kind] || 'Open') + ' it now')}</button>` : ''}
       ${canHear(it) ? `<button class="btn ghost block" data-act="res-listen" data-id="${esc(id)}">${ic('speaker', 16)} ${online ? 'Listen to it instead' : 'Listen to my note'}</button>` : ''}
       <button class="btn ${online ? 'ghost ' : ''}block" data-act="ask" data-q="${esc(tutorQ)}">${ic('spark', 16)} ${online ? 'Ask the tutor to test me on it' : 'Ask the tutor about it'}</button>
       ${canCheck ? `<button class="btn ghost block" data-act="res-check" data-id="${esc(id)}">${ic('study', 16)} 3-question check on ${esc(TOPICS[it.t].name)}</button>` : ''}
       ${!online ? `<button class="btn ghost block" data-act="ask" data-q="${esc(`Make me a five-question multiple-choice quiz from the file "${it.title}" in my PGCE project. Ask one question at a time and wait for my answer.`)}">Quiz me on the file</button>` : ''}
       ${mine ? `<div class="two"><div class="field"><label for="le-kind">Kind</label><select id="le-kind" data-libedit="kind" data-id="${esc(id)}">${KIND_NAMES.map(([k, l]) => `<option value="${k}"${it.kind === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
         <div class="field"><label for="le-topic">Topic</label><select id="le-topic" data-libedit="t" data-id="${esc(id)}">${Object.entries(TOPICS).map(([k, t]) => `<option value="${k}"${it.t === k ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div></div>` : ''}
-      <div class="btnrow"><button class="btn ghost grow" data-act="${r.done ? 'res-undone' : 'res-done'}" data-id="${esc(id)}">${r.done ? 'Mark not done' : 'Done'}</button><button class="btn ghost grow" data-act="fav" data-id="${esc(id)}">${state.favs[id] ? 'Remove favourite' : 'Favourite'}</button>${mine ? `<button class="btn ghost danger grow" data-act="lib-del" data-id="${esc(id)}">Delete</button>` : ''}</div>`);
+      <div class="btnrow"><button class="btn ghost grow" data-act="${r.done ? 'res-undone' : 'res-done'}" data-id="${esc(id)}">${r.done ? 'Mark not done' : 'Done'}</button><button class="btn ghost grow" data-act="fav" data-id="${esc(id)}">${state.favs[id] ? 'Remove favourite' : 'Favourite'}</button>${mine ? `<button class="btn ghost danger grow" data-act="lib-del" data-id="${esc(id)}">Delete</button>` : ''}</div>
+      ${online ? `<button class="linkish" data-act="${r.locked ? 'res-unlock' : 'res-locked'}" data-id="${esc(id)}">${r.locked ? 'It opens now: put it back in my list' : 'It was locked or asked me to pay'}</button>` : ''}`);
   }
   let libGuess = true; // the Add sheet picks the kind and topic from the title and link until you choose yourself
   function libAddSheet(pre) {
@@ -6207,7 +6282,7 @@ ${n.text.trim()}
       }
       case 'lib-del': state.library = state.library.filter((x) => x.id !== id); commit(); closeSheet(true); render(); break;
       // Online library and For you
-      case 'hub': { const h = HUBS.find((x) => x.id === id); if (h) openLink(h.url, h.title); break; }
+      case 'hub': { const h = HUBS.find((x) => x.id === id); if (h) openLink(h.url, h.title, !!h.out); break; }
       case 'open-url': openLink(el.dataset.url, el.dataset.title || ''); break;
       case 'res-open': resOpen(id); break;
       case 'res-listen': {
@@ -6276,6 +6351,8 @@ ${n.text.trim()}
       case 'res-undone': { const r = resRec(id); delete r.done; delete r.stick; commit(); closeSheet(true); render(); break; }
       case 'res-skip': { const r = resRec(id); r.skip = now().getTime(); commit(); render(); toast(`Hidden from For you for three weeks. It stays in your Library. <button class="linkish" data-act="res-unskip" data-id="${esc(id)}">Undo</button>`, 7000); break; }
       case 'res-unskip': { const r = resRec(id); delete r.skip; commit(); render(); toast('Back in your list.'); break; }
+      case 'res-locked': resLocked(id); break;
+      case 'res-unlock': { const r = resRec(id); delete r.locked; commit(); closeSheet(true); render(); toast('Back in your list.'); break; }
       case 'res-check': {
         const it = findRes(id);
         if (!it) break;
@@ -6567,7 +6644,7 @@ ${n.text.trim()}
   document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); if (!document.hidden) meetWake(); else if (MEET.live) MEET.hidAt = Date.now(); });
 
   // Exposed for testing only
-  window.__planner = { ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
+  window.__planner = { freeAlt, resLocked, resOpen, render, platCard, opensOutside, accessNote, minsLabel, ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
 })();
 
 </script>
