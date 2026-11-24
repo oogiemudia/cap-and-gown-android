@@ -64,6 +64,11 @@ public class VideoActivity extends Activity {
     static volatile String last = "";
     /** The test build's self test only: leave the player's error on the screen, so the test can read what it says. */
     static volatile boolean holdOnError;
+    /**
+     * The test build's self test only: a page that stands in for YouTube's player, so that this screen's own part
+     * (reading the player, noticing the end, leaving the result) can be tried where YouTube will not play.
+     */
+    static volatile String testPage;
     /** The screen that is open now. A screen that is closing must not write over what a newer one has left. */
     private static volatile VideoActivity current;
 
@@ -206,7 +211,8 @@ public class VideoActivity extends Activity {
 
         String origin = origin(this);
         Log.i(TAG, "open " + videoId + " at " + start + "s as " + origin);
-        web.loadDataWithBaseURL(origin + "/", shell(videoId, start, origin), "text/html", "utf-8", null);
+        String standIn = testPage;
+        web.loadDataWithBaseURL(origin + "/", standIn != null ? standIn : shell(videoId, start, origin), "text/html", "utf-8", null);
         keep();
     }
 

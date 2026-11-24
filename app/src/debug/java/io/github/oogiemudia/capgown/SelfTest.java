@@ -29,6 +29,8 @@ import ai.moonshine.voice.TranscriberOption;
  *
  * and the app's own video player (VideoActivity), which needs YouTube itself:
  *
+ *   screen:    the video screen with a stand-in for YouTube's player (no connection needed): closed part of the
+ *              way through it leaves the place and the length, and at the end it closes itself and leaves "ended".
  *   video:     a YouTube lesson plays in the player, the player says how long it is and where it has got to,
  *              and when the video ends the screen closes and leaves "ended" for the planner.
  *   lengths:   every YouTube lesson in the library is asked for in the player, and its length goes in the log.
@@ -50,6 +52,7 @@ public final class SelfTest extends Activity {
         Thread t = new Thread(() -> {
             try {
                 if ("mic".equals(what)) mic(size);
+                else if ("screen".equals(what)) screen();
                 else if ("video".equals(what)) video(getIntent().getStringExtra("video"));
                 else if ("lengths".equals(what)) lengths(getIntent().getStringExtra("videos"));
                 else recording(size);
@@ -269,6 +272,68 @@ public final class SelfTest extends Activity {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    // ---- The video screen's own part, with a stand-in for YouTube's player ----
+
+    /** A page that behaves as the player's page does: it is ready, plays from a place, and ends. */
+    private static String standIn(int start, int length) {
+        return "<!doctype html><html><body style=\"background:#000;color:#fff;font:16px sans-serif;padding:24px\">A stand-in for the player<script>"
+                + "var S={ready:0,st:-2,t:0,d:0,err:0};window.__s=S;var player={pauseVideo:function(){if(S.st===1)S.st=2}};"
+                + "setTimeout(function(){S.ready=1;S.d=" + length + ";S.t=" + start + ";S.st=1},800);"
+                + "setInterval(function(){if(S.st===1){S.t+=0.5;if(S.t>=S.d){S.t=S.d;S.st=0}}},500);"
+                + "</script></body></html>";
+    }
+
+    private void screen() throws Exception {
+        VideoActivity.take(this);
+
+        // 1. Closed part of the way through: the place and the length are left, and it is not called finished.
+        VideoActivity.testPage = standIn(5, 60);
+        play("selftest-part", "aaaaaaaaaaa", 5);
+        org.json.JSONObject o = null;
+        long t0 = SystemClock.elapsedRealtime();
+        while (SystemClock.elapsedRealtime() - t0 < 30000) {
+            Thread.sleep(500);
+            org.json.JSONObject now = said();
+            if (now == null || !"selftest-part".equals(now.optString("id"))) continue;
+            o = now;
+            if (o.optInt("state", -2) == 1 && o.optDouble("t", 0) >= 9) break;
+        }
+        say("screen, part way: " + (o == null ? "nothing was said" : o.toString()));
+        // closed, as the Close button closes it
+        runOnUiThread(() -> startActivity(new android.content.Intent(this, SelfTest.class).putExtra("what", "none").addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP)));
+        t0 = SystemClock.elapsedRealtime();
+        while (said() != null && SystemClock.elapsedRealtime() - t0 < 12000) Thread.sleep(500);
+        String left = VideoActivity.take(this);
+        say("screen, part way: left for the planner: " + left);
+        org.json.JSONObject r = left.isEmpty() ? null : new org.json.JSONObject(left);
+        boolean part = r != null && "selftest-part".equals(r.optString("id")) && !r.optBoolean("ended", true) && !r.optBoolean("page", true)
+                && r.optDouble("t", 0) >= 9 && r.optDouble("t", 0) < 45 && r.optDouble("d", 0) == 60;
+        Thread.sleep(1500);
+        boolean once = VideoActivity.take(this).isEmpty(); // collected once, and the closed screen writes nothing more
+
+        // 2. Played to the end: the screen closes itself and leaves "ended" for the planner.
+        VideoActivity.testPage = standIn(12, 20);
+        play("selftest-end", "aaaaaaaaaaa", 12);
+        boolean opened = false;
+        t0 = SystemClock.elapsedRealtime();
+        while (SystemClock.elapsedRealtime() - t0 < 45000) {
+            Thread.sleep(500);
+            org.json.JSONObject now = said();
+            boolean mine = now != null && "selftest-end".equals(now.optString("id"));
+            if (mine) opened = true;
+            if (opened && !mine) break; // the screen has closed itself
+        }
+        long took = SystemClock.elapsedRealtime() - t0;
+        left = VideoActivity.take(this);
+        VideoActivity.testPage = null;
+        say("screen, to the end: closed after " + took / 1000 + " s; left for the planner: " + left);
+        r = left.isEmpty() ? null : new org.json.JSONObject(left);
+        boolean end = opened && took < 40000 && r != null && "selftest-end".equals(r.optString("id")) && r.optBoolean("ended", false)
+                && r.optDouble("t", 0) == 20 && r.optDouble("d", 0) == 20;
+        say(part && once && end ? "SELFTEST PASS screen: closed part way it left the place and the length, and at the end it closed itself and left \"ended\""
+                : "SELFTEST FAIL screen: part way " + part + ", collected once " + once + ", the end " + end);
     }
 
     private void video(String video) throws Exception {

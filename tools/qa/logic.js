@@ -1766,8 +1766,12 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     ok('free: every assessor topic has a video checked to open without paying', assess.length === 8 && assess.every((t) => on.some((o) => o.kind === 'Watch' && o.ck && o.t.includes(t))), assess.filter((t) => !on.some((o) => o.kind === 'Watch' && o.ck && o.t.includes(t))));
     const fresh = on.filter((o) => o.ck);
     ok('free: each newly added item carries its check date and a note', fresh.length >= 25 && fresh.every((o) => /^2026-\d\d-\d\d$/.test(o.ck) && o.note.length > 20 && !o.lib), fresh.filter((o) => !(o.note.length > 20)));
-    ok('free: a length that could not be read is not passed off as known', on.filter((o) => o.g).length >= 12 && on.filter((o) => o.g).every((o) => !o.x && /youtube\.com\/watch/.test(o.url)));
-    ok('free: a length nobody checked says so', await P(() => { const P = window.__planner; const it = P.catalogue().find((x) => x.id === 'on49'); return P.minsLabel(it) === 'length not checked'; }));
+    ok('free: a length that could not be read is not passed off as known', on.filter((o) => o.g).every((o) => !o.x));
+    // page 54: the app's own player measured every YouTube lesson (on the test emulator, 24 November 2026)
+    const tube = on.filter((o) => /youtube\.com\/watch\?v=/.test(o.url) && /^on/.test(o.id));
+    ok('free: every YouTube lesson has its measured length', tube.length === 14 && tube.every((o) => o.x && !o.g && o.m >= 1 && o.m <= 30) && on.find((o) => o.id === 'on53').m === 18 && on.find((o) => o.id === 'on60').m === 25 && on.find((o) => o.id === 'on56').m === 2, tube.map((o) => [o.id, o.m, o.x, o.g]));
+    ok('free: a measured length is shown as it is', await P(() => { const P = window.__planner; const it = P.catalogue().find((x) => x.id === 'on49'); return P.minsLabel(it) === '4 min'; }));
+    ok('free: a length nobody checked would say so', await P(() => window.__planner.minsLabel({ g: true, m: 8, kind: 'Watch' }) === 'length not checked'));
     const courses = on.filter((o) => o.kind === 'Course');
     ok('courses: OpenLearn and Seneca courses are in, sized by the session', courses.length >= 8 && courses.every((o) => o.m === 20) && courses.some((o) => /open\.edu/.test(o.url)) && courses.filter((o) => /senecalearning/.test(o.url)).every((o) => o.acc === 'account'), courses.map((o) => [o.id, o.acc]));
     const R = await picksOf(page);
@@ -2027,7 +2031,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     await back({ id: 'on49', v: 'SOmr389LNzM', t: 200, d: 505, ended: false, page: false });
     const r1 = await res('on49');
     ok('part way: the place and the measured length are kept, and nothing is asked', r1.pos === 200 && r1.len === 505 && !r1.done && await P(() => !document.querySelector('#layer .sheet')), r1);
-    ok('part way: the length is no longer a guess', await P(() => { const P = window.__planner; const it = P.catalogue().find((x) => x.id === 'on49'); return it.m === 8 && it.g === false && it.x === true && P.minsLabel(it) === '8 min'; }));
+    ok('part way: the length the player measured is the one used', await P(() => { const P = window.__planner; const it = P.catalogue().find((x) => x.id === 'on49'); return it.m === 8 && it.g === false && it.x === true && P.minsLabel(it) === '8 min'; }));
     ok('part way: what the player left is collected once', await P(() => window.AndroidApp.videoTake() === ''));
     await later(30);
     await back('');
@@ -2130,7 +2134,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-24T19:30:00', state: st });
     const got = await page.evaluate(() => { const P = window.__planner; const c = P.catalogue(); const f = (id) => c.find((x) => x.id === id); return { m57: f('on57').m, g57: f('on57').g, at57: P.resumeAt('on57'), m58: f('on58').m, g58: f('on58').g, at58: P.resumeAt('on58'), m59: f('on59').m, at59: P.resumeAt('on59') }; });
     ok('reload: a kept place and length are used', got.m57 === 5 && got.g57 === false && got.at57 === 118, got);
-    ok('reload: odd places and lengths are ignored', got.m58 === 8 && got.g58 === true && got.at58 === 0 && got.m59 === 8 && got.at59 === 0, got);
+    ok('reload: odd places and lengths are ignored (the library\'s own length stays)', got.m58 === 3 && got.g58 === false && got.at58 === 0 && got.m59 === 4 && got.at59 === 0, got);
     for (const scr of ['study', 'library', 'home', 'log', 'progress']) await page.evaluate((s) => window.__planner.go(s), scr);
     await page.evaluate(() => { const P = window.__planner; P.resSheet('on57'); P.resSheet('on58'); });
     ok('reload: no script errors on any screen', errors.length === 0, errors);

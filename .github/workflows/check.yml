@@ -193,6 +193,23 @@ jobs:
             exit 1
           fi
 
+      - name: The video screen notices where a video was closed and when it ends (a stand-in for the player)
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          "$ADB" logcat -c
+          "$ADB" shell input keyevent 82
+          "$ADB" shell am start -S -W -n "$APP/.SelfTest" --es what screen
+          for i in $(seq 1 30); do
+            "$ADB" logcat -d -s CapGownSelfTest:V CapGownVideo:V > selftest-screen.log || true
+            grep -Eq "SELFTEST (PASS|FAIL) screen" selftest-screen.log && break
+            sleep 5
+          done
+          cat selftest-screen.log
+          if ! grep -q "SELFTEST PASS screen" selftest-screen.log; then
+            "$ADB" logcat -d -t 400 | grep -Ei "capgown|chromium|AndroidRuntime|FATAL" | tail -n 150 || true
+            exit 1
+          fi
+
       - name: A YouTube lesson plays in the app's own player, and the app knows when it ends
         run: |
           ADB="$ANDROID_HOME/platform-tools/adb"
