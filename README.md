@@ -2,6 +2,20 @@
 
 The Cap and Gown study planner as an Android app, with real alarms and Claude inside the app.
 
+## Page 52: free lessons only, free study platforms, and a way to report a locked link
+
+A lesson the Study tab suggested turned out to be locked to paying customers. This page change needs no new install.
+
+- **Twelve ProTrainings lessons are out.** That course frees only two of its 24 videos, and the lock is set on its server. The one free lesson that fits the unit ("Understanding different types of assessment") stays, with a note to stop there.
+- **Twenty-eight free items are in**, each checked on 24 November 2026 to open without paying (`ck` holds the date): fourteen public YouTube lessons from assessor training providers, the official unit page with every criterion, two City & Guilds guides, a Jisc guide, a short OpenLearn section on Lewin, and eight courses.
+- **Course is a new kind.** OpenLearn and Seneca courses are interactive and done a section at a time, so `m` is minutes a session and For you offers one course beside the read, watch and listen picks. A course that needs a free account (`acc: 'account'`) opens in the phone's browser so you can sign in. YouTube lessons open in the browser or the YouTube app too.
+- **Lengths are honest.** The YouTube lengths could not be read, so those items carry `g` and say "length not checked"; the plan allows eight minutes for each.
+- **Free study platforms** have their own card on Study > For you and in the Library: Gemini Notebook (NotebookLM), OpenLearn, Seneca teacher CPD, AnkiDroid and the ETF Learning Library, each with the one job it does and how you get in.
+- **"It was locked or asked me to pay"** is on every pick you have opened and at the foot of every item's sheet. The item leaves For you until you put it back, the Library marks it Locked, and the next free item on the same topic is offered.
+- A pick that needs a sign-in says so on its card (college library books, free-account courses).
+
+The research behind the choices is in the project files (`Cap and Gown study platforms/`).
+
 ## Version 10 (page 51): the app does the listening itself, so it carries on with the phone locked
 
 Version 9 kept the meeting listener going under a notice, but on the phone it was tried on the words still stopped when the phone was locked. The reason is the phone's speech service: it is another app's service, and on many phones it stops hearing when the screen goes off. No setting in Cap and Gown can change that. So this version adds the app's own listening.
@@ -150,7 +164,7 @@ Safety nets: a downloaded page tests its own main screens and tells the app it w
 
 ### Adding to the online library
 
-The catalogue is the `ONLINE` list in `index.html`. Copy a line, give it a new `id`, set `kind` (Read, Watch or Listen), the topics it helps with (best first), the minutes, and a one-line note. Open the link yourself first. Reading lists that open as a whole are in `HUBS` just above it.
+The catalogue is the `ONLINE` list in `index.html`. Copy a line, give it a new `id`, set `kind` (Read, Watch, Listen or Course), the topics it helps with (best first), the minutes (for a Course, minutes a session), and a one-line note. Open the link yourself first, signed out: nothing goes in unless it opens without paying. Add `ck` with the date you checked, `acc: 'account'` if it needs a free account, and `g: true` if you could not find the length. Reading lists that open as a whole are in `HUBS` just above it; a hub with `plat: true` is a free study platform shown on the Study tab.
 
 For a podcast, add `pod:` with the show's key in `SHOWS` so it plays in the app. The episode is found by its page's address in the show's feed; when the link is not the episode's own page, add `ep:` with words from the episode's title. A new show needs a line in `SHOWS`: its feed address if you know it, and its Apple Podcasts id (the number after `id` in its Apple Podcasts link). A page you save yourself from a Podbean show plays in the app without any of this.
 
