@@ -3,7 +3,7 @@ const { chromium, open, overflow } = require('./lib');
 const path = require('path');
 const fs = require('fs');
 
-const ROUTES = ['home', 'plan', 'study', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice', 'coach', 'module'];
+const ROUTES = ['home', 'plan', 'study', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice', 'coach', 'module', 'assessment'];
 const shots = process.env.SHOTS || '';
 if (shots) fs.mkdirSync(shots, { recursive: true });
 
