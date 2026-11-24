@@ -27,6 +27,12 @@ import ai.moonshine.voice.TranscriberOption;
  *   recording: the engine loads, its speech model downloads, and a recording of speech comes out as words.
  *   mic:       under the meeting's notice the microphone keeps giving sound after the screen goes off.
  *
+ * and the app's own video player (VideoActivity), which needs YouTube itself:
+ *
+ *   video:     a YouTube lesson plays in the player, the player says how long it is and where it has got to,
+ *              and when the video ends the screen closes and leaves "ended" for the planner.
+ *   lengths:   every YouTube lesson in the library is asked for in the player, and its length goes in the log.
+ *
  * Started by the check with: am start -n io.github.oogiemudia.capgown/.SelfTest --es what recording
  * It writes what it finds to the log under "CapGownSelfTest", ending with SELFTEST PASS, FAIL or SKIP.
  */
@@ -44,6 +50,8 @@ public final class SelfTest extends Activity {
         Thread t = new Thread(() -> {
             try {
                 if ("mic".equals(what)) mic(size);
+                else if ("video".equals(what)) video(getIntent().getStringExtra("video"));
+                else if ("lengths".equals(what)) lengths(getIntent().getStringExtra("videos"));
                 else recording(size);
             } catch (Throwable e) {
                 Log.e(TAG, "SELFTEST FAIL " + what + ": " + Log.getStackTraceString(e));
@@ -227,6 +235,163 @@ public final class SelfTest extends Activity {
 
         @Override
         public void close() { }
+    }
+
+    // ---- A YouTube lesson plays in the app's own player ----
+
+    private boolean online() throws InterruptedException {
+        android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        long w0 = SystemClock.elapsedRealtime();
+        boolean online = false;
+        while (!online && SystemClock.elapsedRealtime() - w0 < 120000) {
+            android.net.Network net = cm.getActiveNetwork();
+            android.net.NetworkCapabilities caps = net == null ? null : cm.getNetworkCapabilities(net);
+            online = caps != null && caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+            if (!online) Thread.sleep(1000);
+        }
+        say("connection after " + (SystemClock.elapsedRealtime() - w0) / 1000 + " s: " + (online ? "there" : "not there"));
+        return online;
+    }
+
+    private void play(String id, String video, int start) {
+        runOnUiThread(() -> startActivity(new android.content.Intent(this, VideoActivity.class)
+                .putExtra(VideoActivity.EXTRA_ID, id)
+                .putExtra(VideoActivity.EXTRA_VIDEO, video)
+                .putExtra(VideoActivity.EXTRA_TITLE, "Self test")
+                .putExtra(VideoActivity.EXTRA_START, start)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)));
+    }
+
+    private static org.json.JSONObject said() {
+        try {
+            String s = VideoActivity.last;
+            return s == null || s.isEmpty() ? null : new org.json.JSONObject(s);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void video(String video) throws Exception {
+        say("phone: Android " + android.os.Build.VERSION.RELEASE + ", web view " + webView());
+        if (!VideoActivity.isVideoId(video)) {
+            say("SELFTEST FAIL video: no video was named");
+            return;
+        }
+        if (!online()) {
+            say("SELFTEST SKIP video: the emulator has no connection");
+            return;
+        }
+        VideoActivity.take(this);
+
+        // 1. From the start: the player answers, gives the length, and the place moves on.
+        play("selftest-start", video, 0);
+        org.json.JSONObject o = null;
+        double first = -1;
+        double far = 0;
+        String seen = "";
+        long t0 = SystemClock.elapsedRealtime();
+        while (SystemClock.elapsedRealtime() - t0 < 90000) {
+            Thread.sleep(1000);
+            org.json.JSONObject now = said();
+            if (now == null || !"selftest-start".equals(now.optString("id"))) continue;
+            o = now;
+            String st = String.valueOf(o.optInt("state", -2));
+            if (!seen.endsWith(st)) seen += (seen.isEmpty() ? "" : ",") + st;
+            double t = o.optDouble("t", 0);
+            if (t > 0 && first < 0) first = t;
+            far = Math.max(far, t);
+            if (o.optBoolean("page", false)) break;
+            if (o.optBoolean("ready", false) && o.optDouble("d", 0) > 0 && first >= 0 && far - first >= 4) break;
+        }
+        say("video, from the start: " + (o == null ? "nothing was said" : o.toString()) + "; states " + seen + "; moved " + Math.round(far - Math.max(0, first)) + " s");
+        if (o == null) {
+            say("SELFTEST FAIL video: the video screen did not start");
+            return;
+        }
+        int error = o.optInt("error", 0);
+        if (error == 153) {
+            say("SELFTEST FAIL video: YouTube did not accept the app's name (error 153)");
+            return;
+        }
+        if (o.optBoolean("page", false)) {
+            say("SELFTEST SKIP video: the player could not play here (" + (error != 0 ? "error " + error : "no answer in time") + "), so YouTube's own page was shown");
+            return;
+        }
+        double length = o.optDouble("d", 0);
+        if (!o.optBoolean("ready", false) || length <= 0) {
+            say("SELFTEST SKIP video: the player did not give the video's length on this emulator");
+            return;
+        }
+        if (first < 0 || far - first < 4) {
+            say("SELFTEST SKIP video: the player answered (length " + Math.round(length) + " s) but the video did not play on this emulator");
+            return;
+        }
+
+        // 2. Near the end: the player says it ended, the screen closes, and "ended" is left for the planner.
+        VideoActivity.take(this);
+        play("selftest-end", video, (int) Math.max(0, length - 8));
+        String left = "";
+        t0 = SystemClock.elapsedRealtime();
+        boolean reopened = false;
+        while (SystemClock.elapsedRealtime() - t0 < 90000) {
+            Thread.sleep(1000);
+            org.json.JSONObject now = said();
+            boolean mine = now != null && "selftest-end".equals(now.optString("id"));
+            if (mine) reopened = true;
+            if (reopened && !mine) break; // the screen has closed
+        }
+        left = VideoActivity.take(this);
+        say("video, near the end: left for the planner: " + left);
+        org.json.JSONObject r = left.isEmpty() ? null : new org.json.JSONObject(left);
+        boolean ok = r != null && r.optBoolean("ended", false) && "selftest-end".equals(r.optString("id")) && r.optDouble("d", 0) > 0 && Math.abs(r.optDouble("t", 0) - r.optDouble("d", 0)) < 2;
+        say(ok ? "SELFTEST PASS video: it played, gave its length (" + Math.round(length) + " s), ended, and closed"
+                : "SELFTEST FAIL video: it played, but the end was not noticed");
+    }
+
+    private void lengths(String videos) throws Exception {
+        say("phone: Android " + android.os.Build.VERSION.RELEASE + ", web view " + webView());
+        if (videos == null || videos.isEmpty() || !online()) {
+            say("SELFTEST SKIP lengths: " + (videos == null || videos.isEmpty() ? "no videos were named" : "the emulator has no connection"));
+            return;
+        }
+        int known = 0;
+        int asked = 0;
+        for (String v : videos.split(",")) {
+            v = v.trim();
+            if (!VideoActivity.isVideoId(v)) continue;
+            asked++;
+            play("selftest-length", v, 0);
+            org.json.JSONObject o = null;
+            long t0 = SystemClock.elapsedRealtime();
+            boolean mine = false;
+            while (SystemClock.elapsedRealtime() - t0 < 30000) {
+                Thread.sleep(500);
+                org.json.JSONObject now = said();
+                if (now == null || !v.equals(now.optString("v"))) continue;
+                mine = true;
+                o = now;
+                if (o.optDouble("d", 0) > 0 || o.optBoolean("page", false) || o.optInt("error", 0) != 0) break;
+            }
+            double d = o == null ? 0 : o.optDouble("d", 0);
+            if (d > 0) known++;
+            say("VIDEO LENGTH " + v + " " + (d > 0 ? Math.round(d) + " s" : "not known (" + (o == null ? (mine ? "nothing said" : "the screen did not start") : "error " + o.optInt("error", 0) + ", ready " + o.optBoolean("ready", false) + ", state " + o.optInt("state", -2)) + ")"));
+            // Three lessons with no answer: the player does not work on this emulator, so the rest would only waste minutes.
+            if (asked >= 3 && known == 0) {
+                say("the first three lessons gave no length, so the rest are not asked for");
+                break;
+            }
+        }
+        runOnUiThread(() -> startActivity(new android.content.Intent(this, SelfTest.class).putExtra("what", "none").addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP)));
+        say("SELFTEST DONE lengths: " + known + " of " + asked + " lessons gave a length");
+    }
+
+    private String webView() {
+        try {
+            android.content.pm.PackageInfo p = android.webkit.WebView.getCurrentWebViewPackage();
+            return p == null ? "none" : p.packageName + " " + p.versionName;
+        } catch (Throwable e) {
+            return "not known";
+        }
     }
 
     // ---- The microphone keeps giving sound with the screen off ----

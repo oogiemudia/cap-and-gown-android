@@ -2,6 +2,24 @@
 
 The Cap and Gown study planner as an Android app, with real alarms and Claude inside the app.
 
+## Version 11 (page 54): a video player of the app's own, which knows when you finish
+
+Page 53 opened a YouTube lesson in the in-app reader, as YouTube's own page, and asked "did it stick?" when you came back, because the app could not see the video. This version adds a screen that plays one YouTube video and nothing else.
+
+- **A screen for one video.** Tapping Watch on a single YouTube lesson opens it on a screen of its own: Close, the lesson's title, Browser, the video, and one line of help. It is YouTube's embedded player, so there is no feed and no comments beside it. Full screen turns the video on its side.
+- **It knows when you finish.** When the video ends the screen closes, the lesson is marked done and its cards join the review cards, with no question asked first. One sheet then asks whether it stuck, which is the answer that teaches the app what works for you; "Not now" leaves the lesson done.
+- **Carry on from where you stopped.** Close a video part of the way through and its button becomes "Carry on from 3:20". It starts a few seconds before that.
+- **Real lengths.** The player reports how long a video is. From then on that lesson shows its real length instead of "length not checked", and study time uses it.
+- **Browser** on the player moves the video out to the phone's browser or the YouTube app at the place it had reached, and "Watch in my browser or the YouTube app" is still on the lesson's sheet.
+- **If the player cannot play a video** (its owner does not allow players, or YouTube does not answer in 20 seconds), the screen shows YouTube's own page for it, and the app asks how it went when you come back, as page 53 does.
+- A playlist, a channel and a video on any other site still open in the reader.
+
+How it is built: `VideoActivity` holds a web view with no bridge to the planner. It loads a small page of the app's making with `loadDataWithBaseURL` from `https://` and the app's id, which is how YouTube asks an app to name itself (without it the player shows error 153). The page starts the IFrame Player API and keeps the player's state, place and length in one object, which the screen reads once a second. What it learns is left in the app's own storage, and the planner collects it when it is back on the screen: `Bridge.videoPlay` opens the player and `Bridge.videoTake` hands the result over once. On the page, `resOpen` asks for the player first (`playsHere`), `videoTaken` records the place (`res.pos`), the length (`res.len`) and the finish, and `videoBack` still asks by time when only YouTube's page was shown.
+
+This needs this app build. An older app showing the newer page plays videos in the reader as page 53 does, and the lesson's sheet offers the download of the newest app.
+
+Tests: `logic.js` has a section for the player (the request, carrying on, the measured length, the end, the last few seconds, YouTube's own page, a player that refuses, odd answers); `app10` in `lib.js` is the app before this. The emulator job, now **The app's own listening and video player on an Android emulator**, plays a lesson in the player from the start, checks that the player gives the length and that the place moves on, then plays the last seconds and checks that the screen closes and leaves "ended" for the planner. It then asks the player for every YouTube lesson in the library and prints their lengths. If YouTube will not play to the emulator the step says so and does not fail, because that says nothing about a phone; error 153 does fail it.
+
 ## Page 53: videos play inside the app, and a finished video brings its cards
 
 Page 52 sent YouTube lessons out to the browser. They now open inside the app again, in the in-app reader, and a finished video puts cards into the review cards. This page change needs no new install.

@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Cap and Gown</title>
-<meta name="capgown-page" content="53">
+<meta name="capgown-page" content="54">
 <meta name="capgown-min-app" content="0">
 <meta name="theme-color" content="#3454D9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2335,9 +2335,12 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   const KIND_NAMES = [['Read', 'Reading'], ['Watch', 'Video'], ['Listen', 'Podcast'], ['Note', 'Note'], ['File', 'File']];
   const kindOfMine = (u) => (KIND_VERB[u.kind] ? u.kind : ({ Link: 'Read', Note: 'Note' }[u.type] || 'File'));
   // One list of everything: your own saved pages first, then the online library, then your PGCE project files.
+  // The length the player measured, in seconds (0 when there is none, or the saved number makes no sense).
+  const lenOf = (id) => { const n = Number((state.res[id] || {}).len); return n >= 20 && n < 6 * 3600 ? Math.round(n) : 0; };
   function catalogue() {
     const mine = state.library.map((u) => ({ ...u, kind: kindOfMine(u), ts: [TOPICS[u.t] ? u.t : 'reflect'], t: TOPICS[u.t] ? u.t : 'reflect', src: 'mine', by: u.meta || 'Yours', m: clamp(Number(u.m) || 10, 1, 240) }));
-    const on = ONLINE.map((o) => ({ id: o.id, kind: o.kind, title: o.title, by: o.by, link: o.url, t: o.t[0], ts: o.t, c: TOPICS[o.t[0]].c, m: o.m, x: !!o.x, note: o.note, src: 'online', p: !!o.p, w: !!o.w, lib: !!o.lib, post: !!o.post, pod: o.pod || '', ep: o.ep || '', g: !!o.g, acc: o.acc || '', ck: o.ck || '' }));
+    // A video the app's own player has opened has a measured length (res.len, in seconds), which replaces the guess.
+    const on = ONLINE.map((o) => { const len = lenOf(o.id); return { id: o.id, kind: o.kind, title: o.title, by: o.by, link: o.url, t: o.t[0], ts: o.t, c: TOPICS[o.t[0]].c, m: len ? clamp(Math.round(len / 60), 1, 240) : o.m, x: !!o.x || !!len, note: o.note, src: 'online', p: !!o.p, w: !!o.w, lib: !!o.lib, post: !!o.post, pod: o.pod || '', ep: o.ep || '', g: !!o.g && !len, acc: o.acc || '', ck: o.ck || '' }; });
     const files = LIBRARY.map((f) => ({ ...f, kind: 'File', ts: [f.t], src: 'project', by: f.meta, m: 15 }));
     return mine.concat(on, files);
   }
@@ -2352,6 +2355,15 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   const opensOutside = (it) => it.acc === 'account';
   const isVideo = (it) => !!it && it.kind === 'Watch' && !!it.link;
   const isYouTube = (it) => /^https:\/\/((www|m)\.)?(youtube\.com|youtu\.be)\//i.test((it && it.link) || '');
+  /* The app's own video player (version 11, page 54): one YouTube video on a screen of its own, in YouTube's
+     embedded player. It tells the app how long the video is, where you stopped and when it ended. A playlist,
+     a channel and a video on any other site still open in the reader. An older app has no player and uses the reader. */
+  const ytId = (link) => { const m = /^https:\/\/(?:(?:www|m)\.)?youtube\.com\/watch\?(?:[^#]*&)?v=([\w-]{11})(?:[&#]|$)/i.exec(link || '') || /^https:\/\/youtu\.be\/([\w-]{11})(?:[?#]|$)/i.exec(link || ''); return m ? m[1] : ''; };
+  const canPlay = () => !!(APP && typeof APP.videoPlay === 'function' && typeof APP.videoTake === 'function');
+  const playsHere = (it) => canPlay() && isVideo(it) && !opensOutside(it) && !!ytId(it.link);
+  const clock = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
+  // Where to carry on from: a little before where you stopped, or the start for a video you have finished.
+  const resumeAt = (id) => { const r = resOf(id); const pos = Number(r.pos) || 0; const len = lenOf(id); return !r.done && pos >= 10 && pos < (len ? len - 8 : 6 * 3600) ? Math.floor(pos) - 5 : 0; };
   const reMeta = (w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // Files a page under the topic its words point to. Returns null when nothing matches.
   function guessTopic(text) {
@@ -2573,12 +2585,42 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       ask(`In my PGCE project there is a file called "${it.title}". Summarise its key points in five bullet points, then ask me two questions to check I understand it.`);
       return;
     }
-    if (!openLink(it.link, it.title, !!outside || opensOutside(it))) return;
+    let player = false;
+    if (!outside && playsHere(it)) { try { player = !!APP.videoPlay(JSON.stringify({ id, v: ytId(it.link), title: it.title, start: resumeAt(id) })); } catch (e) { player = false; } }
+    if (!player && !openLink(it.link, it.title, !!outside || opensOutside(it))) return;
     const r = resRec(id); r.open = now().getTime(); r.n = (r.n || 0) + 1;
-    watching = isVideo(it) && !r.done ? { id, at: now().getTime() } : null;
+    watching = isVideo(it) && !r.done ? { id, at: now().getTime(), player } : null;
     commit();
     closeSheet(true);
     render();
+  }
+  // The app's own player leaves what it knows (how far, how long, whether it ended). Collect it when you are back.
+  function videoTaken() {
+    if (!canPlay()) return false;
+    let v = null;
+    try { v = JSON.parse(APP.videoTake() || 'null'); } catch (e) { v = null; }
+    if (!v || typeof v !== 'object') return false;
+    const it = findRes(String(v.id || ''));
+    if (!it || !isVideo(it)) return false;
+    const r = resRec(it.id);
+    const d = Number(v.d) > 0 ? Math.round(Number(v.d)) : 0;
+    const t = Math.max(0, Math.round(Number(v.t) || 0));
+    if (d >= 20 && d < 6 * 3600) r.len = d;
+    // YouTube's own page was showing, so nothing is known about how far you got: videoBack asks, as before.
+    if (v.page) { commit(); return false; }
+    if (watching && watching.id === it.id) watching = null;
+    const ended = !!v.ended || (d > 0 && t >= d - Math.max(8, d * 0.04));
+    if (ended) {
+      const first = !r.done;
+      if (first) resDone(it.id, '');
+      delete r.pos;
+      commit(); render();
+      if (first && !sheetOpen) resDoneSheet(it.id, 'ended');
+      return true;
+    }
+    if (!r.done && t >= 10) r.pos = t;
+    commit(); render();
+    return true;
   }
   // Back in the app after a video: ask whether it stuck, so its cards can go into your review cards.
   function videoBack() {
@@ -2615,17 +2657,25 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     if (!it) return;
     const r = resRec(id);
     const first = !r.done;
+    // The app's own player can see a video end before you have said how it stuck: stuck is then ''.
+    const rated = ['Yes', 'Partly', 'No'].includes(stuck);
     r.done = now().getTime();
-    r.stick = stuck;
+    if (rated) r.stick = stuck;
     delete r.skip;
+    delete r.pos;
     const f = KIND_FMT[it.kind];
-    const rec = (state.formats[f] = state.formats[f] || { n: 0 });
-    const key = { Yes: 'yes', Partly: 'partly', No: 'no' }[stuck] || 'partly';
-    rec.n++; rec[key] = (rec[key] || 0) + 1;
-    const m = mastery(it.t);
-    if (m != null) state.mastery[it.t] = clamp(m + ({ Yes: 5, Partly: 2, No: 0 }[stuck] || 0), 0, 100);
+    if (rated) {
+      const rec = (state.formats[f] = state.formats[f] || { n: 0 });
+      const key = { Yes: 'yes', Partly: 'partly', No: 'no' }[stuck];
+      rec.n++; rec[key] = (rec[key] || 0) + 1;
+      const m = mastery(it.t);
+      if (m != null) state.mastery[it.t] = clamp(m + ({ Yes: 5, Partly: 2, No: 0 }[stuck] || 0), 0, 100);
+    }
     if (first) addStudy(clamp(it.m, 1, 60));
-    addLog({ kind: 'study', what: `Finished: ${it.title}`, why: `${f} on ${TOPICS[it.t].name}. You said "${stuck}" when asked if it stuck${stuck === 'No' ? ', so that kind of resource moves down your list.' : '.'}` });
+    const cards = isVideo(it) && !r.nocards ? videoCards(it).length : 0;
+    addLog(rated
+      ? { kind: 'study', what: `Finished: ${it.title}`, why: `${f} on ${TOPICS[it.t].name}. You said "${stuck}" when asked if it stuck${stuck === 'No' ? ', so that kind of resource moves down your list.' : '.'}` }
+      : { kind: 'study', what: `Finished: ${it.title}`, why: `${f} on ${TOPICS[it.t].name}. You watched it to the end in the app.${cards ? ` ${cards === 1 ? 'Its card is' : `Its ${cards} cards are`} in your review cards.` : ''}` });
     commit();
   }
 
@@ -2884,8 +2934,8 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       <h3>${esc(it.title)}</h3><div class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(TOPICS[s.t].name)}</div>
       <div class="why">${s.why.map((w) => esc(w)).join(' ')}</div>
       ${accessNote(it) ? `<div class="small muted">${esc(accessNote(it))}</div>` : ''}
-      ${openedToday && !r.done ? `<div class="small muted">Opened today. Tap Done when you finish, and the app learns what works for you.${it.link ? ` <button class="linkish" data-act="res-locked" data-id="${esc(it.id)}">It was locked or asked me to pay</button>` : ''}</div>` : ''}
-      <div class="btnrow">${podOf(it) && podReady() ? `<button class="btn sm" data-act="pod-go" data-id="${esc(it.id)}">${ic(POD.id === it.id && POD.state === 'playing' ? 'pause' : 'play', 14)} ${POD.id === it.id && POD.state !== 'idle' ? (POD.state === 'paused' ? 'Carry on' : 'Playing') : 'Play here'}</button>` : `<button class="btn sm" data-act="res-open" data-id="${esc(it.id)}">${ic(KIND_ICON[it.kind] || 'link', 14)} ${!it.link ? 'Review with tutor' : isVideo(it) && canRead() && !opensOutside(it) ? (openedToday ? 'Watch again' : 'Watch here') : openedToday ? 'Open again' : 'Open'}</button>`}<button class="btn sm ghost" data-act="res-done" data-id="${esc(it.id)}">${ic('check', 14)} Done</button><button class="btn sm ghost" data-act="res-skip" data-id="${esc(it.id)}">Not for me</button><button class="btn sm ghost" data-act="fav" data-id="${esc(it.id)}" aria-label="${state.favs[it.id] ? 'Remove from favourites' : 'Add to favourites'}" aria-pressed="${!!state.favs[it.id]}"${state.favs[it.id] ? ' style="color:var(--gold)"' : ''}>${ic('star', 14)}</button></div></div>`;
+      ${openedToday && !r.done ? `<div class="small muted">${playsHere(it) ? 'Opened today. Watch it to the end and the app marks it done and adds its cards to your review cards.' : 'Opened today. Tap Done when you finish, and the app learns what works for you.'}${it.link ? ` <button class="linkish" data-act="res-locked" data-id="${esc(it.id)}">It was locked or asked me to pay</button>` : ''}</div>` : ''}
+      <div class="btnrow">${podOf(it) && podReady() ? `<button class="btn sm" data-act="pod-go" data-id="${esc(it.id)}">${ic(POD.id === it.id && POD.state === 'playing' ? 'pause' : 'play', 14)} ${POD.id === it.id && POD.state !== 'idle' ? (POD.state === 'paused' ? 'Carry on' : 'Playing') : 'Play here'}</button>` : `<button class="btn sm" data-act="res-open" data-id="${esc(it.id)}">${ic(KIND_ICON[it.kind] || 'link', 14)} ${!it.link ? 'Review with tutor' : playsHere(it) && resumeAt(it.id) ? `Carry on at ${clock(resOf(it.id).pos)}` : isVideo(it) && (canRead() || playsHere(it)) && !opensOutside(it) ? (openedToday ? 'Watch again' : 'Watch here') : openedToday ? 'Open again' : 'Open'}</button>`}<button class="btn sm ghost" data-act="res-done" data-id="${esc(it.id)}">${ic('check', 14)} Done</button><button class="btn sm ghost" data-act="res-skip" data-id="${esc(it.id)}">Not for me</button><button class="btn sm ghost" data-act="fav" data-id="${esc(it.id)}" aria-label="${state.favs[it.id] ? 'Remove from favourites' : 'Add to favourites'}" aria-pressed="${!!state.favs[it.id]}"${state.favs[it.id] ? ' style="color:var(--gold)"' : ''}>${ic('star', 14)}</button></div></div>`;
   }
   const resRow = (it, right) => `<button class="res li tap" data-act="res" data-id="${esc(it.id)}"><span class="ftype k-${esc(it.kind)}">${ic(KIND_ICON[it.kind] || 'link', 18)}</span><span class="restext"><b>${esc(it.title)}</b><span class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(TOPICS[it.t] ? TOPICS[it.t].name : '')}${it.link ? ' · ' + esc(minsLabel(it)) : ''}</span></span>${right != null ? right : resOf(it.id).locked ? '<span class="pill warn">Locked</span>' : resOf(it.id).done ? `<span class="pill good">${ic('check', 12)} Done</span>` : state.favs[it.id] ? `<span style="color:var(--gold)">${ic('star', 16)}</span>` : `<span class="muted">${ic('fwd', 16)}</span>`}</button>`;
   // The free study platforms: each does one job, and each opens in the browser or its own app.
@@ -2945,9 +2995,10 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const it = findRes(id);
     if (!it) return;
     const n = isVideo(it) ? videoCards(it).length : 0;
-    sheet(`<h3>${back ? 'Back from the video. Did it stick?' : 'Did it stick?'}</h3><div class="small muted">${esc(it.title)}. Your answer teaches the app which kind of resource to lead with.${n ? ` When you have finished it, ${n === 1 ? 'its card goes' : `its ${n} cards go`} into your review cards.` : ''}</div>
+    const ended = back === 'ended'; // the app's own player saw the video end, so it is already done and its cards are in
+    sheet(`<h3>${ended ? 'You watched it to the end. Did it stick?' : back ? 'Back from the video. Did it stick?' : 'Did it stick?'}</h3><div class="small muted">${esc(it.title)}. ${ended && n ? `${n === 1 ? 'Its card is' : `Its ${n} cards are`} in your review cards. ` : ''}Your answer teaches the app which kind of resource to lead with.${n && !ended ? ` When you have finished it, ${n === 1 ? 'its card goes' : `its ${n} cards go`} into your review cards.` : ''}</div>
       <div class="btnrow">${['Yes', 'Partly', 'No'].map((a) => `<button class="btn ghost grow" data-act="res-stick" data-id="${esc(id)}" data-v="${a}">${a}</button>`).join('')}</div>
-      <button class="btn ghost block" data-act="close-sheet">Not finished yet</button>`);
+      <button class="btn ghost block" data-act="close-sheet">${ended ? 'Not now' : 'Not finished yet'}</button>`);
   }
   // What a finished video put into your review cards, and the way to add one of your own.
   function videoCardsBlock(it, fresh) {
@@ -3557,8 +3608,8 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       <h3>${esc(it.title)}</h3><div class="small muted">${esc(it.by || '')}${it.by ? ' · ' : ''}${esc(names)}</div>${it.note ? `<div class="step">${esc(it.note)}</div>` : ''}${it.p ? `<div class="small muted">${ic('list', 12)} On your course Padlet.${it.lib ? ' A book in the college library: sign in with your college account to read it.' : it.post ? ' Opens the post on the Padlet.' : it.w ? ' A whole website: browse for what fits your topic.' : ''}</div>` : ''}${access ? `<div class="small muted">${ic('check', 12)} ${esc(access)}</div>` : ''}
       ${r.locked ? `<div class="notice warn"><span class="ic">${ic('bell', 16)}</span><div><b>You said this was locked</b><p>It has been out of your For you list since ${esc(fmt(keyOf(new Date(r.locked)), { day: 'numeric', month: 'short' }))}. If it opens now, put it back.</p></div></div>` : ''}
       ${pod ? `<div data-podpanel="${esc(id)}">${podPanel(it)}</div>` : ''}
-      ${online ? `<button class="btn ${pod && podReady() && !pod.direct ? 'ghost ' : ''}block" data-act="res-open" data-id="${esc(id)}">${ic(pod ? 'out' : KIND_ICON[it.kind] || 'link', 16)} ${pod ? (pod.whole ? 'Open the show’s page' : 'Open the episode’s page') : (it.kind === 'Course' && r.open && !r.done ? 'Carry on with it' : esc(KIND_VERB[it.kind] || 'Open') + ' it now')}</button>` : ''}
-      ${isVideo(it) && canRead() && !opensOutside(it) ? `<button class="btn ghost block" data-act="res-open-out" data-id="${esc(id)}">${ic('out', 16)} ${isYouTube(it) ? 'Watch in my browser or the YouTube app' : 'Watch in my browser'}</button><div class="small muted">It plays inside the app. Close brings you back here, and the Browser button at the top moves it out.</div>` : ''}
+      ${online ? `<button class="btn ${pod && podReady() && !pod.direct ? 'ghost ' : ''}block" data-act="res-open" data-id="${esc(id)}">${ic(pod ? 'out' : KIND_ICON[it.kind] || 'link', 16)} ${pod ? (pod.whole ? 'Open the show’s page' : 'Open the episode’s page') : (it.kind === 'Course' && r.open && !r.done ? 'Carry on with it' : playsHere(it) && resumeAt(id) ? `Carry on from ${clock(r.pos)}` : esc(KIND_VERB[it.kind] || 'Open') + ' it now')}</button>` : ''}
+      ${isVideo(it) && (canRead() || playsHere(it)) && !opensOutside(it) ? `<button class="btn ghost block" data-act="res-open-out" data-id="${esc(id)}">${ic('out', 16)} ${isYouTube(it) ? 'Watch in my browser or the YouTube app' : 'Watch in my browser'}</button><div class="small muted">${playsHere(it) ? `It plays inside the app, on a screen of its own. ${r.done ? 'Close brings you back here.' : 'When it ends you come back here and its cards join your review cards.'}` : `It plays inside the app. Close brings you back here, and the Browser button at the top moves it out.${APP && !canPlay() && ytId(it.link) ? ` The newest app plays it on a screen of its own and knows when you have finished. ${GET_APP}` : ''}`}</div>` : ''}
       ${canHear(it) ? `<button class="btn ghost block" data-act="res-listen" data-id="${esc(id)}">${ic('speaker', 16)} ${online ? 'Listen to it instead' : 'Listen to my note'}</button>` : ''}
       ${videoCardsBlock(it, false)}
       <button class="btn ${online ? 'ghost ' : ''}block" data-act="ask" data-q="${esc(tutorQ)}">${ic('spark', 16)} ${online ? 'Ask the tutor to test me on it' : 'Ask the tutor about it'}</button>
@@ -6819,7 +6870,7 @@ ${n.text.trim()}
     syncAlarms();
     if (!loadLocal()) saveLocal();
     window.__capgownGo = (v) => { if (ROUTE_NAMES.includes(routeOf(v))) go(v); };
-    window.__capgownResume = () => { lastDay = todayKey(); heal(); syncAlarms(); render(); takeSavedLinks(); listenSync(); podSync(); meetWake(); videoBack(); setTimeout(liveWaiting, 1500); };
+    window.__capgownResume = () => { lastDay = todayKey(); heal(); syncAlarms(); render(); takeSavedLinks(); listenSync(); podSync(); meetWake(); videoTaken(); videoBack(); setTimeout(liveWaiting, 1500); };
     window.__capgownListen = (st) => listenState(st);
     window.__capgownPod = (st) => podState(st);
     window.__capgownPodFeed = (req, d) => { const f = PODF.cb[String(req)]; if (f) f(d); };
@@ -6850,6 +6901,7 @@ ${n.text.trim()}
       else if (st && PAGE > (Number(st.bundled) || 0) && typeof APP.revertUpdate === 'function') APP.revertUpdate();
     } catch (e) { /* an older app without live updates */ }
     takeSavedLinks();
+    videoTaken(); // a video that ended in the app's own player while this page was closed
     setTimeout(liveWaiting, 4000);
   }
   // The keyboard: hide the tabs and Ask tutor while typing, and keep the chat lined up.
@@ -6863,10 +6915,10 @@ ${n.text.trim()}
   });
   function newDay() { lastDay = todayKey(); heal(); render(); }
   setInterval(() => { if (todayKey() !== lastDay) newDay(); }, 60000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); if (!document.hidden) { meetWake(); videoBack(); } else if (MEET.live) MEET.hidAt = Date.now(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); if (!document.hidden) { meetWake(); videoTaken(); videoBack(); } else if (MEET.live) MEET.hidAt = Date.now(); });
 
   // Exposed for testing only
-  window.__planner = { videoBack, videoCards, lessonCardsOf, pushedCards, allCards, isVideo, VIDEO_CARDS, DECK, resDone, resDoneSheet, resSheet, videoCardSheet, freeAlt, resLocked, resOpen, render, platCard, opensOutside, accessNote, minsLabel, ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
+  window.__planner = { videoTaken, ytId, canPlay, playsHere, resumeAt, videoBack, videoCards, lessonCardsOf, pushedCards, allCards, isVideo, VIDEO_CARDS, DECK, resDone, resDoneSheet, resSheet, videoCardSheet, freeAlt, resLocked, resOpen, render, platCard, opensOutside, accessNote, minsLabel, ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
 })();
 
 </script>
