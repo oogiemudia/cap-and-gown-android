@@ -284,6 +284,7 @@ public final class SelfTest extends Activity {
         VideoActivity.take(this);
 
         // 1. From the start: the player answers, gives the length, and the place moves on.
+        VideoActivity.holdOnError = true; // an error stays on the screen, so the check can read what the player says
         play("selftest-start", video, 0);
         org.json.JSONObject o = null;
         double first = -1;
@@ -300,7 +301,7 @@ public final class SelfTest extends Activity {
             double t = o.optDouble("t", 0);
             if (t > 0 && first < 0) first = t;
             far = Math.max(far, t);
-            if (o.optBoolean("page", false)) break;
+            if (o.optBoolean("page", false) || o.optInt("error", 0) != 0) break;
             if (o.optBoolean("ready", false) && o.optDouble("d", 0) > 0 && first >= 0 && far - first >= 4) break;
         }
         say("video, from the start: " + (o == null ? "nothing was said" : o.toString()) + "; states " + seen + "; moved " + Math.round(far - Math.max(0, first)) + " s");
@@ -313,8 +314,26 @@ public final class SelfTest extends Activity {
             say("SELFTEST FAIL video: YouTube did not accept the app's name (error 153)");
             return;
         }
+        if (error != 0) {
+            // The error stays on the screen for the check to read. Then the same video the way the app does it:
+            // YouTube's own page takes over, and the check reads that screen too.
+            say("VIDEO HELD: the player gave error " + error + ", which stays on the screen for 25 seconds");
+            Thread.sleep(25000);
+            VideoActivity.holdOnError = false;
+            play("selftest-page", video, 0);
+            boolean shown = false;
+            long p0 = SystemClock.elapsedRealtime();
+            while (!shown && SystemClock.elapsedRealtime() - p0 < 40000) {
+                Thread.sleep(1000);
+                org.json.JSONObject now = said();
+                shown = now != null && "selftest-page".equals(now.optString("id")) && now.optBoolean("page", false);
+            }
+            if (shown) Thread.sleep(15000); // YouTube's page loads
+            say("SELFTEST SKIP video: the player could not play here (error " + error + "); YouTube's own page " + (shown ? "was shown instead" : "was not shown"));
+            return;
+        }
         if (o.optBoolean("page", false)) {
-            say("SELFTEST SKIP video: the player could not play here (" + (error != 0 ? "error " + error : "no answer in time") + "), so YouTube's own page was shown");
+            say("SELFTEST SKIP video: the player did not answer in time, so YouTube's own page was shown");
             return;
         }
         double length = o.optDouble("d", 0);
@@ -356,6 +375,9 @@ public final class SelfTest extends Activity {
         }
         int known = 0;
         int asked = 0;
+        int played = 0;
+        int refused = 0;
+        VideoActivity.holdOnError = true;
         for (String v : videos.split(",")) {
             v = v.trim();
             if (!VideoActivity.isVideoId(v)) continue;
@@ -372,9 +394,21 @@ public final class SelfTest extends Activity {
                 o = now;
                 if (o.optDouble("d", 0) > 0 || o.optBoolean("page", false) || o.optInt("error", 0) != 0) break;
             }
+            // The length is known as soon as the player answers. Whether the video then plays takes a few seconds more.
+            long t1 = SystemClock.elapsedRealtime();
+            while (o != null && o.optInt("error", 0) == 0 && !o.optBoolean("page", false) && o.optDouble("t", 0) <= 0 && SystemClock.elapsedRealtime() - t1 < 8000) {
+                Thread.sleep(500);
+                org.json.JSONObject now = said();
+                if (now != null && v.equals(now.optString("v"))) o = now;
+            }
             double d = o == null ? 0 : o.optDouble("d", 0);
             if (d > 0) known++;
-            say("VIDEO LENGTH " + v + " " + (d > 0 ? Math.round(d) + " s" : "not known (" + (o == null ? (mine ? "nothing said" : "the screen did not start") : "error " + o.optInt("error", 0) + ", ready " + o.optBoolean("ready", false) + ", state " + o.optInt("state", -2)) + ")"));
+            int err = o == null ? 0 : o.optInt("error", 0);
+            boolean plays = o != null && err == 0 && o.optDouble("t", 0) > 0;
+            if (plays) played++;
+            if (err != 0) refused++;
+            say("VIDEO LENGTH " + v + " " + (d > 0 ? Math.round(d) + " s" : "not known (" + (o == null ? (mine ? "nothing said" : "the screen did not start") : "ready " + o.optBoolean("ready", false) + ")"))
+                    + (o == null ? "" : plays ? ", plays" : err != 0 ? ", error " + err : ", did not start (state " + o.optInt("state", -2) + ")"));
             // Three lessons with no answer: the player does not work on this emulator, so the rest would only waste minutes.
             if (asked >= 3 && known == 0) {
                 say("the first three lessons gave no length, so the rest are not asked for");
@@ -382,7 +416,7 @@ public final class SelfTest extends Activity {
             }
         }
         runOnUiThread(() -> startActivity(new android.content.Intent(this, SelfTest.class).putExtra("what", "none").addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP)));
-        say("SELFTEST DONE lengths: " + known + " of " + asked + " lessons gave a length");
+        say("SELFTEST DONE lengths: " + known + " of " + asked + " lessons gave a length, " + played + " played, " + refused + " gave an error");
     }
 
     private String webView() {

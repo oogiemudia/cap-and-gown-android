@@ -62,6 +62,8 @@ public class VideoActivity extends Activity {
 
     /** What the player last said, for the test build's self test. Empty when no video is open. */
     static volatile String last = "";
+    /** The test build's self test only: leave the player's error on the screen, so the test can read what it says. */
+    static volatile boolean holdOnError;
     /** The screen that is open now. A screen that is closing must not write over what a newer one has left. */
     private static volatile VideoActivity current;
 
@@ -240,6 +242,10 @@ public class VideoActivity extends Activity {
         } catch (Exception ignored) { }
         if (state == 1) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if (error != 0 && holdOnError) {
+            keep();
+            return;
+        }
         if (error != 0) {
             ownPage("the player gave error " + error);
         } else if (!ready && (shellAt > 0 ? System.currentTimeMillis() - shellAt > READY_WAIT : System.currentTimeMillis() - openedAt > 2 * READY_WAIT)) {
