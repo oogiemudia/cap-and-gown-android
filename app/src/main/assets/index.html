@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Cap and Gown</title>
-<meta name="capgown-page" content="54">
+<meta name="capgown-page" content="55">
 <meta name="capgown-min-app" content="0">
 <meta name="theme-color" content="#3454D9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -425,7 +425,9 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       // version 5: the notepad on the Listen & speak screen (spoken or pasted text)
       voicePad: '',
       // version 6: the coach (a small step every day)
-      coach: freshCoach()
+      coach: freshCoach(),
+      // version 7 (page 55): Module 2 week by week, what you have done for each Wednesday class (see m2U)
+      m2: { w: {} }
     };
   }
   function freshCoach() {
@@ -594,6 +596,18 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     keep(C.end, (v, k) => (k === 'aw' || k === 'ksb') && isDay(v));
     if (!['aw', 'ksb', 'cp'].includes(C.path)) C.path = 'aw';
     C.cpNote = str(C.cpNote).slice(0, 30000);
+    // Module 2 week by week: shape only, because the weeks themselves are defined further down.
+    if (!isObj(out.m2)) out.m2 = {};
+    if (!isObj(out.m2.w)) out.m2.w = {};
+    keep(out.m2.w, (v, k) => isObj(v) && /^\d{1,2}$/.test(k));
+    Object.values(out.m2.w).forEach((u) => {
+      ['r', 'k', 'p', 'd'].forEach((f) => { if (u[f] != null && !isDay(u[f])) delete u[f]; });
+      u.q = isObj(u.q) ? keep(u.q, (x) => isNum(x) && x >= 0 && x <= 9) : {};
+      u.a = isObj(u.a) ? keep(u.a, flag) : {};
+      u.f = clamp(Math.round(Number(u.f)) || 0, 0, 3);
+      u.own = str(u.own).slice(0, 4000); u.took = str(u.took).slice(0, 6000); u.fog = str(u.fog).slice(0, 4000); u.pn = str(u.pn).slice(0, 6000);
+      if (typeof u.nocards !== 'boolean') delete u.nocards;
+    });
     return out;
   }
   function loadLocal() {
@@ -611,7 +625,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   let state = normalise(newest(loadLocal(), loadFromApp()));
   // Six tabs; the other screens open from them (or from More) and have a back button.
   const TABS = ['home', 'plan', 'study', 'portfolio', 'progress', 'more'];
-  const ROUTE_NAMES = TABS.concat(['courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'pp', 'voice', 'coach']);
+  const ROUTE_NAMES = TABS.concat(['courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'pp', 'voice', 'coach', 'module']);
   const OLD_ROUTES = { today: 'home', chat: 'home', reflect: 'goals', practice: 'study' };
   const routeOf = (v) => (OLD_ROUTES[v] || (ROUTE_NAMES.includes(v) ? v : 'home'));
   let route = 'home';
@@ -845,7 +859,9 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
         if (late.length || dueToday) reviewMins = REVIEW.mins || 20;
       }
       const behind = catchup && isWeekday(d) && !quietWeek(d) ? undone.filter((c) => c.dateEff < d).length : 0;
-      if (!groups[s.evening] && (reviewLines.length || behind)) groups[s.evening] = [];
+      // the evening before a Module 2 class that is not revised yet
+      const classWeeks = m2AlarmWeeks(d);
+      if (!groups[s.evening] && (reviewLines.length || behind || classWeeks.length)) groups[s.evening] = [];
       Object.keys(groups).sort().forEach((t) => {
         const steps = groups[t];
         const isEvening = t === s.evening;
@@ -853,6 +869,8 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
         if (steps.length > 5) lines.push(`and ${steps.length - 5} more`);
         let total = steps.reduce((a, c) => a + (c.mins || 30), 0);
         if (isEvening) {
+          lines.unshift(...classWeeks.map((w) => `Class tomorrow at 9:30: revise week ${w.n} first (${mins(w.mins)})`));
+          total += classWeeks.reduce((a, w) => a + w.mins, 0);
           lines.push(...reviewLines);
           total += reviewMins;
           if (behind) lines.push(`${behind} earlier step${behind === 1 ? '' : 's'} not ticked off yet`);
@@ -860,6 +878,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
         if (!lines.length) return;
         let title;
         if (steps.length) title = `Study time: ${mins(total)}`;
+        else if (isEvening && classWeeks.length) title = 'Class tomorrow: revise first';
         else if (reviewLines.length) title = reviewLines.some((l) => l.includes('still open')) ? 'PebblePad review still open' : 'Weekly PebblePad review';
         else title = 'Catch-up evening';
         const at = atTime(d, t).getTime() - lead * 60000;
@@ -1801,6 +1820,638 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   };
 
   // Short lessons. "Worked example" applies the idea to a T Level Engineering group.
+  /* ---------- Module 2, week by week (page 55) ----------
+     The 34 sessions of the PGCE Module 2 handbook for 2026-27 (Exploring and developing pedagogical practice in
+     further education and skills, 7X-710020). Class is every Wednesday, 9:30 to 12:30. Each week has a short lesson
+     to read BEFORE class, the mistakes people make, questions to take to class, a quick check, a step to try in your
+     own teaching, what a distinction would do with it, and review cards.
+     The dates, session types and topic lists are the handbook's. The lessons are written here in plain words from
+     the standard meaning of each topic: nobody here has seen the tutor's slides, and the screens say so.
+     Nothing here is text for the presentation: the brief allows AI for shaping only (AITS 2). */
+  const M2_INFO = { code: '7X-710020', slides: '2027-05-21', talk: '2027-05-24', peer: '2027-05-05' };
+  // Each outcome: number, short name, what it asks in plain words, what the top band asks for.
+  const M2_LO = [
+    [1, 'Your planning and teaching', 'Analyse critically how you plan and teach your subject in further education and skills.', 'Detailed, critical analysis of how you plan and teach your subject.'],
+    [2, 'Your subject pedagogy', 'Take a critical approach to the teaching methods special to your subject, and show how they support adaptive teaching and inclusion.', 'Detailed, critical analysis of subject pedagogy that supports adaptive teaching and inclusion.'],
+    [3, 'Inclusion', 'Explore and evaluate inclusive education against your subject curriculum and your own teaching.', 'Detailed, critical exploration and evaluation of inclusion in your curriculum and practice.'],
+    [4, 'Research', 'Evaluate educational research critically: why it matters, how it applies and where it falls short.', 'Detailed, critical evaluation of a range of research and its impact on practice.']
+  ];
+  const M2_LADDER = [
+    ['Describe', 'Says what happened.', '“I ran a short retrieval round each week.”'],
+    ['Explain', 'Says why.', '“Recalling an idea strengthens memory more than rereading it.”'],
+    ['Analyse', 'Breaks the evidence apart and finds a pattern.', '“Recall questions improved more than apply questions, so the rounds may be building facts faster than understanding.”'],
+    ['Evaluate', 'Weighs it and judges how far it can be trusted.', '“The gain could also come from the unit being revisited in workshops. With two groups and no comparison, I can claim a promising pattern, not proof.”']
+  ];
+  // After these week numbers the handbook shows a break.
+  const M2_BREAKS = { 7: 'Reading week', 14: 'Christmas break', 20: 'Reading week', 26: 'Easter break', 32: 'Reading week' };
+  const M2 = [
+    { n: 1, d: '2026-09-09', k: 'Re-induction', mins: 10, t: 'standards', lo: [],
+      title: 'Welcome back: Year 2 and how it fits together',
+      topics: ['Year 2 and Module 2 overview', 'Small change project', 'Practitioner inquiry', 'Portfolio expectations', 'KSB audits and tracking', 'Professional expectations', 'Observation cycle and mentor requirements', 'Reflective practice'],
+      big: 'Year 2 has two jobs running side by side: a change project you present (Module 2) and a portfolio you discuss (Module 3).',
+      learn: [
+        ['Two modules, two assessments', 'Module 2 is marked on one presentation about a small change you make in your own teaching. Module 3 is marked on your portfolio and a professional discussion. The same classroom work can feed both, so keep dated notes of what you try.'],
+        ['KSBs', 'The knowledge, skills and behaviours of the occupational standard are the checklist for your portfolio. An audit shows which you can already evidence and which are gaps. A gap is a good place to look for a change project.'],
+        ['Observations and your mentor', 'Observed teaching and mentor meetings run all year. Each one is evidence, and each is a chance to ask for feedback on the thing your project is trying to improve.'],
+        ['Reflection', 'Reflection means looking back at teaching with a structure, so that you change something next time. A model such as Gibbs’ cycle or Brookfield’s four lenses gives you the structure.']
+      ],
+      wrong: [['The change project and the portfolio are separate piles of work.', 'One well-noted piece of teaching can serve both.'], ['Reflection is writing down what happened.', 'It ends with a judgement and a next step.']],
+      ask: ['Which of my KSB gaps would make a good change project?', 'How many observations are needed this year, and by when?'],
+      check: [
+        ['Which piece of work is Module 2 marked on?', ['A portfolio and a discussion', 'One presentation about a small change project', 'A written essay'], 1, 'Module 2 is the presentation. The portfolio and the professional discussion belong to Module 3.'],
+        ['What is a KSB audit for?', ['To grade your lessons', 'To show which knowledge, skills and behaviours you can evidence and which are gaps', 'To replace observations'], 1, 'The audit is a map of what you can already show and what you still need evidence for.']
+      ],
+      go: 'Look at your KSB gaps and write beside one of them what you could try in a lesson that would give evidence for it.',
+      dist: 'Show early that your project grew from an honest audit of your own practice, not from a topic you happened to like.',
+      cards: [['What is Module 2 marked on, and how long is it?', 'One presentation on your small change project: 20 minutes, then up to 10 minutes of questions.'], ['What does KSB stand for, and what is an audit of them?', 'Knowledge, skills and behaviours. An audit checks which you can evidence and which are gaps.'], ['Name two models for structured reflection.', 'Gibbs’ reflective cycle and Brookfield’s four lenses. Kolb’s cycle and Schön’s reflection in and on action also count.']],
+      read: ['Gibbs, G. (1988). Learning by doing: A guide to teaching and learning methods.', 'Brookfield, S. D. (2017). Becoming a critically reflective teacher (2nd ed.). Jossey-Bass.'] },
+    { n: 2, d: '2026-09-16', k: 'Taught session', mins: 20, t: 'change', lo: [1, 4],
+      title: 'Module 2, the small change project and practitioner inquiry',
+      topics: ['Module 2 overview', 'Small change project', 'Practitioner inquiry', 'Teacher roles and responsibilities', 'Reflection and feedback models', 'Professional wellbeing'],
+      big: 'A practitioner inquiry is a small, careful study of your own teaching: a problem, a change, evidence and an honest judgement.',
+      learn: [
+        ['Small change, studied properly', 'You pick one problem in your own practice, change one thing, and gather evidence before and after. Small is a strength: a change you can run well for six weeks beats a grand plan you cannot measure.'],
+        ['Practitioner inquiry', 'The teacher is the researcher. Action research is often drawn as a loop: plan, act, observe, reflect, then plan again. The aim is to improve practice here, not to prove a law for every classroom.'],
+        ['Roles and responsibilities', 'A teacher in further education plans, teaches, assesses, supports and safeguards, and works inside limits: you refer on what belongs to specialists. Your project has to sit inside those duties, including ethics and consent.'],
+        ['Reflection, feedback and wellbeing', 'Reflection models and feedback models give you a structure for judging what happened. Looking after your own workload and wellbeing is part of the professional role, and a small project protects both.']
+      ],
+      wrong: [['The project has to prove my idea works.', 'It has to show what happened and how sure you can be. Limits are part of the marks.'], ['Bigger projects score higher.', 'Depth and criticality score. A small change studied well gives both.'], ['A change model is the research method.', 'A change model such as Lewin’s frames how change happens. The inquiry loop is how you study it.']],
+      ask: ['How small is small enough for the change project?', 'What evidence counts besides test scores?', 'What consent do I need from my learners and my college?'],
+      check: [
+        ['What makes a practitioner inquiry different from ordinary reflection?', ['It is longer', 'It gathers evidence in a planned way before and after a change', 'It is done by an outside researcher'], 1, 'Inquiry is planned and rests on evidence. Reflection alone needs neither a planned change nor collected evidence.'],
+        ['What are the three stages of Lewin’s change model?', ['Plan, do, review', 'Unfreeze, change, refreeze', 'Describe, analyse, evaluate'], 1, 'Unfreeze the old habit, make the change, then refreeze so the new practice lasts.']
+      ],
+      go: 'Write your project in four sentences: the problem, the change, how you will know, and the research behind it. Read it to a colleague and ask what is unclear.',
+      dist: 'A distinction opening explains why this problem matters for these learners, with evidence from before the change, and places the project inside your wider role.',
+      cards: [['What are the four moves of the action research loop?', 'Plan, act, observe, reflect. Then plan again.'], ['Name Lewin’s three stages of change.', 'Unfreeze, change, refreeze.'], ['What four things should a change project statement say?', 'The problem, the change, how you will know it worked, and the research behind it.']],
+      read: ['Kemmis, S., & McTaggart, R. (1988). The action research planner (3rd ed.). Deakin University.', 'Lewin, K. (1947). Frontiers in group dynamics. Human Relations, 1(1), 5–41.', 'British Educational Research Association. (2024). Ethical guidelines for educational research (5th ed.).'] },
+    { n: 3, d: '2026-09-23', k: 'Taught session', mins: 20, t: '', lo: [1, 2],
+      title: 'Subject-specific pedagogy',
+      topics: ['Subject specialist pedagogy', 'Pedagogical content knowledge (PCK)', 'Occupational currency', 'Dual professionalism', 'Subject-specific curriculum design', 'Embodied and vocational pedagogies'],
+      big: 'Knowing your subject is not the same as knowing how to make it learnable. The second kind of knowledge is what makes you a teacher of engineering, not only an engineer.',
+      learn: [
+        ['Pedagogical content knowledge', 'Shulman called it PCK: the blend of subject knowledge and teaching knowledge. It includes the best examples and analogies for a topic, the order that makes sense, and the mistakes learners usually make.'],
+        ['Dual professionalism', 'In further education you belong to two professions: your occupation and teaching. Both need keeping up. Occupational currency means your industry knowledge matches what workplaces do now.'],
+        ['Vocational pedagogies', 'Each occupation has its own ways of teaching: demonstration, practice on real kit, coaching, simulation, learning safely from errors. Vocational learning is often embodied: learned through the hands and senses as well as through words.'],
+        ['Curriculum design in your subject', 'Order matters. In engineering some ideas unlock others, such as units before calculations and drawing conventions before reading a drawing. Planning that order, and saying why, is analysis for LO1.']
+      ],
+      wrong: [['A good engineer is automatically a good teacher of engineering.', 'Expertise can hide the steps a novice needs. PCK has to be learned.'], ['General teaching methods are enough.', 'LO2 asks for pedagogy special to your subject.'], ['Occupational currency means holding a qualification.', 'It means staying up to date with current practice.']],
+      ask: ['What would count as a signature way of teaching in my subject?', 'How do I show occupational currency in the presentation?', 'How subject-specific does the pedagogy need to be for LO2?'],
+      check: [
+        ['Pedagogical content knowledge is best described as…', ['Knowing a lot about your subject', 'Knowing how to make particular subject content learnable for particular learners', 'Knowing general classroom management'], 1, 'PCK joins the subject to the teaching of it: examples, order and likely mistakes.'],
+        ['Dual professionalism means…', ['Teaching two subjects', 'Being both an occupational expert and a teacher, and keeping both current', 'Working in two colleges'], 1, 'You are a professional in your occupation and in teaching.']
+      ],
+      go: 'Pick one topic you teach next week. Write the misconception learners usually have and the example or demonstration you use to shift it. That note is PCK made visible.',
+      dist: 'Name the knowledge only a teacher of your subject would have, show a planning decision that came from it, and weigh it against a general alternative.',
+      cards: [['What is pedagogical content knowledge (PCK), and who named it?', 'Knowing how to make particular subject content learnable: the examples, the order and the common mistakes. Shulman (1986).'], ['What is dual professionalism?', 'Being a professional in your occupation and in teaching, and keeping both up to date.'], ['What does occupational currency mean?', 'Your knowledge of the occupation matches what workplaces do now.']],
+      read: ['Shulman, L. S. (1986). Those who understand: Knowledge growth in teaching. Educational Researcher, 15(2), 4–14.', 'Lucas, B., Spencer, E., & Claxton, G. (2012). How to teach vocational education: A theory of vocational pedagogy. City & Guilds Centre for Skills Development.'] },
+    { n: 4, d: '2026-09-30', k: 'Taught session', mins: 20, t: '', lo: [1, 3],
+      title: 'Curriculum, skills and employability: is the curriculum fit for purpose?',
+      topics: ['Curriculum evaluation', 'Employability and skills priorities', 'Curriculum responsiveness', 'Occupational currency', 'Future skills and labour market trends', 'Curriculum improvement'],
+      big: 'A curriculum is a set of choices about what is worth learning and in what order. “Fit for purpose” asks: fit for whose purpose?',
+      learn: [
+        ['Three questions', 'A common way to judge a curriculum is by intent, implementation and impact: what it sets out to do, how it is taught, and what learners can do as a result. Ofsted used these three words in its 2019 inspection framework.'],
+        ['Responsive to work', 'A responsive curriculum keeps pace with employers and the local labour market. T Levels were designed with employers and include an industry placement. Labour market information (LMI) shows which skills are in demand.'],
+        ['More than job skills', 'Employability includes technical skill, but also English, maths, digital skills, and habits such as reliability and teamwork. A curriculum can serve the employer, the learner and society, and these do not always agree.'],
+        ['Who is left out', 'Judging a curriculum includes asking who it works for. Entry requirements, assessment style, access to placements and the examples you use can all favour some learners. That question links this week to LO3.']
+      ],
+      wrong: [['The curriculum is the specification.', 'The specification is the minimum. The curriculum is everything you plan and order around it.'], ['Fit for purpose means fit for employers.', 'Learners and society have purposes too, and a critical answer weighs them.'], ['I cannot change the curriculum.', 'You control the order, the examples, the emphasis and the enrichment.']],
+      ask: ['Whose purpose should I judge my curriculum against in the presentation?', 'Where can I find labour market information for my sector and region?', 'How much freedom do I have to change the order of a T Level specification?'],
+      check: [
+        ['Intent, implementation and impact are…', ['Three stages of Lewin’s model', 'Three questions for judging a curriculum: what it sets out to do, how it is taught, what learners gain', 'Three kinds of assessment'], 1, 'They ask what the curriculum is for, how it is delivered and what difference it makes.'],
+        ['A curriculum is “responsive” when…', ['It follows last year’s scheme of work exactly', 'It adapts to current employer needs, the labour market and its learners', 'It covers only what is in the exam'], 1, 'Responsive means it keeps pace with work and with the learners in front of you.']
+      ],
+      go: 'Take one unit you teach. Note one thing employers now need that it does not cover well, and one small thing you could add or move.',
+      dist: 'Do not only describe your scheme of work. Judge it: what it assumes, who it serves, what you changed and why, with evidence from employers or labour market data.',
+      cards: [['What do intent, implementation and impact ask about a curriculum?', 'What it sets out to do, how it is taught, and what learners can do as a result.'], ['What is LMI and why does a teacher use it?', 'Labour market information: data on the jobs and skills in demand. It helps keep the curriculum current.'], ['Give two things a teacher controls inside a set specification.', 'Any two of: the order, the examples, the emphasis, the links to work, the enrichment.']],
+      read: ['Department for Education. (2021). Skills for jobs: Lifelong learning for opportunity and growth.'] },
+    { n: 5, d: '2026-10-07', k: 'Taught session', mins: 20, t: 'change', lo: [1, 4],
+      title: 'Shaping your change project: the proposal',
+      topics: ['Identifying problems in practice', 'Planning change', 'Measuring impact', 'Professional networks', 'Refining practitioner inquiry proposals'],
+      big: 'A proposal is a promise you can keep: one problem, one change, and a way to tell whether it helped.',
+      learn: [
+        ['From a worry to a question', 'Start with something you have noticed, then check it is real with evidence you already hold: marks, attendance, work, what learners say. Turn it into a question you can answer in a term.'],
+        ['The change', 'Say exactly what you will do differently, with which groups, how often and for how long. If a colleague could not run it from your description, it is not clear enough yet.'],
+        ['Measuring impact', 'Collect a baseline before you start, then the same measure after. Add a second kind of evidence, such as learner voice or your own dated notes, so that one weak measure does not carry the whole claim. This is triangulation.'],
+        ['People who help', 'A mentor, a subject colleague, a quality lead or a subject network can test your plan and your reading of the results. Naming who challenged your thinking is evidence of professional practice.']
+      ],
+      wrong: [['Impact means a rise in scores.', 'Impact is any evidenced change: understanding, confidence, participation, or your own practice.'], ['I can collect the baseline later.', 'Without a “before” there is nothing to compare the “after” with.'], ['Ethics only applies to big studies.', 'Any study of your own learners needs consent, anonymity and fairness.']],
+      ask: ['Is my baseline strong enough?', 'What second kind of evidence would suit my project?', 'Who has to approve my proposal, and what conditions might they set?'],
+      check: [
+        ['Triangulation means…', ['Teaching in three ways', 'Using more than one kind of evidence to test the same claim', 'Having three groups'], 1, 'Scores, learner voice and your notes together are stronger than any one alone.'],
+        ['Why collect a baseline?', ['To fill the slides', 'So there is a “before” to compare with the “after”', 'Because the law requires it'], 1, 'A change can only be shown against where things started.']
+      ],
+      go: 'Gather the “before” for your project this week: the scores or work you already hold for both groups, with names removed.',
+      dist: 'Justify every design choice: why this measure, why this length, what you could not control. A distinction method slide argues. It does not only list.',
+      cards: [['What is a baseline?', 'Evidence collected before the change, to compare with evidence collected after.'], ['What is triangulation?', 'Using more than one kind of evidence, such as scores, learner voice and notes, to test the same claim.'], ['Name three ethical duties in a study of your own learners.', 'Any three of: informed consent, the right to withdraw, anonymity, no learner disadvantaged, the college’s permission, safe storage of data.']],
+      read: ['British Educational Research Association. (2024). Ethical guidelines for educational research (5th ed.).', 'McNiff, J. (2017). Action research: All you need to know. SAGE.'] },
+    { n: 6, d: '2026-10-14', k: 'Taught session', mins: 20, t: 'retrieval', lo: [2, 4],
+      title: 'Cognitive science in practice',
+      topics: ['Retrieval practice', 'Interleaving and spacing', 'Dual coding', 'Professional judgement', 'Evidence-informed teaching'],
+      big: 'Memory grows by being used. Cognitive science offers strong hints for teaching, and your judgement decides how they fit your subject and your learners.',
+      learn: [
+        ['Working memory and long-term memory', 'Working memory holds only a few new things at once. Long-term memory is vast. Learning means building knowledge in long-term memory, so that working memory is free for the next step. Overload happens when too much is new at once.'],
+        ['Retrieval, spacing, interleaving', 'Recalling an idea strengthens it more than rereading. Coming back after a gap strengthens it more than cramming. Mixing problem types makes learners choose the method, which is harder now and better later.'],
+        ['Dual coding', 'Words and a matching picture together give two routes to the same idea. In engineering that is natural: a labelled diagram, a drawing beside a description. Decoration does not count. The picture has to carry the meaning.'],
+        ['Evidence-informed, not evidence-led', 'Much of this research came from laboratories, schools and universities, often with short delays and simple material. The Education Endowment Foundation’s 2021 review found the classroom evidence thinner and more mixed than the headlines suggest. Your professional judgement fills the gap.']
+      ],
+      wrong: [['Retrieval practice is a weekly test.', 'It is low stakes, with feedback, and the questions return after a gap.'], ['If it feels easy, it is working.', 'Useful difficulty feels harder. Rereading feels fluent and teaches little.'], ['Cognitive science tells me what to do.', 'It tells you what tends to work. The subject, the learners and the timing are your call.'], ['Learning styles are part of cognitive science.', 'Matching teaching to a “style” has not been supported by the evidence.']],
+      ask: ['How long should the gap be before a question returns?', 'How do I use retrieval for understanding and applying, not only for facts?', 'What does the evidence say about retrieval practice in vocational or further education settings?'],
+      check: [
+        ['Which of these is retrieval practice?', ['Rereading notes', 'Answering questions from memory, then checking', 'Highlighting key terms'], 1, 'Retrieval means bringing the idea back from memory. The other two feel productive but build little.'],
+        ['Interleaving helps because…', ['Learners see each topic only once', 'Learners must choose which method fits each problem', 'It makes practice feel easier'], 1, 'Choosing the method is the part that blocked practice leaves out.'],
+        ['Why is professional judgement still needed with cognitive science?', ['The research is all wrong', 'Most studies were not done with your subject, learners or setting', 'Judgement is quicker than reading'], 1, 'The principles are well supported. How they transfer to your classroom is not settled.']
+      ],
+      go: 'In one lesson this week, bring back three questions from two or three weeks ago, unannounced and unmarked. Note which one most learners missed and what you did next.',
+      dist: 'This is the research base of your project. Use several sources, show where they disagree or stop short of vocational learning, and say how that limits your claim.',
+      cards: [['Why does retrieval beat rereading?', 'Bringing an idea back from memory strengthens it. Rereading feels fluent but builds little.'], ['What is the spacing effect?', 'Practice spread over time lasts longer than the same practice crammed together.'], ['What is interleaving?', 'Mixing problem types in one session, so that learners must choose the method.'], ['Give one limit of cognitive science research for a further education teacher.', 'Most studies used schools, universities or laboratories, simple material and short delays, so transfer to vocational learning is not proven.']],
+      read: ['Roediger, H. L., & Karpicke, J. D. (2006). Test-enhanced learning: Taking memory tests improves long-term retention. Psychological Science, 17(3), 249–255.', 'Dunlosky, J., Rawson, K. A., Marsh, E. J., Nathan, M. J., & Willingham, D. T. (2013). Improving students’ learning with effective learning techniques. Psychological Science in the Public Interest, 14(1), 4–58.', 'Perry, T., Lea, R., Jørgensen, C. R., Cordingley, P., Shapiro, K., & Youdell, D. (2021). Cognitive science in the classroom: Evidence and practice review. Education Endowment Foundation.', 'Agarwal, P. K., Nunes, L. D., & Blunt, J. R. (2021). Retrieval practice consistently benefits student learning. Educational Psychology Review, 33, 1409–1453.'] },
+    { n: 7, d: '2026-10-21', k: 'Taught session', mins: 20, t: 'agency', lo: [2, 3],
+      title: 'Developing learner agency and independence',
+      topics: ['Metacognition', 'Self-regulation', 'MARGE framework', 'Learner agency'],
+      big: 'Independent learners are made, not found. They plan, check and adjust their own learning because someone taught them how.',
+      learn: [
+        ['Metacognition', 'Metacognition is thinking about your own thinking: knowing what you know, what the task needs and which strategy fits. It is taught best inside the subject, by a teacher thinking aloud while solving a real problem.'],
+        ['Self-regulation', 'Self-regulated learners plan before a task, monitor during it and evaluate after it. The Education Endowment Foundation’s guidance describes this plan, monitor, evaluate cycle and recommends teaching it openly.'],
+        ['MARGE', 'Shimamura’s MARGE names five things that help learning: Motivate, Attend, Relate, Generate, Evaluate. Generate means producing an answer yourself. Evaluate means checking what you really know. Both link straight to retrieval practice.'],
+        ['Agency', 'Agency is a learner’s power to make real choices and act on them. It grows when learners get choice with structure, and feedback they can use. Independence without the tools is only being left alone.']
+      ],
+      wrong: [['Independent learning means working alone.', 'It means directing your own learning. At first it often needs more teaching, not less.'], ['Some learners just are not independent.', 'The strategies can be taught, modelled and practised.'], ['Metacognition is a general study-skills lesson.', 'It works best taught inside real subject tasks.']],
+      ask: ['How do I teach metacognition inside a practical engineering task?', 'How can I evidence growing independence in my learners?', 'Where does MARGE fit beside the other frameworks we have met?'],
+      check: [
+        ['The self-regulation cycle is…', ['Unfreeze, change, refreeze', 'Plan, monitor, evaluate', 'Describe, explain, analyse'], 1, 'Plan before, monitor during, evaluate after.'],
+        ['In MARGE, “Generate” asks learners to…', ['Read the notes again', 'Produce answers or explanations themselves', 'Watch a demonstration'], 1, 'Generating an answer is active, which is why it links to retrieval practice.']
+      ],
+      go: 'Before a task this week, ask learners to predict their score or name the step they expect to find hardest. Afterwards, compare. That gap is a metacognition lesson.',
+      dist: 'Show learners using the strategy without you, and weigh how far a short project can claim to have built independence.',
+      cards: [['What is metacognition?', 'Thinking about your own thinking: knowing what you know and which strategy fits the task.'], ['Name the three phases of self-regulated learning.', 'Plan, monitor, evaluate.'], ['What do the letters of MARGE stand for?', 'Motivate, Attend, Relate, Generate, Evaluate (Shimamura).']],
+      read: ['Shimamura, A. P. (2018). MARGE: A whole-brain learning approach for students and teachers.', 'Quigley, A., Muijs, D., & Stringer, E. (2018). Metacognition and self-regulated learning: Guidance report. Education Endowment Foundation.', 'Zimmerman, B. J. (2002). Becoming a self-regulated learner: An overview. Theory Into Practice, 41(2), 64–70.'] },
+    { n: 8, d: '2026-11-04', k: 'Guest speaker', mins: 20, t: 'afl', lo: [1, 2],
+      title: 'Subject-specific assessment',
+      topics: ['Assessment within specialist contexts', 'Assessment validity and reliability', 'Qualification requirements', 'IQA and EQA processes', 'Feedback and learner progress', 'Assessment decision-making'],
+      big: 'An assessment is only useful if it measures the right thing, consistently, and the learner can act on what it shows.',
+      learn: [
+        ['Valid and reliable', 'Valid means the task measures what it claims to. A written test of a practical skill may not be valid. Reliable means the same work would get the same decision from another assessor or on another day.'],
+        ['Qualification rules', 'Each qualification sets how it must be assessed: exams, set assignments, observed practical work, a portfolio. Knowing the rules for your qualification tells you what you can adapt and what you cannot.'],
+        ['IQA and EQA', 'Internal quality assurance samples assessment decisions inside the college and keeps assessors in line with each other. External quality assurance is the awarding organisation checking the centre. Together they protect the value of the certificate.'],
+        ['Feedback and decisions', 'Feedback helps when it tells the learner where they are going, how they are doing and what to do next, and when they then act on it. An assessment decision should rest on evidence against the standard, not on effort or liking.']
+      ],
+      wrong: [['A reliable test is a valid test.', 'A test can give consistent results and still measure the wrong thing.'], ['Formative assessment means the small tests.', 'It is any check you use to change what happens next.'], ['Feedback is done when it is given.', 'It is done when the learner has used it.']],
+      ask: ['How do I make a practical assessment both valid and reliable?', 'What may I adapt for a learner without changing the standard?', 'How do the measures in my change project stand up as valid evidence?'],
+      check: [
+        ['A written quiz is used to judge whether a learner can set up a lathe safely. The main weakness is…', ['Reliability', 'Validity', 'Cost'], 1, 'It may be consistent, but writing about a task is not the same as doing it.'],
+        ['IQA is…', ['The awarding organisation’s visit', 'The centre’s own sampling and standardising of assessment decisions', 'A learner’s appeal'], 1, 'Internal quality assurance happens inside the centre. The awarding organisation’s check is EQA.']
+      ],
+      go: 'Look at one assessment you set this term. Ask: does it measure the skill, or the writing about the skill? Note one change that would make it more valid.',
+      dist: 'Turn the question on your own project: are your measures valid for the learning you claim? Saying where they are not is critical evaluation.',
+      cards: [['What is the difference between valid and reliable?', 'Valid: it measures what it claims to. Reliable: it gives the same decision across assessors and occasions.'], ['What do IQA and EQA do?', 'IQA checks and standardises decisions inside the centre. EQA is the awarding organisation checking the centre.'], ['Feedback should answer which three questions?', 'Where am I going, how am I doing, and where to next? (Hattie and Timperley, 2007).']],
+      read: ['Hattie, J., & Timperley, H. (2007). The power of feedback. Review of Educational Research, 77(1), 81–112.', 'Black, P., & Wiliam, D. (1998). Inside the black box: Raising standards through classroom assessment.'] },
+    { n: 9, d: '2026-11-11', k: 'Taught session', mins: 20, t: 'adaptive', lo: [2, 3],
+      title: 'Adaptive and responsive teaching',
+      topics: ['Adaptive teaching', 'Responsive teaching', 'Hinge questions', 'Feedback loops', 'Inclusive teaching', 'Micro-adaptations in practice'],
+      big: 'Adaptive teaching keeps the goal the same for everyone and changes the support. Responsive teaching finds out what learners understood and acts on it in the lesson.',
+      learn: [
+        ['Adaptive, not three worksheets', 'Older “differentiation” often meant different tasks for different groups, which could lower expectations. Adaptive teaching holds one ambitious goal and adjusts scaffolds, examples, time and grouping so that more learners reach it.'],
+        ['Responsive teaching', 'Plan the check as carefully as the explanation. Ask, look at every learner’s answer, then decide: move on, reteach, or split the group. Dylan Wiliam describes good teaching as adjusted by evidence of learning as the lesson goes on.'],
+        ['Hinge questions', 'A hinge question sits at a turning point in the lesson. Every learner answers quickly, and each wrong option points to a known misconception. The answers tell you which way the lesson should go.'],
+        ['Micro-adaptations', 'Small moves in the moment: rewording, a second example, a visual, pairing, a worked step, more wait time. They are quick, they cost nothing, and together they are what inclusion looks like in an ordinary lesson.']
+      ],
+      wrong: [['Adaptive teaching means a separate plan for each learner.', 'It means one goal with flexible support.'], ['A hinge question checks who was listening.', 'It finds a specific misconception so that you can act on it.'], ['Inclusion is for learners with a support plan.', 'Adaptations planned for some usually help many.']],
+      ask: ['How do I write wrong options that reveal a misconception?', 'What do I do when the hinge question splits the class in half?', 'How do I evidence micro-adaptations that happen in the moment?'],
+      check: [
+        ['A good hinge question…', ['Takes ten minutes to answer', 'Is answered by everyone quickly, with wrong options that reveal misconceptions', 'Is asked only of volunteers'], 1, 'It is quick, everyone answers, and the wrong answers tell you what to do next.'],
+        ['Adaptive teaching differs from older differentiation because it…', ['Sets easier goals for some learners', 'Keeps the goal and adapts the support', 'Uses no scaffolds'], 1, 'One ambitious goal, with the support flexed to reach it.']
+      ],
+      go: 'Write one hinge question for a lesson this week, with a wrong option for each common mistake. Use mini whiteboards or fingers so that you see every answer, and note what you did next.',
+      dist: 'Show the loop closing: what the check revealed, what you changed, and who it helped. Then weigh it: who still did not get there, and why?',
+      cards: [['What is a hinge question?', 'A quick check at a turning point, answered by everyone, whose wrong options reveal misconceptions.'], ['How does adaptive teaching differ from older differentiation?', 'One ambitious goal for all, with the support adapted, instead of different tasks and goals for different groups.'], ['Give three micro-adaptations.', 'Any three of: rewording, another example, a visual, a worked step, pairing, more wait time.']],
+      read: ['Wiliam, D. (2011). Embedded formative assessment. Solution Tree Press.', 'Education Endowment Foundation. (2020). Special educational needs in mainstream schools: Guidance report.'] },
+    { n: 10, d: '2026-11-18', k: 'Taught session', mins: 20, t: 'reflect', lo: [1, 4],
+      title: 'Developing adaptive expertise and professional judgement',
+      topics: ['Adaptive expertise', 'Routine expertise', 'Professional judgement', 'Reflection and deliberate practice', 'Critical incidents', 'Expert teaching'],
+      big: 'Routine experts do the familiar thing well. Adaptive experts understand why it works, so they can change it when the situation is new.',
+      learn: [
+        ['Two kinds of expertise', 'Hatano and Inagaki separated routine expertise, which is fast and accurate in familiar cases, from adaptive expertise, which copes with new cases because it rests on understanding. Teaching needs both: routines free your attention for judgement.'],
+        ['Professional judgement', 'Judgement is deciding what to do when the rule does not fit. It draws on evidence, experience, knowledge of these learners and your values. You can explain a good judgement afterwards, even if you made it in a second.'],
+        ['Deliberate practice', 'Ericsson’s idea: improvement comes from practising one specific thing just beyond your current level, with feedback, not from years of repetition. For a teacher that might be rehearsing one explanation or one questioning routine.'],
+        ['Critical incidents', 'Tripp’s point is that an incident becomes “critical” through how you analyse it. An ordinary moment, looked at closely, can show an assumption you did not know you held.']
+      ],
+      wrong: [['Experience makes experts.', 'Experience with feedback and reflection does. Repetition alone can fix habits in place.'], ['A critical incident is a crisis.', 'It is any moment you choose to analyse because it reveals something.'], ['Routines are the enemy of adaptive teaching.', 'Good routines free attention for the judgement calls.']],
+      ask: ['How do I show professional judgement in a presentation?', 'What counts as deliberate practice for a teacher?', 'Could a critical incident be part of my project evidence?'],
+      check: [
+        ['Adaptive expertise is…', ['Doing familiar tasks quickly', 'Understanding well enough to respond to new situations', 'Following the scheme of work'], 1, 'It rests on knowing why a method works, so it bends to new cases.'],
+        ['What makes an incident “critical” in Tripp’s sense?', ['It was dangerous', 'The teacher analysed it and it revealed something about practice', 'A manager reported it'], 1, 'The analysis makes it critical, not the size of the event.']
+      ],
+      go: 'Pick one small moment from this week’s teaching that surprised you. Write what happened, what you assumed, and what else could explain it.',
+      dist: 'A distinction ending shows how the project changed your judgement, not only your method: what you now do differently in cases the project never covered.',
+      cards: [['Routine or adaptive expertise: which copes with a new situation, and why?', 'Adaptive expertise, because it rests on understanding why a method works.'], ['What is deliberate practice?', 'Practising one specific thing just beyond your level, with feedback (Ericsson).'], ['What is a critical incident?', 'An ordinary moment made significant by analysing what it reveals about practice (Tripp).']],
+      read: ['Hatano, G., & Inagaki, K. (1986). Two courses of expertise. In H. Stevenson, H. Azuma, & K. Hakuta (Eds.), Child development and education in Japan (pp. 262–272). Freeman.', 'Tripp, D. (1993). Critical incidents in teaching: Developing professional judgement. Routledge.', 'Ericsson, K. A., Krampe, R. T., & Tesch-Römer, C. (1993). The role of deliberate practice in the acquisition of expert performance. Psychological Review, 100(3), 363–406.'] },
+    { n: 11, d: '2026-11-25', k: 'Workshop', mins: 20, t: 'change', lo: [1, 2, 3, 4],
+      title: 'Workshop: your change project, with exemplars',
+      topics: ['Exemplars (WAGOLLs)', 'Assignment support', 'Practitioner inquiry development', 'Presentation preparation', 'Exemplars and critical evaluation'],
+      big: 'A workshop is where you get feedback on your own plan. Arrive with your project in four sentences, the rubric in mind and three questions ready.',
+      learn: [
+        ['What the session is', 'WAGOLL means “what a good one looks like”. Expect to see model or past presentations, judge them against the grading rubric, work on your own inquiry, and start thinking about your 20 minutes.'],
+        ['What a distinction asks', 'The top band asks for detailed, critical analysis on every outcome. For research it adds a range of sources and their impact on practice. The marks go in steps: 74, 81, 89, 96.'],
+        ['The ladder', 'Describe says what happened. Explain says why. Analyse breaks the evidence apart to find a pattern. Evaluate weighs it: how far can this be trusted, and so what? Most marks are lost on the bottom two rungs.'],
+        ['How to judge an exemplar', 'Ask one question for each outcome. LO1: are planning decisions analysed, or only described? LO2: is the pedagogy special to the subject? LO3: who gained and who did not? LO4: are sources weighed and limits named? Decide a band before the tutor says.'],
+        ['Your own project tonight', 'Say it in four sentences: the problem you saw, the change you are making, how you will know it worked, and the research that made you choose it. Take your proposal and any scores you already hold.']
+      ],
+      wrong: [['It is a workshop, so there is nothing to prepare.', 'It is where you get feedback on your own plan. No plan, no feedback.'], ['An exemplar is a template to copy.', 'It shows a standard. Your structure must fit your project, and copying is an academic conduct risk.'], ['Critical means finding fault.', 'It means weighing: strengths, limits, other explanations, and so what.'], ['More references means a higher mark.', 'The rubric rewards a range that is evaluated and tied to practice, not a count.']],
+      ask: ['In the exemplars, what one thing separated a 74 from a 68?', 'What counts as a range of research for LO4?', 'For LO3, how wide should I go: the whole subject curriculum, or the part my project touches?', 'If my results are flat or mixed, how should I present that?', 'Under AITS 2, what exactly may I use AI for, and how detailed should the statement on the opening slide be?'],
+      check: [
+        ['Which words mark the distinction band on every outcome?', ['Some analysis', 'Detailed and critical', 'Clear and well presented'], 1, 'Every outcome’s top band asks for detailed, critical work.'],
+        ['“Scores rose, but the unit was also revisited in workshops, so I can claim a pattern, not proof.” Which rung is this?', ['Describe', 'Explain', 'Evaluate'], 2, 'It weighs another explanation and limits the claim. That is evaluation.'],
+        ['How long is the presentation?', ['10 minutes plus 5 of questions', '20 minutes plus up to 10 of questions', '30 minutes with no questions'], 1, 'Twenty minutes to present, then up to ten minutes of questions.']
+      ],
+      go: 'After class, spend 15 minutes writing what you took from the workshop: one habit to copy from the exemplars, one to avoid, and one change to your own plan.',
+      dist: 'Use the exemplars to set your own bar: note what the strongest one did on each outcome, then plan where your presentation will do the same with your own evidence.',
+      cards: [['Name the four rungs from describing to evaluating.', 'Describe, explain, analyse, evaluate.'], ['What does the distinction band ask for on LO4?', 'Detailed, critical evaluation of a range of research and its impact on practice.'], ['What must the opening slide of the presentation include?', 'Module code and title, your name, student number, the assignment title, a statement on AI use, and a learning contract note if you have one.']],
+      read: ['Your Module 2 handbook: the assessment brief and the grading rubric.'] },
+    { n: 12, d: '2026-12-02', k: 'Guest speakers', mins: 20, t: '', lo: [2, 3],
+      title: 'Learning technology and assistive technology',
+      topics: ['ILT tools (content based on trainee needs and requests)', 'Assistive technology', 'Digital teaching tools', 'Accessibility', 'Inclusive digital practice', 'Technology-enhanced learning'],
+      big: 'Technology earns its place when it removes a barrier, or does something the lesson could not do without it.',
+      learn: [
+        ['Technology with a purpose', 'ILT means information and learning technology. Start from the learning problem, then choose the tool. The SAMR model is one way to ask what a tool adds: does it only stand in for paper, or does it change the task?'],
+        ['Assistive technology', 'Assistive technology helps a learner do what a barrier would otherwise stop: screen readers, text to speech, speech to text, captions, magnifiers, alternative keyboards. Much of it is already built into phones, Windows and Microsoft 365.'],
+        ['Accessible by default', 'Simple habits make materials usable for more people: real headings, good contrast, readable fonts, alt text on images, captions on video, and files that can be read aloud. Doing this for everyone means fewer special arrangements later.'],
+        ['The law and the limits', 'The Equality Act 2010 expects reasonable adjustments for disabled learners, thought about in advance. Technology can also exclude: not everyone has a device, data or the skills. A critical view weighs both.']
+      ],
+      wrong: [['Assistive technology is only for learners with a diagnosis.', 'Captions, read-aloud and dictation help many learners.'], ['More technology means better teaching.', 'A tool that only replaces paper adds little.'], ['Accessibility is the support team’s job.', 'The materials you make are yours to make accessible.']],
+      ask: ['Which assistive tools are available on the college’s systems?', 'How do I find out what my learners already use?', 'What evidence would show a tool improved learning, and not only engagement?'],
+      check: [
+        ['Which of these is assistive technology?', ['A louder projector', 'Text to speech that reads a document aloud', 'A new whiteboard pen'], 1, 'It removes a barrier to reading for the learner who needs it.'],
+        ['In SAMR, “substitution” means the technology…', ['Transforms the task', 'Replaces an old tool with no real change to the task', 'Removes the teacher'], 1, 'Substitution is the lowest level: same task, new tool.']
+      ],
+      go: 'Run the accessibility checker on one slide deck or handout you will use next week, fix what it finds, and try the read-aloud on it yourself.',
+      dist: 'Link a digital choice to a named barrier and to evidence that it helped, then weigh the risks: access, distraction, and what the research does not yet show.',
+      cards: [['What is assistive technology?', 'Technology that helps a learner get past a barrier, such as text to speech, speech to text, captions or a screen reader.'], ['Name four habits that make a document more accessible.', 'Any four of: real headings, good contrast, a readable font, alt text, captions, plain language, a file that can be read aloud.'], ['What does the SAMR model ask about a tool?', 'Whether it only substitutes for an old tool, or augments, modifies or redefines the task.']],
+      read: ['Equality Act 2010, section 20 (the duty to make adjustments).', 'Puentedura, R. R. (2006). Transformation, technology, and education (the SAMR model).'] },
+    { n: 13, d: '2026-12-09', k: 'Guest speaker', mins: 20, t: '', lo: [2, 4],
+      title: 'Getting started with AI in the classroom',
+      topics: ['AI in education', 'Responsible use of AI', 'AI and assessment', 'AI and safeguarding', 'Digital literacy', 'Preparing learners for AI-enabled workplaces'],
+      big: 'Generative AI is a tool learners will meet at work. Teaching them to use it well includes teaching them when not to trust it.',
+      learn: [
+        ['What it is', 'Generative AI produces text, images or code by predicting what is likely to come next, from patterns in the material it was trained on. It can be fluent and wrong at the same time, and it can repeat the bias in that material.'],
+        ['Responsible use', 'Three habits: check its output against a trusted source, keep personal and sensitive data out of public tools, and say when you have used it. Your own module works this way: AI may shape your work, and you declare it.'],
+        ['AI and assessment', 'If AI can do the task, the task may not be measuring the learner. Awarding organisations treat undeclared AI use as malpractice. Answers include assessing the process, using observed or spoken work, and setting tasks rooted in the learner’s own practice.'],
+        ['Safeguarding and literacy', 'Risks include harmful or false content, faked images and voices, and over-sharing data. Digital literacy now includes knowing roughly how these tools work, questioning their output, and seeing how your occupation is starting to use them.']
+      ],
+      wrong: [['AI detectors can prove a learner cheated.', 'Detectors are unreliable. Evidence of the process, and a conversation, are stronger.'], ['AI output is neutral.', 'It reflects what it was trained on, including the bias and the gaps.'], ['Banning AI solves the problem.', 'Learners will meet it at work. They need to learn to use it and to question it.']],
+      ask: ['What is the college’s policy on learners using AI in coursework?', 'How should I adapt an assessment that AI could complete?', 'How do I teach learners to check AI output in my subject?'],
+      check: [
+        ['Why can generative AI give a confident wrong answer?', ['It is designed to deceive', 'It predicts likely text and does not check facts', 'It only knows maths'], 1, 'Fluency comes from prediction, not from checking.'],
+        ['Which is the safest habit with a public AI tool?', ['Paste in learner names to save time', 'Keep personal and sensitive data out of it', 'Trust it for regulations and standards'], 1, 'Personal data should stay out, and technical standards should be checked at the source.']
+      ],
+      go: 'Ask an AI tool a technical question from your subject where you know the answer and the standard. Note what it got right and wrong, and use that for a five-minute discussion with learners.',
+      dist: 'Treat AI as contested ground: set the claims for it against the evidence so far, which is young, and connect it to assessment validity and inclusion.',
+      cards: [['Why can generative AI be fluent and wrong?', 'It predicts likely text from patterns in its training material. It does not check facts.'], ['Give three habits for responsible AI use.', 'Check the output, keep personal data out, and declare your use.'], ['How can an assessment be made more robust to AI?', 'Assess the process, use observed or spoken work, and root tasks in the learner’s own practice.']],
+      read: ['Department for Education. Generative artificial intelligence (AI) in education (policy paper, updated from time to time).', 'Joint Council for Qualifications. AI use in assessments: Protecting the integrity of qualifications.'] },
+    { n: 14, d: '2026-12-16', k: 'Online taught lesson', mins: 20, t: '', lo: [2, 3],
+      title: 'How to teach online and blended',
+      topics: ['Online pedagogy', 'Blended learning', 'Active learning online', 'Digital assessment', 'Teacher presence', 'Online safeguarding'],
+      big: 'Online teaching is not a classroom lesson on camera. Attention is shorter, silence hides more, and presence has to be designed.',
+      learn: [
+        ['Three kinds of presence', 'The Community of Inquiry model says good online learning needs teaching presence (design and direction), social presence (people feel real to each other) and cognitive presence (learners build meaning). Weakness in one shows up as silence.'],
+        ['Blended and flipped', 'Blended learning mixes online and face-to-face so that each does what it does best. In a flipped design learners meet new content first on their own, and class time is used for practice and questions.'],
+        ['Active learning online', 'Plan something for learners to do every few minutes: a poll, the chat, a shared whiteboard, a breakout task with something to produce, a quiz. Using names keeps people present. Check understanding more often than you would in a room.'],
+        ['Assessment and safety', 'Digital assessment can give instant feedback, but check it is valid for the skill. Online safeguarding covers recording, cameras, private messaging, suitable spaces and how to report a concern. Follow your college’s policy.']
+      ],
+      wrong: [['A good classroom lesson works the same online.', 'It needs shorter inputs and more planned activity.'], ['Cameras on means engaged.', 'Engagement is what learners produce, not what you can see.'], ['Online is always less effective.', 'The design matters more than the medium.']],
+      ask: ['How will the online microteach be run, and how long is my slot?', 'What are the rules on recording and cameras?', 'Which tools may I use for interaction in the microteach?'],
+      check: [
+        ['The three presences in the Community of Inquiry model are…', ['Teaching, social, cognitive', 'Plan, monitor, evaluate', 'Visual, auditory, kinaesthetic'], 0, 'Teaching presence, social presence and cognitive presence.'],
+        ['Which keeps learners most active online?', ['A 40-minute talk with slides', 'A short input, then a task with something to produce', 'Asking “any questions?” at the end'], 1, 'A task with a product gives every learner something to do and gives you something to check.']
+      ],
+      go: 'Plan your online microteach as a strip: for every three to five minutes, write what learners will do, not what you will say.',
+      dist: 'Analyse what the online format did to your subject pedagogy: what could not be taught that way, what worked better, and who was helped or shut out.',
+      cards: [['Name the three presences of the Community of Inquiry model.', 'Teaching presence, social presence and cognitive presence (Garrison, Anderson and Archer).'], ['What is flipped learning?', 'Learners meet new content on their own first, and class time is used for practice and questions.'], ['Give three ways to make an online session active.', 'Any three of: polls, chat tasks, a shared whiteboard, breakout tasks with a product, quizzes, questions by name.']],
+      read: ['Garrison, D. R., Anderson, T., & Archer, W. (2000). Critical inquiry in a text-based environment: Computer conferencing in higher education. The Internet and Higher Education, 2(2–3), 87–105.'] },
+    { n: 15, d: '2027-01-06', k: 'Online microteach', mins: 10, t: '', lo: [2],
+      title: 'Online microteach (first week)',
+      topics: ['Online lesson delivery', 'Digital teaching strategies', 'Reflection and feedback', 'Professional discussion'],
+      big: 'A microteach is a short lesson taught to your peers, then picked apart kindly. The feedback and your reflection are the point.',
+      learn: [
+        ['One small outcome', 'Choose one thing learners will be able to do by the end, small enough to teach and check in the time. Say it at the start and check it at the end.'],
+        ['Design for doing', 'Plan an activity every few minutes, and a check that shows you every learner’s answer. Test your tools, your sound and your sharing beforehand, and have a plan for when something fails.'],
+        ['Giving and taking feedback', 'Useful peer feedback is specific, about the teaching and not the person, and offers a next step. When you receive it, listen, ask a question and note it. You decide later what to act on.'],
+        ['Reflect afterwards', 'Write it up the same day with a model such as Gibbs: what happened, what you felt, what went well and badly, why, and what you would change. It is evidence for your portfolio.']
+      ],
+      wrong: [['The microteach is a performance to get right.', 'It is a rehearsal to learn from.'], ['Good feedback is praise.', 'Good feedback is specific and can be used.']],
+      ask: ['How long is my slot, and how will the feedback be given?', 'Can the microteach count as evidence for my portfolio?'],
+      check: [
+        ['The best outcome for a short microteach is…', ['To cover a whole unit', 'One small thing learners can do and you can check', 'To show every tool you know'], 1, 'Small enough to teach and to check in the time.'],
+        ['Which is the most useful peer feedback?', ['“That was great.”', '“Your poll at minute five showed three people were lost. A second example there might help.”', '“I would have taught something else.”'], 1, 'It is specific, about the teaching, and offers a next step.']
+      ],
+      go: 'Teach the same idea to one of your own groups this week, and compare how it went with the microteach.',
+      dist: 'Use the microteach as evidence of adapting your subject pedagogy to a new medium, and be exact about what the feedback made you change.',
+      cards: [['What makes peer feedback useful?', 'It is specific, about the teaching, and offers a next step.'], ['Name the stages of Gibbs’ reflective cycle.', 'Description, feelings, evaluation, analysis, conclusion, action plan.']],
+      read: ['Gibbs, G. (1988). Learning by doing: A guide to teaching and learning methods.'] },
+    { n: 16, d: '2027-01-13', k: 'Online microteach', mins: 10, t: '', lo: [2],
+      title: 'Online microteach (second week)',
+      topics: ['Online lesson delivery', 'Digital teaching strategies', 'Reflection and feedback', 'Professional discussion'],
+      big: 'Watching others teach is half the learning. Take one idea from each microteach you see.',
+      learn: [
+        ['Watch like a teacher', 'As a peer, note the moment learning was checked, the moment attention dipped, and one move you could borrow. Write the feedback you would want to receive.'],
+        ['If you have taught already', 'Reflect while it is fresh. Compare the feedback you were given with your own view. Where they differ is the interesting part.'],
+        ['If you teach today', 'Use what you saw last week: what kept people active, and what lost them.']
+      ],
+      wrong: [['When I am not teaching, I am the audience.', 'You are a learner and an observer, and both give you evidence.']],
+      ask: ['What should my written reflection on the microteach include?'],
+      go: 'Borrow one move you saw in a peer’s microteach and use it in a lesson this week. Note how it went.',
+      dist: 'Comparing your own teaching with a peer’s, and saying what you would and would not borrow and why, is analysis.' },
+    { n: 17, d: '2027-01-20', k: 'Taught session', mins: 20, t: '', lo: [3, 4],
+      title: 'Inequality in education',
+      topics: ['Social justice', 'Bourdieu and habitus', 'Deprivation', 'Intersectionality', 'Educational disadvantage', 'Participation and attainment', 'Equity in education'],
+      big: 'Unequal outcomes are not only about individual effort. They follow patterns of class, ethnicity, sex, disability and place, and education can widen or narrow them.',
+      learn: [
+        ['Bourdieu’s tools', 'Capital is what people can draw on: economic (money), social (who you know) and cultural (the knowledge, language and ways of behaving that institutions reward). Habitus is the set of expectations you absorb from your background. Field is the setting with its own rules, such as a college.'],
+        ['How it plays out', 'When a college quietly rewards one kind of cultural capital, learners who have it look “bright” and others look “weak”. Bourdieu’s point is that inherited advantage then passes for merit.'],
+        ['Intersectionality', 'Crenshaw’s term: disadvantages combine. A learner is not only working class, or only a woman, or only disabled. The combination can produce barriers that looking at one label at a time misses.'],
+        ['Equity and social justice', 'Equality gives everyone the same. Equity gives each what they need to reach the same goal. A social justice view asks who the system works for, not what is wrong with the learner. That is the opposite of deficit thinking.']
+      ],
+      wrong: [['Disadvantage comes from low aspiration.', 'Studies often find high aspirations and unequal means to reach them.'], ['Treating everyone the same is fair.', 'The same treatment keeps unequal starting points in place.'], ['Bourdieu says working-class learners lack culture.', 'He says institutions value some culture over other culture.']],
+      ask: ['How does inequality show up in engineering and in who chooses a T Level?', 'How do I use Bourdieu critically, and not as a label for my learners?', 'What data does the college hold on gaps in participation and achievement?'],
+      check: [
+        ['Cultural capital is…', ['Money available for trips', 'Knowledge, language and behaviours that institutions reward', 'The number of qualifications a college offers'], 1, 'It is the know-how that schools and colleges treat as ability.'],
+        ['Intersectionality means…', ['Mixing topics in one lesson', 'Forms of disadvantage combine and cannot be understood one at a time', 'Teaching across departments'], 1, 'The combination matters, not each label on its own.'],
+        ['Equity means…', ['Everyone gets the same', 'Each learner gets what they need to reach the same goal', 'Lower goals for some'], 1, 'The goal stays the same. The support differs.']
+      ],
+      go: 'Look at who chose your course and who succeeds on it, by sex, ethnicity and disability if you can. Note one pattern, and one thing in your own practice that might feed it.',
+      dist: 'Apply a theory to your own curriculum and data, then turn on the theory: what does Bourdieu not explain, and what do his critics say?',
+      cards: [['Name Bourdieu’s three forms of capital.', 'Economic, social and cultural.'], ['What is habitus?', 'The expectations a person absorbs from their background, which shape what feels natural or possible.'], ['What is intersectionality, and who named it?', 'The way forms of disadvantage combine. Kimberlé Crenshaw (1989).'], ['Equality or equity: which gives each learner what they need?', 'Equity.']],
+      read: ['Bourdieu, P. (1986). The forms of capital. In J. Richardson (Ed.), Handbook of theory and research for the sociology of education (pp. 241–258). Greenwood.', 'Crenshaw, K. (1989). Demarginalizing the intersection of race and sex. University of Chicago Legal Forum, 1989(1), 139–167.', 'Reay, D. (2017). Miseducation: Inequality, education and the working classes. Policy Press.'] },
+    { n: 18, d: '2027-01-27', k: 'Taught session', mins: 20, t: '', lo: [3],
+      title: 'Creating equitable education: diversifying and decolonising the curriculum',
+      topics: ['Decolonising the curriculum', 'Diversifying the curriculum', 'EEDI', 'Policy and practice', 'Representation', 'Inclusive curriculum design'],
+      big: 'Diversifying adds missing voices to the curriculum. Decolonising goes further and asks why those voices were missing and whose knowledge counts.',
+      learn: [
+        ['Diversify', 'Diversifying widens the examples, people and sources learners meet, so that more of them can see themselves in the subject. In engineering that could be whose inventions, which countries’ projects and which workplaces appear in your materials.'],
+        ['Decolonise', 'Decolonising asks deeper questions: how did this knowledge come to be the standard, who was left out or exploited, and what other ways of knowing exist? It is contested, and a critical account says so and weighs the arguments.'],
+        ['Policy', 'The Equality Act 2010 names nine protected characteristics, and the public sector equality duty asks colleges to advance equality, not only to avoid discrimination. EEDI stands for equity, equality, diversity and inclusion.'],
+        ['Practice', 'Start small and real: audit one unit for who appears and who does not, change examples and case studies, check images and names, invite learners’ own knowledge, and notice who speaks in your room.']
+      ],
+      wrong: [['Decolonising means removing content.', 'It usually means adding, questioning and setting in context.'], ['This does not apply to technical subjects.', 'Examples, histories, standards and who is shown as an engineer are all choices.'], ['Representation alone makes a curriculum inclusive.', 'Access, assessment and belonging matter as much.']],
+      ask: ['What would decolonising look like in a technical curriculum?', 'How do I audit a unit for representation?', 'How do I handle disagreement about this in my team or classroom?'],
+      check: [
+        ['How many protected characteristics does the Equality Act 2010 name?', ['Five', 'Seven', 'Nine'], 2, 'Nine: age, disability, gender reassignment, marriage and civil partnership, pregnancy and maternity, race, religion or belief, sex, and sexual orientation.'],
+        ['Compared with diversifying, decolonising…', ['Only adds new examples', 'Also questions how knowledge became the standard and whose it is', 'Applies only to history'], 1, 'Diversifying widens what is included. Decolonising also asks why it was narrow.']
+      ],
+      go: 'Audit one set of your slides: who is pictured, named or quoted? Change two examples so that more of your learners can see themselves in the subject.',
+      dist: 'Go past representation: evaluate how your curriculum’s content, examples and assessment include or exclude, and use both supporters and critics of the ideas.',
+      cards: [['Diversifying or decolonising: which asks whose knowledge counts, and why?', 'Decolonising. Diversifying widens the voices and examples included.'], ['What does the public sector equality duty ask of a college?', 'To eliminate discrimination, advance equality of opportunity and foster good relations.'], ['Name five of the nine protected characteristics.', 'Any five of: age, disability, gender reassignment, marriage and civil partnership, pregnancy and maternity, race, religion or belief, sex, sexual orientation.']],
+      read: ['Equality Act 2010, section 149 (the public sector equality duty).', 'Arday, J., & Mirza, H. S. (Eds.). (2018). Dismantling race in higher education: Racism, whiteness and decolonising the academy. Palgrave Macmillan.'] },
+    { n: 19, d: '2027-02-03', k: 'Workshop', mins: 10, t: 'standards', lo: [],
+      title: 'Workshop: portfolios',
+      topics: ['Portfolio development', 'Professional discussion preparation', 'Assignment support', 'Evidence mapping'],
+      big: 'A portfolio is an argument that you meet the standard. Each piece of evidence needs a KSB and a sentence saying why it shows it.',
+      learn: [
+        ['Evidence mapping', 'Mapping means linking each piece of evidence to the knowledge, skills and behaviours it shows. One strong piece can cover several. Gaps on the map tell you what to collect next.'],
+        ['Quality over quantity', 'Choose evidence that is real, recent and clearly yours, and add a short note saying what it shows. One lesson plan with your reflection beats ten plans with none.'],
+        ['The professional discussion', 'In the discussion you talk through your evidence. Prepare by picking your best example for each duty, and practise saying what you did, why, and what changed for learners.'],
+        ['Bring to the workshop', 'Your current map, your list of gaps, and two pieces of evidence you are unsure about.']
+      ],
+      wrong: [['More evidence is safer.', 'Evidence without an explanation is weak evidence.'], ['The portfolio is separate from Module 2.', 'Your change project is rich portfolio evidence.']],
+      ask: ['Which of my gaps are most urgent?', 'Is this piece of evidence strong enough for the KSBs I have mapped it to?', 'How is the professional discussion structured?'],
+      go: 'Map this week’s teaching: pick one lesson, tag the KSBs it shows on your Portfolio tab, and write two lines on why.',
+      dist: 'The same critical habit applies here: do not only claim a KSB, weigh how well the evidence shows it.',
+      cards: [['What is evidence mapping?', 'Linking each piece of evidence to the knowledge, skills and behaviours it shows.']] },
+    { n: 20, d: '2027-02-10', k: 'Taught session', mins: 20, t: '', lo: [2, 3],
+      title: 'Behaviour and difficult conversations',
+      topics: ['Behaviour as communication', 'Complex learner behaviours', 'Restorative approaches', 'Professional conversations', 'Professional judgement', 'Behaviour in inclusive settings'],
+      big: 'Behaviour tells you something. The skill is to hear what it says, keep the relationship, and still hold the line.',
+      learn: [
+        ['Behaviour as communication', 'Behaviour often signals something unmet: the work is too hard or too easy, something happened before the lesson, a need is not being met, or the learner is saving face. Asking “what is this telling me?” opens more options than “how do I stop this?”'],
+        ['Prevent first', 'Clear routines, consistent expectations, good relationships and well-pitched work prevent most problems. Learners in further education respond to being treated as adults, with reasons given.'],
+        ['Restorative approaches', 'A restorative conversation asks what happened, who was affected, and what needs to happen to put it right. It aims to repair harm and keep the learner in the group, and it still holds them responsible.'],
+        ['Difficult conversations', 'Prepare the facts, choose a private place and a calm time, describe the behaviour and its effect without labelling the person, listen, agree a next step and record it. Know when to refer on: safeguarding and specialist needs are not yours to handle alone.']
+      ],
+      wrong: [['Restorative means no consequences.', 'It means consequences that repair, and the learner is still held responsible.'], ['Understanding behaviour means excusing it.', 'You can understand the cause and still hold the expectation.'], ['Behaviour is a school issue.', 'Learners of 16 to 19 and adults bring complex lives into college.']],
+      ask: ['How do I hold a restorative conversation with a 17-year-old who does not want to talk?', 'Where is the line between my role and a referral?', 'How do I record a difficult conversation properly?'],
+      check: [
+        ['Seeing behaviour as communication means…', ['Ignoring poor behaviour', 'Asking what need or barrier the behaviour is signalling', 'Sending the learner out'], 1, 'You look for the cause, and you still hold the expectation.'],
+        ['Which question belongs to a restorative conversation?', ['“Why are you always like this?”', '“Who was affected, and what needs to happen to put it right?”', '“Do you want to be removed from the course?”'], 1, 'Restorative questions look at harm and repair, not at labels or threats.']
+      ],
+      go: 'Before your next lesson with a group you find hard, pick one learner and plan one positive, private contact in the first five minutes. Note what changed.',
+      dist: 'Connect behaviour to curriculum and pedagogy: what in your planning feeds it or prevents it? Weigh restorative practice against its critics and the evidence for it.',
+      cards: [['What three questions shape a restorative conversation?', 'What happened? Who was affected? What needs to happen to put it right?'], ['What does “behaviour is communication” ask a teacher to do?', 'Look for the need or barrier the behaviour is signalling, while still holding the expectation.'], ['Give four steps for a difficult conversation.', 'Any four of: prepare the facts, choose a private and calm moment, describe the behaviour and its effect, listen, agree a next step, record it.']],
+      read: ['Education Endowment Foundation. (2019). Improving behaviour in schools: Guidance report.', 'Bennett, T. (2017). Creating a culture: How school leaders can optimise behaviour. Department for Education.'] },
+    { n: 21, d: '2027-02-24', k: 'Guest speaker', mins: 20, t: '', lo: [3],
+      title: 'Trauma-informed practice',
+      topics: ['Trauma-informed education', 'Adverse experiences and learning', 'Emotional safety', 'Relational practice', 'Inclusive support strategies'],
+      big: 'Trauma-informed practice asks “what happened to you?” before “what is wrong with you?”, and builds safety so that learning can happen.',
+      learn: [
+        ['Adverse experiences', 'Adverse childhood experiences (ACEs) include abuse, neglect and serious difficulty at home. The first ACE study linked more of them to worse health in adult life. Many learners in further education carry such experiences, and you will not always know who.'],
+        ['What stress does to learning', 'A learner who feels under threat is busy staying safe: watchful, quick to react, or shut down. Attention and memory suffer. What looks like defiance or laziness can be a stress response.'],
+        ['What helps', 'Predictable routines, calm and consistent adults, choice where possible, warning before changes, and a way to step out and come back. Widely used principles include safety, trust, choice, collaboration and empowerment.'],
+        ['Your limits', 'You are a teacher, not a therapist. Your job is a safe room, a steady relationship and a prompt referral. Follow safeguarding procedures, and look after yourself: hearing hard stories has a cost.']
+      ],
+      wrong: [['Trauma-informed means lowering expectations.', 'It means high expectations with high support.'], ['I need to know each learner’s history.', 'The approach works for everyone without anyone having to tell you.'], ['An ACE score predicts an individual’s future.', 'The research shows risk across a population, not fate for a person.']],
+      ask: ['What does trauma-informed practice look like in a workshop with safety rules?', 'How do I respond in the moment when a learner shuts down or flares up?', 'What support is there for staff?'],
+      check: [
+        ['A trauma-informed teacher’s first aim is…', ['To find out what happened to each learner', 'To make the room feel safe and predictable', 'To avoid all challenge'], 1, 'Safety comes first. Nobody has to disclose anything for it to work.'],
+        ['ACE research is best used to understand…', ['Exactly how one learner will turn out', 'Patterns of risk across a population', 'Which learners to exclude'], 1, 'It describes groups, not the future of any one person.']
+      ],
+      go: 'Add one predictable routine to the start of your lessons this week, and tell learners in advance about any change to the usual plan.',
+      dist: 'Evaluate, do not only adopt: the evidence for trauma-informed approaches in education is still developing, and critics warn about labelling. Say what you can and cannot claim.',
+      cards: [['What question sums up a trauma-informed approach?', '“What happened to you?” instead of “What is wrong with you?”'], ['What are ACEs?', 'Adverse childhood experiences such as abuse, neglect and serious difficulty at home, linked across populations to worse later outcomes.'], ['Name three things that build emotional safety in a classroom.', 'Any three of: predictable routines, calm consistent adults, choice, warning of changes, a way to step out and return.']],
+      read: ['Felitti, V. J., Anda, R. F., Nordenberg, D., et al. (1998). Relationship of childhood abuse and household dysfunction to many of the leading causes of death in adults. American Journal of Preventive Medicine, 14(4), 245–258.', 'Substance Abuse and Mental Health Services Administration. (2014). SAMHSA’s concept of trauma and guidance for a trauma-informed approach.'] },
+    { n: 22, d: '2027-03-03', k: 'Guest speaker', mins: 20, t: 'adaptive', lo: [2, 3],
+      title: 'Working effectively with SEND support practitioners',
+      topics: ['Roles and responsibilities', 'Building effective partnerships', 'Support versus dependence', 'Communication', 'Challenges', 'Person-centred practice'],
+      big: 'A support practitioner is a colleague, not a spare pair of hands. The lesson works best when you plan together and the learner does the thinking.',
+      learn: [
+        ['Who does what', 'You remain responsible for every learner’s learning. Support staff add to your teaching. They do not replace it. Learners with the greatest needs should get at least as much of the teacher’s time as anyone else.'],
+        ['Support, not dependence', 'Research on teaching assistants found that poorly directed support can reduce progress, because the helper does the task or the learner waits for help. Good support gives the least help first: wait, prompt, clue, model, and only then show.'],
+        ['Communicate', 'Share the plan before the lesson: the goal, the key words, where the learner may struggle, and what you would like the supporter to do. Ask for their observations afterwards. A two-minute handover is better than none.'],
+        ['Person-centred', 'A plan such as an education, health and care plan (EHCP) sets out outcomes the learner and family helped choose. Person-centred practice means the learner has a say in how they are supported, and is spoken to, not about.']
+      ],
+      wrong: [['The support worker looks after “their” learner.', 'The teacher stays responsible for that learner’s learning.'], ['More help means more learning.', 'Too much help builds dependence. Least help first.'], ['There is no time to plan together.', 'Two minutes and a shared note change the lesson.']],
+      ask: ['What can I ask a support practitioner to do, and what must stay with me?', 'How do I share plans when we have no time together?', 'How do I reduce a learner’s dependence without taking support away?'],
+      check: [
+        ['“Least help first” means…', ['Leave the learner alone', 'Start with waiting and prompting before modelling or showing', 'Give the answer quickly to keep pace'], 1, 'Wait, prompt, clue, model: the learner does as much of the thinking as possible.'],
+        ['Who is responsible for the learning of a learner with one-to-one support?', ['The support practitioner', 'The teacher', 'Only the SEND coordinator'], 1, 'Support adds to your teaching. It does not move the responsibility.']
+      ],
+      go: 'Before one lesson this week, give your support colleague a three-line note: the goal, the tricky part, and what you would like them to do. Ask for one observation afterwards.',
+      dist: 'Analyse the partnership as part of your pedagogy, with the evidence on support staff, and weigh support against independence for a real learner, with the name removed.',
+      cards: [['What did research on teaching assistants warn about?', 'Poorly directed support can reduce progress, because the helper does the task or the learner becomes dependent.'], ['Put these in “least help first” order: model, prompt, wait, clue.', 'Wait, prompt, clue, model.'], ['What is an EHCP?', 'An education, health and care plan: a legal plan of a young person’s needs, outcomes and support, up to age 25.']],
+      read: ['Sharples, J., Webster, R., & Blatchford, P. (2015). Making best use of teaching assistants: Guidance report. Education Endowment Foundation.', 'Department for Education & Department of Health. (2015). Special educational needs and disability code of practice: 0 to 25 years.'] },
+    { n: 23, d: '2027-03-10', k: 'Taught session', mins: 20, t: 'adaptive', lo: [2, 3],
+      title: 'Breaking barriers with Universal Design for Learning (UDL)',
+      topics: ['Learner variability', 'Universal Design for Learning', 'Inclusive curriculum design', 'Accessibility', 'Removing barriers to learning'],
+      big: 'Universal Design for Learning plans for difference from the start, so that fewer learners need a special arrangement later.',
+      learn: [
+        ['Variability is normal', 'Learners differ in how they take in information, how they show what they know and what keeps them going. UDL treats that as the expected case, and sees the barrier as being in the design, not in the learner.'],
+        ['Three principles', 'CAST’s framework asks for multiple means of engagement (the why of learning), representation (the what) and action and expression (the how). In plain words: more than one way in, more than one way to take it in, more than one way to show it.'],
+        ['In practice', 'Offer the same content as text, diagram and demonstration. Let learners show understanding by writing, speaking, making or doing, where the standard allows. Build in choice, clear goals and regular feedback.'],
+        ['The critical view', 'UDL is widely recommended, but reviews find the research on its effect on attainment limited and mixed, partly because it is a framework and not one method. It also cannot change a qualification’s fixed assessment.']
+      ],
+      wrong: [['UDL is another word for differentiation.', 'Differentiation adapts for individuals afterwards. UDL designs options in for everyone from the start.'], ['UDL means every learner chooses everything.', 'It means planned options around a clear, fixed goal.'], ['UDL is proven to raise results.', 'The evidence is promising but limited.']],
+      ask: ['How do I use UDL when the assessment method is fixed by the awarding organisation?', 'What is the difference between UDL and adaptive teaching in practice?', 'How strong is the evidence for UDL?'],
+      check: [
+        ['The three UDL principles are multiple means of…', ['Engagement, representation, action and expression', 'Planning, monitoring, evaluating', 'Reading, writing, speaking'], 0, 'The why, the what and the how of learning.'],
+        ['In UDL, the barrier is seen as being in…', ['The learner', 'The design of the curriculum and lesson', 'The awarding organisation'], 1, 'Change the design, and fewer learners need a separate arrangement.']
+      ],
+      go: 'Take one lesson next week and add one more way in: the key idea as a diagram as well as text, or a choice of how to show the answer. Note who used it.',
+      dist: 'Set UDL beside adaptive teaching, apply both to your curriculum, and be honest about the limited evidence. That contrast serves LO3 and LO4 together.',
+      cards: [['Name the three UDL principles.', 'Multiple means of engagement, representation, and action and expression.'], ['Where does UDL place the barrier to learning?', 'In the design of the curriculum and lesson, not in the learner.'], ['Give one limit of UDL to mention in a critical account.', 'The evidence for its effect on attainment is limited and mixed, and it cannot change a fixed assessment method.']],
+      read: ['CAST. (2024). Universal Design for Learning guidelines version 3.0.', 'Meyer, A., Rose, D. H., & Gordon, D. (2014). Universal design for learning: Theory and practice. CAST.'] },
+    { n: 24, d: '2027-03-17', k: 'Educational visit or independent study', mins: 20, t: '', lo: [1, 3],
+      title: 'Embedding Education for Sustainable Development (ESD)',
+      topics: ['Sustainability', 'Education for Sustainable Development', 'Green skills', 'Ethical practice', 'Subject-specific sustainability', 'Global and local challenges'],
+      big: 'Education for Sustainable Development means learners leave able to do their job in a way that does not cost the future.',
+      learn: [
+        ['What it is', 'Sustainable development meets today’s needs without stopping future generations meeting theirs. It has three linked sides: environmental, social and economic. UNESCO’s Education for Sustainable Development asks every subject to build the knowledge, skills and values for it.'],
+        ['Green skills', 'Every occupation is changing. In engineering that means energy efficiency, low-carbon technologies, choice of materials, waste, repair and whole-life cost. Green skills are becoming ordinary job skills.'],
+        ['Embed, do not bolt on', 'A one-off “green week” teaches little. Embedding means sustainability shows up inside normal tasks: the material you choose in a design brief, the energy calculation, the disposal step in a method statement.'],
+        ['Local and global', 'The United Nations’ 17 Sustainable Development Goals give a shared map. Local examples make it real: a nearby employer’s net-zero plan, or the college’s own energy use. Ethical practice includes being honest about trade-offs.']
+      ],
+      wrong: [['Sustainability is about recycling.', 'It covers environment, society and economy together.'], ['It is an extra topic to fit in.', 'It belongs inside the tasks you already teach.'], ['It does not apply to my subject.', 'Every occupation’s practice is changing.']],
+      ask: ['Where does sustainability already sit in my specification?', 'Which local employers could give a real example?', 'How do I evidence ESD for my portfolio?'],
+      check: [
+        ['The three sides of sustainable development are…', ['Environmental, social, economic', 'Local, national, global', 'Reduce, reuse, recycle'], 0, 'Environment, society and economy, taken together.'],
+        ['Embedding ESD means…', ['One special sustainability day a year', 'Sustainability built into ordinary subject tasks', 'A poster in the workshop'], 1, 'It shows up inside the work learners already do.']
+      ],
+      go: 'Add one sustainability decision to a task you already set, such as a choice of material with a reason, and ask learners to justify it.',
+      dist: 'Treat ESD as a curriculum question: what your specification includes and leaves out, what you added, and how learners responded.',
+      cards: [['Give the classic definition of sustainable development.', 'Meeting the needs of the present without compromising the ability of future generations to meet theirs (Brundtland report, 1987).'], ['How many UN Sustainable Development Goals are there?', '17.'], ['What does it mean to embed ESD?', 'To build sustainability into ordinary subject tasks, instead of teaching it as a separate extra.']],
+      read: ['UNESCO. (2020). Education for sustainable development: A roadmap.', 'Department for Education. (2022). Sustainability and climate change: A strategy for the education and children’s services systems.'] },
+    { n: 25, d: '2027-03-24', k: 'Taught session', mins: 20, t: 'reflect', lo: [1],
+      title: 'Professional practice, development, coaching and mentoring',
+      topics: ['Professional relationships', 'Coaching and mentoring', 'Dual professionalism', 'Professional identity', 'Labour market intelligence', 'Career-long professional development', 'QTLS and professional recognition'],
+      big: 'Qualifying is the start. A professional keeps developing in both the subject and the teaching of it, and can say how.',
+      learn: [
+        ['Coaching and mentoring', 'A mentor shares experience and advice from further along the same road. A coach mostly asks questions so that you find your own answer. The GROW model gives a coaching conversation a shape: goal, reality, options, will.'],
+        ['Professional identity', 'Many teachers in further education first see themselves as engineers, nurses or chefs who teach. Over time the identity becomes dual. Noticing that shift in yourself is worth a line in your reflection.'],
+        ['Keeping current', 'Professional development works when it is sustained, focused on learners and tried out in practice. One-off training days change little. Industry updating, such as a day back in a workplace, keeps the occupational side current.'],
+        ['QTLS', 'Qualified Teacher Learning and Skills status is awarded by the Society for Education and Training after a period of professional formation, which follows a teaching qualification. Check the current rules and its standing with the Society before you rely on it.']
+      ],
+      wrong: [['Mentoring and coaching are the same.', 'A mentor advises from experience. A coach helps you find your own answer.'], ['Professional development means attending courses.', 'It means anything that changes your practice, and it is judged by that change.'], ['After the PGCE I am finished.', 'The professional standards expect development across a whole career.']],
+      ask: ['What is the route to QTLS after this course?', 'How do I record professional development so that it counts?', 'How can I keep my industry knowledge current while teaching full time?'],
+      check: [
+        ['In the GROW model, the letters stand for…', ['Goal, reality, options, will', 'Guide, review, observe, write', 'Group, role, outcome, work'], 0, 'Goal, reality, options, will (or way forward).'],
+        ['Which describes coaching best?', ['Telling someone what you would do', 'Asking questions that help someone find their own answer', 'Grading a lesson'], 1, 'Advice from experience is mentoring. Coaching draws the answer out.']
+      ],
+      go: 'In your next mentor meeting, bring one goal and ask your mentor to coach you with questions before giving advice. Note the difference.',
+      dist: 'Close your presentation by placing the project in your development as a dual professional: what you will keep doing, and what you will inquire into next.',
+      cards: [['What do the letters of GROW stand for?', 'Goal, reality, options, will.'], ['How does a mentor differ from a coach?', 'A mentor advises from experience. A coach asks questions so that you find your own answer.'], ['What is QTLS and who awards it?', 'Qualified Teacher Learning and Skills status, awarded by the Society for Education and Training after professional formation.']],
+      read: ['Education and Training Foundation. (2022). Professional standards for teachers and trainers in the further education and training sector.', 'Whitmore, J. (2017). Coaching for performance (5th ed.). Nicholas Brealey.'] },
+    { n: 26, d: '2027-03-31', k: 'Taught session', mins: 10, t: 'reflect', lo: [],
+      title: 'Showcase and celebration',
+      topics: ['Professional growth', 'Sharing practice', 'Reflection on learning', 'Next steps and future development'],
+      big: 'Sharing your practice is a rehearsal for the presentation, and a chance to see how others solved the same problems.',
+      learn: [
+        ['What to bring', 'One thing you changed this year, the evidence that it helped or did not, and one thing you learned about yourself as a teacher. Keep it to a few minutes.'],
+        ['Listen for ideas', 'Note one idea from each colleague that you could try, and one question their work raises about your own.'],
+        ['Look ahead', 'With your project run finished or nearly finished, list what is still missing from your evidence before Easter, while you can still collect it.']
+      ],
+      wrong: [['A showcase is only for successes.', 'What did not work, and why, is often the most useful thing to share.']],
+      ask: ['Is anything missing from my project evidence that I can still collect?'],
+      go: 'After the showcase, write three lines: the idea you will borrow, the question you could not answer, and what you will do about it.',
+      dist: 'A question you could not answer at the showcase is a free preview of the ten minutes of questions in May.' },
+    { n: 27, d: '2027-04-21', k: 'Workshop', mins: 10, t: 'change', lo: [1, 2, 3, 4],
+      title: 'Workshop: bring a draft of your slides',
+      topics: ['Assignment support', 'Portfolio development', 'Tutorials', 'Professional discussion preparation'],
+      big: 'Bring a draft. Feedback on real slides is worth far more than feedback on an idea.',
+      learn: [
+        ['Map your 20 minutes', 'Give each learning outcome a clear place. One workable shape is: context and problem, the change and why, what happened, inclusion, the research and its limits, and what you will do next. About two minutes a slide is a comfortable pace.'],
+        ['Check the rungs', 'Go through each slide and ask which rung it is on: describing, explaining, analysing or evaluating. Move at least one point on every slide up a rung.'],
+        ['Use the tutorial', 'Ask the question you are least sure about first. Tutorials are short.']
+      ],
+      wrong: [['The slides are the presentation.', 'The slides support what you say. The analysis is in your talk.']],
+      ask: ['Does each outcome have a clear place in my draft?', 'Which slide is weakest, and why?'],
+      go: 'Record yourself presenting two slides. Listen once for timing and once for which rung you are on.',
+      dist: 'Ask for feedback against the distinction wording itself: where is this detailed and critical, and where is it only described?' },
+    { n: 28, d: '2027-04-28', k: 'Workshop', mins: 10, t: 'change', lo: [1, 2, 3, 4],
+      title: 'Workshop: tighten the argument and prepare for questions',
+      topics: ['Assignment support', 'Portfolio development', 'Tutorials', 'Professional discussion preparation'],
+      big: 'Second workshop: tighten the argument and get ready for the ten minutes of questions.',
+      learn: [
+        ['Likely questions', 'Write five questions you hope nobody asks, and answer them. Expect questions on your limits, on inclusion, and on what you would do differently.'],
+        ['References', 'Check that every source on your slides is in the reference list in APA 7, and that you have read what you cite.'],
+        ['The opening slide', 'Module code and title, your name, student number, the assignment title, your statement on AI use, and a learning contract note if you have one.']
+      ],
+      wrong: [['Questions are there to catch me out.', 'They let you show depth you had no time for.']],
+      ask: ['What kinds of questions are usually asked?', 'Is my statement on AI use detailed enough?'],
+      go: 'Do a full run-through against a 20-minute timer, and note where you ran over.',
+      dist: 'Prepare one deeper point for each outcome to bring out in the questions.' },
+    { n: 29, d: '2027-05-05', k: 'Peer review in class', mins: 10, t: 'change', lo: [1, 2, 3, 4],
+      title: 'Presentation peer review (Module 2)',
+      topics: ['Presentation peer review'],
+      big: 'A full practice run with feedback from peers, about two weeks before the slides are due.',
+      learn: [
+        ['Bring the whole thing', 'Present as if it were the day: full slides, real timing. Ask your reviewers to judge you against the four outcomes.'],
+        ['Review others well', 'Use the rubric. Say which band you would give each outcome, and which words made you choose. It is the same judging skill as the exemplar workshop in November.'],
+        ['Afterwards', 'Sort the feedback into fix now, think about, and leave. You have about two weeks before the slides are due on 21 May.']
+      ],
+      wrong: [['Peer feedback is worth less than tutor feedback.', 'Peers show you whether your argument is clear to someone outside your subject.']],
+      ask: ['Will the tutor also give feedback on the practice run?'],
+      go: 'Act on the two most repeated pieces of feedback within two days.',
+      dist: 'Ask your reviewers one question: where did I describe when I should have evaluated?' },
+    { n: 30, d: '2027-05-12', k: 'Peer review in class', mins: 10, t: 'standards', lo: [],
+      title: 'Professional discussion practice in short rounds (Module 3)',
+      topics: ['Professional discussion speed dating'],
+      big: 'Short practice discussions with several partners, to get used to talking through your evidence.',
+      learn: [
+        ['How it is likely to work', 'Expect several short rounds. In each, you talk through evidence for one duty and your partner asks questions. Then you swap.'],
+        ['Prepare', 'Pick your best example for each duty. For each one, be ready to say what you did, why, and what changed for learners, and to name the KSBs it shows.'],
+        ['Do not neglect Module 2', 'The slides are due nine days later. Keep one short slot a day for them.']
+      ],
+      wrong: [['The discussion is a test of memory.', 'It is a conversation about your own evidence.']],
+      ask: ['How long is the real professional discussion, and who leads it?'],
+      go: 'Explain one piece of evidence aloud in two minutes to someone at home.',
+      dist: 'Speaking clearly about evidence under time pressure is also practice for the ten minutes of questions.' },
+    { n: 31, d: '2027-05-19', k: 'Workshop', mins: 10, t: 'change', lo: [1, 2, 3, 4],
+      title: 'Last workshop before the slides are due',
+      topics: ['Assignment support', 'Portfolio development', 'Tutorials', 'Professional discussion preparation'],
+      big: 'The slides are due two days later: Friday 21 May 2027 by 3pm.',
+      learn: [
+        ['Final checks', 'The file is PowerPoint. Its name uses only letters, numbers, hyphens and underscores, and is under 72 characters. It is not password protected. The opening slide is complete, and the references are on the last slide or slides.'],
+        ['Upload early', 'Submit through MS Teams Assignments with time to spare. A late submission needs an approved extension.'],
+        ['The day itself', 'The presentation is on MS Teams in the week of 24 May, and it is recorded for moderation. Test your sound, sharing and camera the day before.']
+      ],
+      wrong: [['The deadline is the presentation day.', 'The slides are due first, on 21 May by 3pm.']],
+      ask: ['When exactly is my presentation slot?', 'May I use notes while presenting?'],
+      go: 'Present once to someone who does not know the project, and ask what they did not follow.',
+      dist: 'At this stage a distinction is protected by timing and clarity. Cut a slide before you rush the evaluation.' },
+    { n: 32, d: '2027-05-26', k: 'Summative assessment', when: 'presentations all week', mins: 10, t: 'change', lo: [1, 2, 3, 4],
+      title: 'Your practitioner inquiry presentation',
+      topics: ['Practitioner inquiry presentation'],
+      big: 'Twenty minutes to present, up to ten for questions, on MS Teams, recorded.',
+      learn: [
+        ['Before', 'Test your sound, camera and screen sharing. Have the slides open and water nearby. Join early.'],
+        ['During', 'Say at the start what you will cover. Keep to time: about two minutes a slide. If you lose your place, pause, breathe and go on from the slide.'],
+        ['Questions', 'Listen to the whole question. It is fine to take a moment. Answer with evidence, and say plainly where your project has limits.']
+      ],
+      wrong: [['Admitting a limit loses marks.', 'Naming limits is what critical evaluation looks like.']],
+      go: 'After presenting, write down the questions you were asked while you remember them. They are evidence for your portfolio.',
+      dist: 'Evaluate out loud. The top band is earned by weighing, not by listing.' },
+    { n: 33, d: '2027-06-07', k: 'Summative assessment (Module 3)', when: 'discussions all week', mins: 10, t: 'standards', lo: [],
+      title: 'Portfolio professional discussions',
+      topics: ['Portfolio professional discussions'],
+      big: 'The professional discussion on your portfolio. Feedback on your Module 2 presentation comes within 15 working days of giving it.',
+      learn: [
+        ['Prepare', 'Know where each piece of evidence is, and your best example for each duty.'],
+        ['In the discussion', 'Answer with what you did, why, and the effect on learners. Use your change project where it fits.']
+      ],
+      go: 'Note one thing from the discussion to carry into next year’s practice.',
+      dist: 'Your Module 2 project is strong evidence here too. Use it.' },
+    { n: 34, d: '2027-06-14', k: 'Exit tutorials', when: 'time to be confirmed', mins: 10, t: 'reflect', lo: [],
+      title: 'Exit tutorials',
+      topics: ['Exit tutorials'],
+      big: 'A closing conversation about your results, your development and what comes next.',
+      learn: [
+        ['Bring', 'Your feedback, your own view of your strengths, and one or two development goals for your first year after the course.'],
+        ['Ask about next steps', 'Professional formation and QTLS, further study, and how to keep inquiry going in your own practice.']
+      ],
+      ask: ['What should my first development goal be after the course?', 'How do I start professional formation for QTLS?'],
+      go: 'Write your next small change project in four sentences. The habit is the real outcome of the module.',
+      dist: 'The inquiry habit is what the module was for. Keep one small question about your practice open each term.' }
+  ].map((w) => ({ wrong: [], ask: [], check: [], cards: [], read: [], ...w }));
+  const M2_BY = {};
+  M2.forEach((w) => { M2_BY[w.n] = w; });
+
   const LESSONS = {
     retrieval: { sum: 'Retrieval practice means learners pull information out of memory rather than reading it again. A short low-stakes quiz at the start of a lesson is the classic form. Mixing in questions from two or three weeks ago adds spacing, which makes the learning last.', steps: [['The problem', 'Your Electrical group forgot Ohm’s law rearrangements a fortnight after the unit.'], ['Plan the round', 'Five questions: two from last lesson, two from two weeks ago, one from a month ago. At least one asks learners to explain or apply.'], ['Run it low-stakes', 'Five minutes, no names, answers on mini whiteboards, check straight away.'], ['Act on it', 'Note the most-missed question and reteach that step before moving on.'], ['Check later', 'Bring the same idea back in three weeks and compare scores with the first attempt.']] },
     memory: { sum: 'Working memory holds only a few new things at once. Break new material into steps, remove anything that distracts, and use worked examples before asking learners to solve problems alone. Pair words with a clear diagram so learners have two routes back to the idea.', steps: [['The problem', 'Learners struggle to calculate the moment of a force from a wordy question.'], ['Reduce the load', 'Show one labelled diagram and one fully worked example, nothing else on the slide.'], ['Fade the help', 'Second example with blanks to fill, then a third on their own.'], ['Check', 'Ask one learner to explain the step most people get wrong.']] },
@@ -2286,7 +2937,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     finishedVideos().forEach((it) => videoCards(it).forEach((c) => { if (!map.has(c.id)) map.set(c.id, it.id); }));
     return map;
   }
-  const allCards = () => DECK.concat(finishedVideos().flatMap(lessonCardsOf), state.extraCards || []);
+  const allCards = () => DECK.concat(finishedVideos().flatMap(lessonCardsOf), m2CardWeeks().flatMap(m2CardsOf), state.extraCards || []);
   const NEW_PER_DAY = 8;
   function dueCards(topic, src) {
     const today = todayKey();
@@ -2808,6 +3459,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
           <div class="row">${ahead ? `<button class="btn sm" data-act="pull" data-id="${esc(c.id)}">${ic('play', 14)} Do it tonight</button>` : `<button class="btn sm" data-act="start-step" data-id="${esc(c.id)}">${ic('play', 14)} Start now</button>`}<button class="btn sm ghost" data-act="why-next">Why this?</button></div></div>`;
       }
     }
+    html += m2HomeCard();
     html += coachHomeCard();
     if (state.settings.energyCheck !== false) {
       html += `<div class="card"><div class="row between"><h3>How's your energy today?</h3>${e === 'low' ? '<span class="pill warn">low</span>' : e === 'high' ? '<span class="pill good">high</span>' : e === 'okay' ? '<span class="pill info">okay</span>' : ''}</div>
@@ -2958,7 +3610,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const hot = Object.entries(R.ctx.heat).sort((a, b) => b[1].w - a[1].w).map(([t]) => t);
     const weak = weakTopics(4).map((t) => t.id);
     const browse = [...new Set(hot.concat(weak))].slice(0, 5);
-    let html = `<div class="card"><div class="row between"><div class="label">For you · ${esc(fmt(today, { weekday: 'short', day: 'numeric', month: 'short' }))}</div><button class="linkish" data-act="fy-why" style="white-space:nowrap">Why these?</button></div>
+    let html = m2HomeCard(2) + `<div class="card"><div class="row between"><div class="label">For you · ${esc(fmt(today, { weekday: 'short', day: 'numeric', month: 'short' }))}</div><button class="linkish" data-act="fy-why" style="white-space:nowrap">Why these?</button></div>
       <h3 style="font-size:18px">About ${R.total} minutes that count most ${isWeekday(today) ? 'tonight' : 'today'}</h3>
       <div class="small muted">${esc(R.line)}${done ? ` Studied so far today: ${done} min.` : ''}</div>
       <div class="field"><span class="flabel">Time I have</span><div class="chips">${FY_MINS.map((n) => `<button class="chip" data-act="fy-mins" data-id="${n}" aria-pressed="${R.ctx.budget === n}">${n} min</button>`).join('')}</div></div></div>
@@ -3113,20 +3765,23 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     toast(`<b>Mastery updated.</b> ${quiz.score} of ${quiz.qs.length} right.`);
   }
   function cardsView() {
-    const vid = sub.cardSrc ? findRes(sub.cardSrc) : null;
-    if (sub.cardSrc && !vid) sub.cardSrc = null;
-    const topic = vid ? null : sub.cardTopic || null;
-    const due = dueCards(topic, vid ? vid.id : null);
-    const filter = vid ? `<div class="row between"><span class="pill info">${ic('play', 12)} ${esc(vid.title)}</span><button class="linkish" data-act="card-src" data-id="">Show all cards</button></div>`
+    const wk = m2OfSrc(sub.cardSrc);
+    const vid = sub.cardSrc && !wk ? findRes(sub.cardSrc) : null;
+    if (sub.cardSrc && !vid && !wk) sub.cardSrc = null;
+    const srcId = wk ? m2Src(wk) : vid ? vid.id : null;
+    const topic = srcId ? null : sub.cardTopic || null;
+    const due = dueCards(topic, srcId);
+    const filter = srcId ? `<div class="row between"><span class="pill info">${wk ? `Module 2 · week ${wk.n}` : `${ic('play', 12)} ${esc(vid.title)}`}</span><button class="linkish" data-act="card-src" data-id="">Show all cards</button></div>`
       : topic ? `<div class="row between"><span class="pill info">${esc(TOPICS[topic].name)}</span><button class="linkish" data-act="card-topic" data-id="">Show all topics</button></div>` : '';
-    if (!due.length) return filter + `<div class="card" style="align-items:center;text-align:center"><h3>All caught up</h3><div class="small muted">${vid ? 'This video’s cards are done for today. They come back by spaced repetition.' : `New cards arrive each day, ${NEW_PER_DAY} at a time. Wrong quiz answers are added automatically, and a video you finish brings its cards.`}</div></div>`;
+    if (!due.length) return filter + `<div class="card" style="align-items:center;text-align:center"><h3>All caught up</h3><div class="small muted">${wk ? 'This week’s cards are done for today. They come back by spaced repetition.' : vid ? 'This video’s cards are done for today. They come back by spaced repetition.' : `New cards arrive each day, ${NEW_PER_DAY} at a time. Wrong quiz answers are added automatically, and a video you finish brings its cards. So does a Module 2 week you revise.`}</div></div>`;
     const c = due[0];
     const st = state.cards[c.id];
     const fromId = c.src || pushedCards().get(c.id);
-    const fromVid = fromId && !vid ? findRes(fromId) : null;
-    return filter + `<div class="row between"><span class="label">${due.length} due · spaced repetition</span><span class="pill info">${esc(TOPICS[c.t] ? TOPICS[c.t].name : '')}</span></div>
+    const fromWk = fromId && !srcId ? m2OfSrc(fromId) : null;
+    const fromVid = fromId && !srcId && !fromWk ? findRes(fromId) : null;
+    return filter + `<div class="row between"><span class="label">${due.length} due · spaced repetition</span><span class="pill info">${esc(TOPICS[c.t] ? TOPICS[c.t].name : m2OfSrc(c.src) ? 'Module 2' : '')}</span></div>
       <button class="fc" data-act="flip" aria-label="Flip card"><span class="label">${fcFlip ? 'Answer' : (st ? 'Question' : 'New card')}</span><div class="face" style="white-space:pre-line">${esc(fcFlip ? c.b : c.f)}</div>${fcFlip ? '' : '<span class="small muted">Tap to show the answer</span>'}</button>
-      ${fromVid ? `<div class="small muted" style="text-align:center">${ic('play', 12)} From a video you finished: ${esc(fromVid.title)}</div>` : ''}
+      ${fromWk ? `<div class="small muted" style="text-align:center">From Module 2, week ${fromWk.n}: ${esc(fromWk.title)}</div>` : fromVid ? `<div class="small muted" style="text-align:center">${ic('play', 12)} From a video you finished: ${esc(fromVid.title)}</div>` : ''}
       ${fcFlip ? `<div class="small muted" style="text-align:center">How well did you know it? Each button shows when you will see it again.</div><div class="srs">${['Again', 'Hard', 'Good', 'Easy'].map((l, g) => `<button data-act="grade" data-id="${g}">${l}<small>${ivLabel(srsNext(st, g))}</small></button>`).join('')}</div>` : ''}`;
   }
   function grade(g) {
@@ -3529,6 +4184,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const mon = mondayOf(todayKey());
     const tiles = [
       ['coach', 'Coach', (() => { const n = coachToday().length; return n ? `${plural(n, 'small step')} today` : 'A small step every day'; })()],
+      ['module', 'Module 2', (() => { const N = m2Now(); return N ? `Week ${N.w.n} · ${fmtShort(N.d)}` : 'Week by week'; })()],
       ['courses', 'Courses', '2 active'],
       ['learn', 'Learn', 'Today’s lesson'],
       ['library', 'Library', `Online library · ${plural(catalogue().length, 'resource')}`],
@@ -3866,7 +4522,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   };
 
   /* ---------- the shell: top bars, six tabs, sheets, toasts ---------- */
-  const TITLES = { plan: 'Planner', study: 'Study', portfolio: 'Portfolio', progress: 'Progress', more: 'More', courses: 'Courses', learn: 'Learn', library: 'Library', voice: 'Listen & speak', terms: 'Key terms & models', goals: 'Goals & reflection', log: 'How it adapts', settings: 'Settings', about: 'What makes it smart', deadlines: 'Deadlines', add: 'Add a deadline', paper: 'Practice paper', coach: 'Coach' };
+  const TITLES = { plan: 'Planner', study: 'Study', portfolio: 'Portfolio', progress: 'Progress', more: 'More', courses: 'Courses', learn: 'Learn', library: 'Library', voice: 'Listen & speak', terms: 'Key terms & models', goals: 'Goals & reflection', log: 'How it adapts', settings: 'Settings', about: 'What makes it smart', deadlines: 'Deadlines', add: 'Add a deadline', paper: 'Practice paper', coach: 'Coach', module: 'Module 2' };
   const NAV = [['home', 'Home'], ['plan', 'Plan'], ['study', 'Study'], ['portfolio', 'Portfolio'], ['progress', 'Progress'], ['more', 'More']];
   function renderNav() {
     const top = TABS.includes(route) ? route : (stack.length && TABS.includes(stack[0]) ? stack[0] : 'more');
@@ -3910,6 +4566,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   }
   function back() {
     if (route === 'coach' && sub.cq) { sub.cq = null; render(); $('#screen').scrollTop = 0; return; }
+    if (route === 'module' && sub.mw != null) { sub.mw = null; sub.ms = null; render(); $('#screen').scrollTop = 0; return; }
     route = stack.pop() || 'home';
     render();
     $('#screen').scrollTop = 0;
@@ -5983,7 +6640,7 @@ ${n.text.trim()}
       <div class="card"><h3>Running notes</h3><div class="small muted">One place for what you tried, what happened and what you read. Speak them or type them. They become your analysis and your slides.</div>
         <textarea id="co-cpnote" data-input="conote" data-stamp="1" maxlength="30000" style="min-height:160px" aria-label="Running notes for the change project" placeholder="Today I…">${esc(state.coach.cpNote || '')}</textarea>
         <div class="btnrow"><button class="btn sm ghost" data-act="co-note-copy">Copy</button><button class="btn sm ghost" data-act="co-note-ask">${ic('spark', 14)} Ask Claude what is missing</button></div></div>
-      <div class="card"><h3>Learn it first</h3><div class="small muted">The ideas your project stands on. Each is a short lesson you can listen to.</div><div class="chips wrap">${['retrieval', 'change', 'memory', 'adaptive'].map((t) => `<button class="chip" data-act="learn" data-id="${t}">${esc(TOPICS[t].name)}</button>`).join('')}</div></div>
+      <div class="card"><h3>Learn it first</h3><div class="small muted">The ideas your project stands on. Each is a short lesson you can listen to.</div><div class="chips wrap">${['retrieval', 'change', 'memory', 'adaptive'].map((t) => `<button class="chip" data-act="learn" data-id="${t}">${esc(TOPICS[t].name)}</button>`).join('')}</div><button class="linkish" data-act="m2-all" style="align-self:flex-start">Module 2, week by week</button></div>
       ${m2 && m2.note ? `<div class="notice"><div><b>Your module’s rules</b><p>${esc(m2.note)}</p></div></div>` : ''}`;
   }
   // The card on Home: the first of today's steps, and how many more.
@@ -6012,6 +6669,259 @@ ${n.text.trim()}
     if (k !== 'aw' && k !== 'ksb') return;
     const v = e.target.value;
     if (/^\d{4}-\d{2}-\d{2}$/.test(v) && v >= todayKey()) state.coach.end[k] = v; else delete state.coach.end[k];
+    commit();
+    render();
+  });
+
+  /* ---------- Module 2, week by week: revise before class, ask in class, try it afterwards (page 55) ----------
+     What you have done for each week lives in state.m2.w[week number]:
+     r: day the lesson was read, q: the check answers picked, k: day the check was finished, f: how sure (1 to 3),
+     a: the questions ticked for class, own: your own questions, took: what you took from class, fog: what is still
+     unclear, p: day you tried the practice step, pn: what happened, d: the class date if it moved,
+     nocards: keep this week's cards out of the review cards. */
+  const m2U = (n) => state.m2.w[n] || {};
+  const m2Set = (n) => {
+    const u = (state.m2.w[n] = state.m2.w[n] || {});
+    if (!u.q || typeof u.q !== 'object') u.q = {};
+    if (!u.a || typeof u.a !== 'object') u.a = {};
+    return u;
+  };
+  const m2IsDay = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && keyOf(parseKey(v)) === v;
+  // The handbook warns that sessions can move, so a week's date can be changed on its own screen.
+  const m2Date = (w) => { const d = m2U(w.n).d; return m2IsDay(d) ? d : w.d; };
+  // Revised = the lesson read and, where the week has a check, the check finished.
+  const m2Revised = (w) => { const u = m2U(w.n); return !!(u.k || (u.r && !w.check.length)); };
+  const m2Noted = (w) => !!String(m2U(w.n).took || '').trim();
+  const m2List = () => M2.map((w) => ({ w, d: m2Date(w) })).sort((a, b) => a.d.localeCompare(b.d) || a.w.n - b.w.n);
+  const M2_START = 9 * 60 + 30;
+  const M2_END = 12 * 60 + 30;
+  const m2Mins = () => now().getHours() * 60 + now().getMinutes();
+  /* Where you are in the module right now: the class to get ready for (phase 'before'), the class you are in ('in'),
+     or the class you have just had and not yet noted ('after': the rest of that day and the next day). */
+  function m2Now() {
+    const today = todayKey();
+    const t = m2Mins();
+    const list = m2List();
+    const here = list.find((x) => x.d === today);
+    if (here && t < M2_END) return { w: here.w, d: today, days: 0, phase: !here.w.when && t >= M2_START ? 'in' : 'before' };
+    const last = list.filter((x) => x.d <= today).pop();
+    if (last && daysBetween(last.d, today) <= 1 && !m2Noted(last.w)) return { w: last.w, d: last.d, days: 0, phase: 'after' };
+    const next = list.find((x) => x.d > today);
+    return next ? { w: next.w, d: next.d, days: daysBetween(today, next.d), phase: 'before' } : null;
+  }
+  // A revised week brings its cards into the review cards, at the front of the queue like a finished video's.
+  const m2Src = (w) => `m2w${w.n}`;
+  const m2OfSrc = (id) => { const m = /^m2w(\d{1,2})$/.exec(String(id || '')); return m ? M2_BY[Number(m[1])] || null : null; };
+  const m2CardsOf = (w) => w.cards.map(([f, b], i) => ({ id: `m2-${w.n}-${i}`, f, b, t: w.t, src: m2Src(w) }));
+  const m2CardWeeks = () => M2.filter((w) => w.cards.length && m2Revised(w) && !m2U(w.n).nocards);
+  const m2Picked = (w) => { const u = m2U(w.n); return w.ask.filter((q, i) => u.a && u.a[i]); };
+  const m2When = (w) => `${fmtLong(m2Date(w))} · ${w.when || '9:30 to 12:30'}`;
+  const m2LessonText = (w) => [`Module 2, week ${w.n}. ${w.title}.`, w.big].concat(w.learn.map(([h, b]) => `${h}. ${b}`), w.wrong.length ? ['Easy to get wrong.'].concat(w.wrong.map(([m, t]) => `Some people think: ${m} In fact: ${t}`)) : []).join('\n');
+  // The weeks whose class is the day after `day` and are not revised yet: each gets a line in that evening's alarm.
+  const m2AlarmWeeks = (day) => { const tomorrow = addDays(day, 1); return M2.filter((w) => !w.when && m2Date(w) === tomorrow && !m2Revised(w)); };
+
+  /* ---------- what the module hands to Claude: the week, where you are, the grade you want, and the rules ---------- */
+  const M2_RULES = 'My module allows AI for shaping only (AITS 2) and I have to declare any AI I use. So do not write slides, a script or paragraphs for my presentation, not even a model one. Teach me, question me and point to gaps instead.';
+  const m2Me = () => `I am on a level 7 PGCE in further education and skills (Module 2: Exploring and developing pedagogical practice). I teach T Level Engineering in a college. The module is marked on one 20-minute presentation about my small change project (${cpAbout()}). I am aiming for a distinction, which the rubric describes as detailed, critical analysis on all four learning outcomes, with a range of research and its impact on practice.`;
+  function m2Brief(kind, w) {
+    const u = m2U(w.n);
+    const head = `Week ${w.n} of my module, ${fmtLong(m2Date(w))}: "${w.title}". The handbook lists: ${w.topics.join('; ')}.`;
+    const picked = m2Picked(w);
+    const own = String(u.own || '').trim();
+    if (kind === 'stretch') {
+      return `Question me at level 7 as my tutor. ${m2Me()}\n\n${head}\n\nAsk me one question at a time and wait for my answer. Start with what the idea means, then move to how it applies to my subject and my change project, then to its limits and who it leaves out. After each answer, tell me which rung I reached (describe, explain, analyse or evaluate) and what would lift it one rung. Include at least one question on the limits of the research and one on inclusion. Do not give model answers: ask a follow-up question instead. Stop after six questions and tell me the two things to read or think about next.\n\n${M2_RULES}`;
+    }
+    if (kind === 'clear') {
+      const took = String(u.took || '').trim();
+      const fog = String(u.fog || '').trim();
+      return `Be my tutor. ${m2Me()}\n\nI have just had the class for this session. ${head}\n\n${took ? `What I took from the class:\n${took.slice(0, 2500)}\n\n` : ''}${fog ? `What is still unclear to me:\n${fog.slice(0, 2500)}\n\n` : 'I have not written down what is unclear yet, so start by asking me.\n\n'}Help me in small steps, one at a time, and wait for my reply after each step:\n1. Explain what is unclear in a different way from a textbook, with an example from teaching engineering in a college.\n2. Check I have it with one question.\n3. Tell me plainly if anything I took from the class looks like a misconception, and what is nearer the truth.\n4. Ask me how the idea could show up in my change project, and which learning outcome it would serve.\nThen stop.\n\n${M2_RULES}`;
+    }
+    if (kind === 'try') {
+      const pn = String(u.pn || '').trim();
+      return `Be my tutor. ${m2Me()}\n\n${head}\n\nI want to put this week into practice in one of my own lessons. The step my app suggests: ${w.go}\n\nCoach me in small steps, one at a time, and wait for my reply after each step:\n1. Ask me about the group and the lesson I have in mind.\n2. Help me shape the step so that it is small enough to try this week.\n3. Ask what I will note down as evidence, and suggest what would make that note useful for my portfolio and for the presentation.\n4. Ask me who in the group might be left out by it, and how I would adapt.\nDo not write the lesson plan for me: ask and advise.${pn ? `\n\nWhat I have tried so far:\n${pn.slice(0, 2000)}` : ''}\n\n${M2_RULES}`;
+    }
+    const right = w.check.filter((c, i) => u.q && u.q[i] === c[2]).length;
+    const where = [u.r ? 'I have read the short lesson in my app' : 'I have not read the lesson yet', u.k ? `I got ${right} of ${w.check.length} check questions right` : '', u.f ? `my confidence is ${['', 'low', 'medium', 'high'][u.f]}` : ''].filter(Boolean).join('; ');
+    return `Be my tutor. ${m2Me()}\n\n${head}\n\nI want to understand this before the class, so that I follow the session, can ask good questions and clear up anything I have misread. Tutor me in small steps, one at a time, and wait for my reply after each step:\n1. Ask me one question to find out what I already know.\n2. Teach what I am missing in short parts (under 120 words each), with examples from teaching engineering in a college.\n3. Check me with two quick questions, one at a time, and correct any misconception plainly.\n4. Tell me where researchers disagree or where the evidence is thin, because my assignment rewards weighing research.\n5. Help me word two or three clarification questions to ask my tutor in class.\nThen stop.\n\n${M2_RULES}\n\nWhere I am: ${where}.${picked.length ? `\nQuestions I already plan to ask in class: ${picked.join(' ')}` : ''}${own ? `\nMy own questions so far: ${own.slice(0, 1500)}` : ''}`;
+  }
+  const m2LiveBtn = (kind, n, label, cls) => `<button class="${cls || 'btn ghost'}" data-act="m2-live" data-k="${kind}" data-id="${n}">${ic('spark', 14)} ${label}</button>`;
+
+  /* ---------- the module's screens ---------- */
+  function m2Status(w, N) {
+    if (N && N.w === w) {
+      if (N.phase === 'after') return ['gold', 'Note it'];
+      if (N.phase === 'in') return ['gold', 'In class'];
+      if (N.days === 0) return ['gold', 'Today'];
+      if (N.days === 1) return ['gold', 'Tomorrow'];
+    }
+    if (m2Revised(w)) return ['good', 'Revised'];
+    if (N && N.w === w) return ['info', 'Next'];
+    return m2Date(w) < todayKey() ? ['', 'Taught'] : ['', ''];
+  }
+  // The card on Home and on Study: the class to get ready for, or the class just had.
+  function m2HomeCard(maxDays) {
+    const N = m2Now();
+    if (!N || N.days > (maxDays == null ? 7 : maxDays)) return '';
+    const w = N.w;
+    const u = m2U(w.n);
+    if (N.phase === 'after') {
+      return `<div class="card" id="m2-card"><div class="label">Module 2 · after ${N.d === todayKey() ? 'today’s' : 'yesterday’s'} session</div>
+        <h3 style="font-size:17px">Week ${w.n}: ${esc(w.title)}</h3>
+        <div class="small muted">Five minutes while it is fresh: what you took from it, what is still unclear, and one thing to try in your own teaching.</div>
+        <div class="row"><button class="btn sm" data-act="m2-open" data-id="${w.n}" data-s="after">${ic('play', 14)} Note it now</button><button class="btn sm ghost" data-act="m2-all">All weeks</button></div></div>`;
+    }
+    const at = w.when ? '' : ' at 9:30';
+    const day = N.phase === 'in' ? 'in class now' : N.days === 0 ? `today${at}` : N.days === 1 ? `tomorrow${at}` : `${fmt(N.d, { weekday: 'long' })}${at}`;
+    const rev = m2Revised(w);
+    const nq = m2Picked(w).length + (String(u.own || '').trim() ? 1 : 0);
+    const line = N.phase === 'in' ? 'Your questions for the tutor are one tap away.'
+      : rev ? `Revised${u.k || u.r ? ` on ${fmtShort(u.k || u.r)}` : ''}. ${nq ? `${plural(nq, 'question')} ready for class.` : 'Pick the questions you will ask in class.'}`
+        : `A ${w.mins}-minute lesson to read before class, so that the session makes more sense and you know what to ask.`;
+    return `<div class="card" id="m2-card"><div class="row between"><div class="label">Module 2 · ${esc(day)}</div>${rev ? `<span class="pill good">${ic('check', 12)} Revised</span>` : ''}</div>
+      <h3 style="font-size:17px">Week ${w.n}: ${esc(w.title)}</h3>
+      <div class="small muted">${esc(line)}</div>
+      <div class="row"><button class="btn sm" data-act="m2-open" data-id="${w.n}" data-s="${rev || N.phase === 'in' ? 'ask' : ''}">${ic('play', 14)} ${N.phase === 'in' ? 'My questions' : rev ? 'My questions for class' : 'Revise before class'}</button><button class="btn sm ghost" data-act="m2-all">All weeks</button></div></div>`;
+  }
+  const M2_TERMS = [['Autumn term', 1, 14], ['Spring term', 15, 26], ['Summer term', 27, 34]];
+  V.module = () => {
+    const open = sub.mw != null ? M2_BY[sub.mw] : null;
+    if (open) return m2WeekView(open);
+    const N = m2Now();
+    const done = M2.filter(m2Revised).length;
+    const tried = M2.filter((w) => m2U(w.n).p).length;
+    const row = (w) => {
+      const s = m2Status(w, N);
+      return `<button class="li tap" data-act="m2-open" data-id="${w.n}" style="width:100%;text-align:left"><span class="pill ${N && N.w === w ? 'info' : ''} num">${w.n}</span><span class="grow" style="min-width:0"><b class="small" style="display:block">${esc(w.title)}</b><span class="small muted" style="display:block">${esc(fmtShort(m2Date(w)))} · ${esc(w.k)}</span></span>${s[1] ? `<span class="pill ${s[0]}">${s[1]}</span>` : ''}</button>${M2_BREAKS[w.n] ? `<div class="small muted" style="text-align:center;padding:4px 0">${esc(M2_BREAKS[w.n])}</div>` : ''}`;
+    };
+    return `<div class="card"><div class="row between"><div class="label">PGCE Module 2</div><span class="pill gold">Aim: distinction</span></div>
+        <h3 style="font-size:18px">Revise before every Wednesday class</h3>
+        <div class="small muted">Each week has a short lesson to read before class, a quick check, questions to take with you, and a step to try in your own teaching afterwards.</div>
+        <div class="bar"><i style="width:${(done / M2.length) * 100}%;background:var(--accent)"></i></div>
+        <div class="small muted">${done} of ${M2.length} weeks revised · ${tried} tried in your own teaching</div>
+        <button class="linkish" data-act="m2-how" style="align-self:flex-start">Where these lessons come from</button></div>
+      ${m2HomeCard(400)}
+      <div class="card" id="m2-dist"><div class="row between"><h3>What a distinction asks for</h3><span class="pill gold num">74+</span></div>
+        <div class="small muted">The top band uses the same two words on every outcome: detailed and critical. The marks go in steps: 74, 81, 89 and 96.</div>
+        <div class="list">${M2_LO.map(([n, name, , top]) => `<div class="li"><span class="pill info" style="font-family:var(--f-mono)">LO${n}</span><span class="grow small" style="min-width:0"><b style="display:block">${esc(name)}</b><span class="muted" style="display:block">${esc(top)}</span></span></div>`).join('')}</div>
+        <div class="btnrow"><button class="btn sm ghost" data-act="m2-ladder">The ladder from describing to evaluating</button></div></div>
+      <div class="card"><h3>The assessment</h3>
+        <ul class="vlist"><li class="small">One presentation on your small change project: 20 minutes, then up to 10 minutes of questions. It is the whole mark for the module (code ${M2_INFO.code}).</li>
+          <li class="small">Slides due ${esc(fmtYear(M2_INFO.slides))} by 3pm, as PowerPoint, through MS Teams Assignments.</li>
+          <li class="small">You present on MS Teams in the week of ${esc(fmtYear(M2_INFO.talk))}. It is recorded for moderation.</li>
+          <li class="small">A practice run with peer review is in class on ${esc(fmtYear(M2_INFO.peer))}.</li>
+          <li class="small">The brief sets AI use at AITS 2, AI for shaping. The opening slide says what you used and how. Ask your tutor what shaping covers.</li></ul>
+        <div class="btnrow"><button class="btn sm ghost" data-act="deadlines-for" data-id="pgce">Deadlines and plan</button></div></div>
+      ${M2_TERMS.map(([name, a, b]) => `<div class="card"><h3>${name}</h3><div class="list">${M2.filter((w) => w.n >= a && w.n <= b).map(row).join('')}</div></div>`).join('')}`;
+  };
+  const M2_STEPS = [['learn', 'Learn'], ['check', 'Check'], ['ask', 'Ask'], ['after', 'After']];
+  const m2Steps = (w) => M2_STEPS.filter(([k]) => k !== 'check' || w.check.length);
+  function m2StepOf(w) {
+    if (m2Steps(w).some(([k]) => k === sub.ms)) return sub.ms;
+    const u = m2U(w.n);
+    const d = m2Date(w);
+    const today = todayKey();
+    const over = d < today || (d === today && m2Mins() >= M2_END);
+    if (m2Revised(w)) return over ? 'after' : 'ask';
+    return u.r && w.check.length ? 'check' : 'learn';
+  }
+  function m2WeekView(w) {
+    const u = m2U(w.n);
+    const N = m2Now();
+    const step = m2StepOf(w);
+    const s = m2Status(w, N);
+    const picks = u.q || {};
+    const ticks = u.a || {};
+    const answered = w.check.filter((c, i) => picks[i] != null).length;
+    const right = w.check.filter((c, i) => picks[i] === c[2]).length;
+    const rev = m2Revised(w);
+    const d = m2Date(w);
+    const stepDone = { learn: !!u.r || rev, check: !!u.k, ask: m2Picked(w).length > 0 || !!String(u.own || '').trim(), after: m2Noted(w) || !!u.p };
+    const tid = (k) => `m2-${k}-${w.n}`;
+    const area = (k, label, ph, max) => `<textarea id="${tid(k)}" data-input="m2" data-id="${w.n}" data-k="${k}" maxlength="${max || 4000}" aria-label="${esc(label)}" placeholder="${esc(ph)}">${esc(u[k] || '')}</textarea>`;
+    const prev = M2_BY[w.n - 1];
+    const next = M2_BY[w.n + 1];
+    let html = `<div class="card"><div class="row between"><span class="pill info num">Week ${w.n} of ${M2.length}</span>${s[1] ? `<span class="pill ${s[0]}">${s[1]}</span>` : ''}</div>
+        <h3 style="font-size:17px;line-height:1.35">${esc(w.title)}</h3>
+        <div class="small muted">${esc(m2When(w))} · ${esc(w.k)}</div>
+        <div class="small muted" style="overflow-wrap:anywhere">In the handbook: ${w.topics.map(esc).join(' · ')}</div></div>
+      <div class="seg costeps">${m2Steps(w).map(([k, l], i) => `<button data-act="m2-step" data-id="${k}" aria-pressed="${k === step}">${stepDone[k] ? ic('check', 12) : `<span class="num">${i + 1}</span>`} ${l}</button>`).join('')}</div>`;
+    if (step === 'learn') {
+      html += `${listenOn() ? `<button class="btn sm ghost" data-act="m2-listen" data-id="${w.n}" style="align-self:flex-start">${ic('speaker', 14)} Listen to this lesson</button>` : ''}
+        <div class="notice"><div><b>The idea in one line</b><p>${esc(w.big)}</p></div></div>
+        ${w.learn.map(([h, b]) => `<div class="step"><b>${esc(h)}</b><div>${esc(b)}</div></div>`).join('')}
+        ${w.wrong.length ? `<div class="card"><h3>Easy to get wrong</h3>${w.wrong.map(([m, t]) => `<div class="small"><b style="display:block">“${esc(m)}”</b>${esc(t)}</div>`).join('')}</div>` : ''}
+        <div class="small muted">Written from the handbook’s topic list and the usual meaning of each idea, not from your tutor’s slides. Where the class says something different, your tutor’s version wins, and the difference is a good question to ask.</div>
+        <button class="btn" data-act="m2-read" data-id="${w.n}">${ic('check', 16)} I have read it. ${w.check.length ? 'Check it stuck' : 'Next: my questions'}</button>
+        ${m2LiveBtn('teach', w.n, 'Teach me this with Claude')}`;
+    } else if (step === 'check') {
+      html += w.check.map((c, i) => {
+        const p = picks[i];
+        const on = p != null;
+        return `<div class="card"><div class="label">Check ${i + 1} of ${w.check.length}</div><b style="line-height:1.4">${esc(c[0])}</b>
+          <div style="display:flex;flex-direction:column;gap:8px">${c[1].map((o, k) => `<button class="qopt ${on ? (k === c[2] ? 'right' : k === p ? 'wrong' : '') : ''}" data-act="m2-ans" data-id="${w.n}" data-i="${i}" data-o="${k}" ${on ? 'disabled' : ''}>${esc(o)}</button>`).join('')}</div>
+          ${on ? `<div class="notice" style="background:${p === c[2] ? 'var(--good-soft)' : 'var(--bad-soft)'}"><div><b>${p === c[2] ? 'Correct' : 'Not quite'}</b><p>${esc(c[3])}</p></div></div>` : ''}</div>`;
+      }).join('');
+      if (answered === w.check.length) {
+        html += `<div class="card"><h3>${right} of ${w.check.length} right. How sure do you feel about this week?</h3><div class="small muted">Your answer marks the week as revised.</div>
+          <div class="chips wrap">${[[1, 'Not yet'], [2, 'Getting there'], [3, 'Confident']].map(([n, l]) => `<button class="chip" data-act="m2-conf" data-id="${w.n}" data-n="${n}" aria-pressed="${u.f === n}">${l}</button>`).join('')}</div>
+          ${u.f === 1 ? '<div class="small">Read the lesson once more, or let Claude teach it another way. What is still unclear is exactly what to ask in class.</div>' : u.f ? '<div class="small">Good. Next, pick the questions you will take to class.</div>' : ''}
+          ${rev && w.cards.length && !u.nocards ? `<div class="small muted">${plural(w.cards.length, 'card')} from this week ${w.cards.length === 1 ? 'is' : 'are'} in your review cards.</div>` : ''}
+          <div class="btnrow">${u.f ? '<button class="btn sm" data-act="m2-step" data-id="ask">My questions for class</button>' : ''}${u.f === 1 ? '<button class="btn sm ghost" data-act="m2-step" data-id="learn">Read it again</button>' : ''}${rev && w.cards.length && !u.nocards ? `<button class="btn sm ghost" data-act="m2-cards" data-id="${w.n}">Review its cards</button>` : ''}<button class="btn sm ghost" data-act="m2-retry" data-id="${w.n}">Try the check again</button></div></div>`;
+      }
+      html += m2LiveBtn('teach', w.n, 'Teach me this with Claude');
+    } else if (step === 'ask') {
+      html += `${w.ask.length ? `<div class="card"><h3>Questions to take to class</h3><div class="small muted">Tick the ones you want answered. Asking is how you clear up what your own reading left unclear.</div>
+          <div class="list">${w.ask.map((q, i) => `<button class="li tap" data-act="m2-ask" data-id="${w.n}" data-i="${i}" role="checkbox" aria-checked="${!!ticks[i]}" style="width:100%;text-align:left"><span class="cotick${ticks[i] ? ' on' : ''}">${ticks[i] ? ic('check', 14) : ''}</span><span class="grow small" style="min-width:0">${esc(q)}</span></button>`).join('')}</div></div>` : ''}
+        <div class="card"><h3>My own questions</h3><div class="small muted">Anything in the lesson or your reading that did not make sense. Tap Speak to say it.</div>
+          ${area('own', `My own questions for week ${w.n}`, 'What I want to ask')}
+          <div class="btnrow"><button class="btn sm ghost" data-act="m2-copy-q" data-id="${w.n}">Copy my questions</button></div></div>
+        <div class="card"><div class="row between"><h3>Aim for a distinction</h3><span class="pill gold num">74+</span></div>
+          <div class="small">${esc(w.dist)}</div>
+          ${w.lo.length ? `<div class="small muted">This week feeds ${w.lo.map((n) => `LO${n} (${M2_LO[n - 1][1].toLowerCase()})`).join(', ')}.</div>` : ''}
+          <div class="btnrow">${m2LiveBtn('stretch', w.n, 'Question me at level 7 with Claude', 'btn sm ghost')}<button class="btn sm ghost" data-act="m2-ladder">The ladder</button></div></div>
+        ${w.read.length ? `<div class="card"><h3>Names to look up</h3><ul class="vlist">${w.read.map((r) => `<li class="small" style="overflow-wrap:anywhere">${esc(r)}</li>`).join('')}</ul><div class="small muted">The handbook gives no reading list, so these are standard sources for the topic. Find each one in the library and read it before you cite it.</div>${TOPICS[w.t] ? `<button class="linkish" data-act="lib-topic" data-id="${w.t}" style="align-self:flex-start">Open the Library on this topic</button>` : ''}</div>` : ''}
+        <button class="btn" data-act="m2-step" data-id="after">After class: note it and try it</button>`;
+    } else {
+      html += `<div class="card"><h3>What I took from class</h3><div class="small muted">Two or three lines while it is fresh. Tap Speak to say it.</div>
+          ${area('took', `What I took from the class in week ${w.n}`, 'The main points, in my own words', 6000)}</div>
+        <div class="card"><h3>Still unclear</h3><div class="small muted">What did not make sense, or where the class said something different from your reading.</div>
+          ${area('fog', `What is still unclear from week ${w.n}`, 'What I still do not understand')}
+          <div class="btnrow">${m2LiveBtn('clear', w.n, 'Clear it up with Claude', 'btn sm ghost')}</div></div>
+        <div class="card"><div class="row between"><h3>Put it into practice</h3>${u.p ? `<span class="pill good">Tried ${esc(fmtShort(u.p))}</span>` : ''}</div>
+          <div class="step">${esc(w.go)}</div>
+          ${area('pn', `What I tried and what happened in week ${w.n}`, 'What I tried, with which group, and what happened', 6000)}
+          <div class="small muted">A dated note of what you tried is evidence for your portfolio and for the presentation.</div>
+          <div class="btnrow"><button class="btn sm ${u.p ? 'ghost' : ''}" data-act="m2-tried" data-id="${w.n}">${u.p ? 'Not tried yet' : `${ic('check', 14)} I tried it`}</button>${m2LiveBtn('try', w.n, 'Plan it with Claude', 'btn sm ghost')}</div></div>
+        <div class="card"><h3>Has this class moved?</h3><div class="small muted">The handbook says sessions can change when a guest speaker moves. Set the new date here and the reminders follow.</div>
+          <div class="field"><label for="${tid('d')}">This class is on</label><input type="date" id="${tid('d')}" data-m2-date="${w.n}" value="${esc(d)}"></div>
+          ${d !== w.d ? `<button class="linkish" data-act="m2-date-reset" data-id="${w.n}" style="align-self:flex-start">Back to the handbook’s date, ${esc(fmtShort(w.d))}</button>` : ''}</div>
+        ${w.cards.length ? `<div class="li" style="border:0;padding:0"><div class="grow small muted">Keep this week’s ${plural(w.cards.length, 'card')} in my review cards</div>${toggle(!u.nocards, 'm2-cardsw', String(w.n), 'Keep this week’s cards in my review cards')}</div>` : ''}`;
+    }
+    html += `<div class="btnrow">${prev ? `<button class="btn sm ghost" data-act="m2-open" data-id="${prev.n}">Week ${prev.n}</button>` : ''}<button class="btn sm ghost" data-act="m2-all">All weeks</button>${next ? `<button class="btn sm ghost" data-act="m2-open" data-id="${next.n}">Week ${next.n}</button>` : ''}</div>`;
+    return html;
+  }
+  function m2LadderSheet() {
+    sheet(`<h3>From describing to evaluating</h3>
+      <div class="small muted">A distinction asks for detailed, critical work on every outcome. Most marks are lost on the bottom two rungs. The examples are invented to show the rungs: your own sentences have to be yours.</div>
+      <ol class="steps">${M2_LADDER.map(([name, what, eg]) => `<li><b>${esc(name)}.</b> ${esc(what)} <span class="muted">${esc(eg)}</span></li>`).join('')}</ol>
+      <div class="small">To judge any slide, yours or an exemplar’s, ask which rung it stands on, and what would lift it one higher.</div>
+      <button class="btn block" data-act="close-sheet">Got it</button>`);
+  }
+  function m2HowSheet() {
+    sheet(`<h3>Where these lessons come from</h3>
+      <ol class="steps"><li><b>The handbook.</b> The 34 weeks, their dates, the kind of session and the topic lists are from your Module 2 handbook for 2026 to 2027. So are the assessment brief and the grading rubric.</li>
+        <li><b>The lessons.</b> Each one is written in plain words from the usual meaning of that week’s topics. Nobody here has seen your tutor’s slides, so where the class differs, the class wins.</li>
+        <li><b>The sources.</b> The handbook has no reading list. The names to look up are standard sources for each topic. Read one before you cite it.</li>
+        <li><b>Claude.</b> The tutor buttons open your own Claude with the week, where you are and the grade you want. It teaches and questions. It does not write your presentation, because your brief allows AI for shaping only.</li>
+        <li><b>If a class moves.</b> Open the week, go to After, and set the new date.</li></ol>
+      <button class="btn block" data-act="close-sheet">Got it</button>`);
+  }
+  document.addEventListener('change', (e) => {
+    const w = e.target && e.target.dataset && e.target.dataset.m2Date ? M2_BY[Number(e.target.dataset.m2Date)] : null;
+    if (!w) return;
+    const v = e.target.value;
+    const u = m2Set(w.n);
+    if (m2IsDay(v) && v !== w.d) u.d = v; else delete u.d;
     commit();
     render();
   });
@@ -6159,6 +7069,52 @@ ${n.text.trim()}
       case 'close-sheet': closeSheet(); break;
       case 'close-tutor': closeTutor(); break;
       case 'ask': closeSheet(true); ask(el.dataset.q || '', !!el.dataset.week); break;
+      // Module 2, week by week
+      case 'm2-all': closeSheet(true); sub.mw = null; sub.ms = null; if (route !== 'module') go('module'); else { render(); $('#screen').scrollTop = 0; } break;
+      case 'm2-open': { const w = M2_BY[Number(id)]; if (w) { closeSheet(true); sub.mw = w.n; sub.ms = el.dataset.s || null; if (route !== 'module') go('module'); else { render(); $('#screen').scrollTop = 0; } } break; }
+      case 'm2-step': if (M2_STEPS.some(([k]) => k === id)) { sub.ms = id; render(); $('#screen').scrollTop = 0; } break;
+      case 'm2-how': m2HowSheet(); break;
+      case 'm2-ladder': m2LadderSheet(); break;
+      case 'm2-listen': { const w = M2_BY[Number(id)]; if (w) listen(`Module 2, week ${w.n}`, m2LessonText(w)); break; }
+      case 'm2-read': {
+        const w = M2_BY[Number(id)];
+        if (!w) break;
+        const u = m2Set(w.n);
+        const first = !u.r;
+        if (first) { u.r = todayKey(); if (!w.check.length) coachDid(w.mins); commit(); }
+        sub.ms = w.check.length ? 'check' : 'ask';
+        render(); $('#screen').scrollTop = 0;
+        if (first && !w.check.length) toast(`<b>Week ${w.n} revised.</b> ${w.cards.length ? `${plural(w.cards.length, 'card')} added to your review cards.` : 'Next: the questions you will take to class.'}`);
+        break;
+      }
+      case 'm2-ans': { const w = M2_BY[Number(id)]; const i = Number(el.dataset.i); if (w && w.check[i]) { const u = m2Set(w.n); if (u.q[i] == null) { u.q[i] = Number(el.dataset.o) || 0; if (!u.r) u.r = todayKey(); commit(); } render(); } break; }
+      case 'm2-retry': { const w = M2_BY[Number(id)]; if (w) { m2Set(w.n).q = {}; commit(); render(); } break; }
+      case 'm2-conf': {
+        const w = M2_BY[Number(id)];
+        if (!w) break;
+        const u = m2Set(w.n);
+        u.f = clamp(Number(el.dataset.n) || 0, 1, 3);
+        const first = !u.k;
+        if (first) { u.k = todayKey(); coachDid(w.mins); }
+        commit(); render();
+        if (first) toast(`<b>Week ${w.n} revised.</b> ${w.cards.length && !u.nocards ? `${plural(w.cards.length, 'card')} added to your review cards.` : 'Next: the questions you will take to class.'}`);
+        break;
+      }
+      case 'm2-ask': { const w = M2_BY[Number(id)]; const i = Number(el.dataset.i); if (w && w.ask[i]) { const u = m2Set(w.n); if (u.a[i]) delete u.a[i]; else u.a[i] = true; commit(); render(); } break; }
+      case 'm2-copy-q': {
+        const w = M2_BY[Number(id)];
+        if (!w) break;
+        const own = String(m2U(w.n).own || '').trim();
+        const qs = m2Picked(w);
+        if (!qs.length && !own) toast('Tick a question or write your own first.');
+        else copyText([`Module 2, week ${w.n}: ${w.title}`, 'My questions for class:'].concat(qs.map((q) => `- ${q}`), own ? [own] : []).join('\n'), 'Questions copied.');
+        break;
+      }
+      case 'm2-live': { const w = M2_BY[Number(id)]; if (w && ['teach', 'stretch', 'clear', 'try'].includes(el.dataset.k)) { closeSheet(true); ask(m2Brief(el.dataset.k, w)); } break; }
+      case 'm2-tried': { const w = M2_BY[Number(id)]; if (w) { const u = m2Set(w.n); const on = !u.p; if (on) u.p = todayKey(); else delete u.p; commit(); render(); if (on) toast('<b>Noted as tried.</b> Add what happened while you remember it.'); } break; }
+      case 'm2-date-reset': { const w = M2_BY[Number(id)]; if (w) { delete m2Set(w.n).d; commit(); render(); } break; }
+      case 'm2-cardsw': { const w = M2_BY[Number(id)]; if (w) { const u = m2Set(w.n); if (u.nocards) delete u.nocards; else u.nocards = true; commit(); render(); } break; }
+      case 'm2-cards': { const w = M2_BY[Number(id)]; if (w) { sub.stab = 'cards'; sub.cardSrc = m2Src(w); sub.cardTopic = null; fcFlip = false; go('study'); } break; }
       // the coach
       case 'co-path': if (COACH_PATHS.some(([k]) => k === id)) { sub.cpath = id; state.coach.path = id; sub.cq = null; commit(); render(); } break;
       case 'co-how': coachHow(); break;
@@ -6742,6 +7698,13 @@ ${n.text.trim()}
       clearTimeout(window.__paperT); window.__paperT = setTimeout(commit, 600);
       return;
     }
+    if (d.input === 'm2') {
+      const w = M2_BY[Number(d.id)];
+      if (!w || !['own', 'took', 'fog', 'pn'].includes(d.k)) return;
+      m2Set(w.n)[d.k] = el.value;
+      clearTimeout(window.__coT); window.__coT = setTimeout(commit, 600);
+      return;
+    }
     if (d.input === 'co') {
       if (!AW_BY[d.id]) return;
       awSet(d.id)[d.k === 'n' ? 'n' : 'a'] = el.value;
@@ -6882,7 +7845,7 @@ ${n.text.trim()}
       if (DICT.on) dictStop();
       if (sheetOpen) { closeSheet(); return true; }
       if (tutorOpen) { closeTutor(); return true; }
-      if (stack.length || (route === 'coach' && sub.cq)) { back(); return true; }
+      if (stack.length || (route === 'coach' && sub.cq) || (route === 'module' && sub.mw != null)) { back(); return true; }
       if (route !== 'home') { go('home'); return true; }
       return false;
     };
@@ -6918,7 +7881,7 @@ ${n.text.trim()}
   document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); if (!document.hidden) { meetWake(); videoTaken(); videoBack(); } else if (MEET.live) MEET.hidAt = Date.now(); });
 
   // Exposed for testing only
-  window.__planner = { videoTaken, ytId, canPlay, playsHere, resumeAt, videoBack, videoCards, lessonCardsOf, pushedCards, allCards, isVideo, VIDEO_CARDS, DECK, resDone, resDoneSheet, resSheet, videoCardSheet, freeAlt, resLocked, resOpen, render, platCard, opensOutside, accessNote, minsLabel, ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
+  window.__planner = { M2, M2_BY, M2_LO, M2_BREAKS, m2Now, m2Date, m2Revised, m2CardsOf, m2CardWeeks, m2Brief, m2HomeCard, m2AlarmWeeks, m2Set, m2U, m2OfSrc, videoTaken, ytId, canPlay, playsHere, resumeAt, videoBack, videoCards, lessonCardsOf, pushedCards, allCards, isVideo, VIDEO_CARDS, DECK, resDone, resDoneSheet, resSheet, videoCardSheet, freeAlt, resLocked, resOpen, render, platCard, opensOutside, accessNote, minsLabel, ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
 })();
 
 </script>

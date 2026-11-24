@@ -81,7 +81,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
       ok('check: finishes with results and a way back', await page.evaluate(() => /Quiz complete/.test(document.querySelector('#screen').textContent) && !!document.querySelector('#screen [data-act="fy-open"]')));
       ok('check: mastery is now set for that topic', await page.evaluate((ts) => ts.some((t) => window.__planner.state.mastery[t] != null), target.ts));
       await click(page, '#screen [data-act="fy-open"]');
-      ok('check: back on For you', await page.evaluate(() => /For you/.test(document.querySelector('#screen .label').textContent)));
+      ok('check: back on For you', await page.evaluate(() => Array.from(document.querySelectorAll('#screen .label')).some((l) => /^For you/.test(l.textContent))));
     } else ok('check: offered', false, target);
     // skip and undo
     const R2 = await picksOf(page);
@@ -2138,6 +2138,209 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     for (const scr of ['study', 'library', 'home', 'log', 'progress']) await page.evaluate((s) => window.__planner.go(s), scr);
     await page.evaluate(() => { const P = window.__planner; P.resSheet('on57'); P.resSheet('on58'); });
     ok('reload: no script errors on any screen', errors.length === 0, errors);
+    await ctx.close();
+  }
+
+  // ---------- O. Module 2, week by week (page 55): revise before class, ask in class, try it afterwards ----------
+  {
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-24T18:30:00', state: JSON.parse(JSON.stringify(rich)) });
+    const P = (fn, arg) => page.evaluate(fn, arg);
+    const at = (t) => P((x) => { window.__NOW = x; }, t);
+    const nowIs = () => P(() => { const N = window.__planner.m2Now(); return N ? { n: N.w.n, d: N.d, days: N.days, phase: N.phase } : null; });
+    const wk = (n) => P((x) => JSON.parse(JSON.stringify(window.__planner.state.m2.w[x] || null)), n);
+    const type = async (sel, text) => { await P(([s, t]) => { const el = document.querySelector(s); el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); }, [sel, text]); await page.waitForTimeout(750); };
+    const eve = (day) => P((d) => { const a = window.__planner.alarmPlan().alarms.filter((x) => x.day === d); return a.map((x) => x.title + ' / ' + x.lines.join(' / ')); }, day);
+
+    // the weeks themselves: what the handbook says, and nothing missing
+    const M = await P(() => JSON.parse(JSON.stringify(window.__planner.M2)));
+    const topics = await P(() => Object.keys(window.__planner.TOPICS));
+    ok('module: 34 weeks, numbered in order, dates rising', M.length === 34 && M.every((w, i) => w.n === i + 1 && (i === 0 || w.d > M[i - 1].d)), M.map((w) => w.n + ' ' + w.d));
+    ok('module: the first 32 sessions are Wednesdays', M.slice(0, 32).every((w) => new Date(w.d + 'T12:00:00').getDay() === 3), M.filter((w, i) => i < 32 && new Date(w.d + 'T12:00:00').getDay() !== 3).map((w) => w.d));
+    ok('module: the handbook’s dates (first class, tomorrow’s workshop, the presentations, the exit tutorials)', M[0].d === '2026-09-09' && M[10].d === '2026-11-25' && M[10].k === 'Workshop' && M[14].d === '2027-01-06' && M[26].d === '2027-04-21' && M[31].d === '2027-05-26' && M[33].d === '2027-06-14', [M[0].d, M[10].d, M[14].d, M[26].d, M[31].d, M[33].d]);
+    ok('module: the breaks sit where the handbook shows them', JSON.stringify(await P(() => window.__planner.M2_BREAKS)) === JSON.stringify({ 7: 'Reading week', 14: 'Christmas break', 20: 'Reading week', 26: 'Easter break', 32: 'Reading week' }));
+    const bad = [];
+    M.forEach((w) => {
+      const say = (m) => bad.push(`week ${w.n}: ${m}`);
+      if (!w.title || !w.big || !w.go || !w.dist || !w.k || !(w.mins > 0)) say('a line is missing');
+      if (!(w.topics.length >= 1) || !(w.learn.length >= 2) || w.learn.some((x) => x.length !== 2 || !x[0] || !x[1])) say('lesson parts');
+      if (w.check.some((c) => c.length !== 4 || c[1].length !== 3 || !(c[2] >= 0 && c[2] <= 2) || !c[3] || new Set(c[1]).size !== 3)) say('a check is malformed');
+      if (w.cards.some((c) => c.length !== 2 || !c[0] || !c[1]) || w.wrong.some((c) => c.length !== 2 || !c[0] || !c[1])) say('cards or mistakes');
+      if (w.lo.some((n) => ![1, 2, 3, 4].includes(n)) || (w.t !== '' && !topics.includes(w.t))) say('outcome or topic');
+      if (/Taught session|Guest speaker|Online taught/.test(w.k) && w.mins === 20 && !(w.check.length >= 2 && w.cards.length >= 3 && w.wrong.length >= 2 && w.ask.length >= 2 && w.read.length >= 1 && w.lo.length >= 1)) say('a taught week is thin');
+      if (/undefined|NaN|—|\s-\s/.test(JSON.stringify(w))) say('odd text');
+      if (w.learn.some((x) => x[1].split(/\s+/).length > 75)) say('a lesson part is over 75 words');
+    });
+    ok('module: every week has its lesson, questions, practice step and distinction line, and taught weeks have checks and cards', bad.length === 0, bad);
+    const cardIds = await P(() => window.__planner.M2.flatMap((w) => window.__planner.m2CardsOf(w)).map((c) => c.id));
+    ok('module: card ids are unique and none clash with the deck', new Set(cardIds).size === cardIds.length && cardIds.length >= 60 && await P((ids) => { const deck = new Set(window.__planner.DECK.map((c) => c.id)); return ids.every((i) => !deck.has(i)); }, cardIds), cardIds.length);
+    ok('module: the four outcomes and what the top band asks', await P(() => { const L = window.__planner.M2_LO; return L.length === 4 && L.every((l, i) => l[0] === i + 1 && /critical/i.test(l[3]) && /[Dd]etailed/.test(l[3])) && /range of research and its impact on practice/.test(L[3][3]); }));
+
+    // where you are in the module
+    ok('where: the evening before, the class is tomorrow', JSON.stringify(await nowIs()) === JSON.stringify({ n: 11, d: '2026-11-25', days: 1, phase: 'before' }), await nowIs());
+    await at('2026-11-25T08:00:00');
+    ok('where: on the morning, it is today', JSON.stringify(await nowIs()) === JSON.stringify({ n: 11, d: '2026-11-25', days: 0, phase: 'before' }), await nowIs());
+    await at('2026-11-25T10:15:00');
+    ok('where: from 9:30 you are in class', (await nowIs()).phase === 'in' && (await nowIs()).n === 11, await nowIs());
+    await at('2026-11-25T13:00:00');
+    ok('where: after 12:30 the class is ready to be noted', (await nowIs()).phase === 'after' && (await nowIs()).n === 11, await nowIs());
+    await at('2026-11-26T09:00:00');
+    ok('where: still to note the next day', (await nowIs()).phase === 'after' && (await nowIs()).n === 11, await nowIs());
+    await at('2026-11-27T09:00:00');
+    ok('where: after that, the next class', JSON.stringify(await nowIs()) === JSON.stringify({ n: 12, d: '2026-12-02', days: 5, phase: 'before' }), await nowIs());
+    await at('2026-12-20T10:00:00');
+    ok('where: in the Christmas break the next class is week 15', JSON.stringify(await nowIs()) === JSON.stringify({ n: 15, d: '2027-01-06', days: 17, phase: 'before' }), await nowIs());
+    await P(() => window.__planner.go('home'));
+    ok('where: Home keeps quiet when the next class is more than a week off', await P(() => !document.querySelector('#m2-card')));
+    await at('2027-06-20T10:00:00');
+    ok('where: after the last session there is nothing to get ready for', (await nowIs()) === null && await P(() => { window.__planner.go('more'); return /Module 2\s*Week by week/.test(document.querySelector('#screen').textContent); }));
+    await at('2026-11-24T18:30:00');
+
+    // the alarm on the evening before
+    const tue = await eve('2026-11-24');
+    ok('alarm: the evening before a class that is not revised says so', tue.length >= 1 && tue.some((x) => /Class tomorrow at 9:30: revise week 11 first \(20 min\)/.test(x)), tue);
+    ok('alarm: next week’s class has its line too', (await eve('2026-12-01')).some((x) => /revise week 12 first \(20 min\)/.test(x)), await eve('2026-12-01'));
+
+    // Home leads to the lesson
+    await P(() => window.__planner.go('home'));
+    const card = await P(() => (document.querySelector('#m2-card') || { textContent: '' }).textContent);
+    ok('home: the class card says when, which week, and offers the lesson', /Module 2 · tomorrow at 9:30/.test(card) && /Week 11: Workshop: your change project, with exemplars/.test(card) && /Revise before class/.test(card) && /20-minute lesson/.test(card), card);
+    ok('home: the class card comes before the coach', await P(() => { const a = document.querySelector('#m2-card'); const b = document.querySelector('#coach-card'); return !!(a && b && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)); }));
+    await click(page, '#m2-card [data-act="m2-open"]');
+    ok('lesson: opens at Learn with the idea, every part and the mistakes', await P(() => { const p = window.__planner; const w = p.M2_BY[11]; const t = document.querySelector('#screen').textContent; return p.route === 'module' && p.sub.mw === 11 && document.querySelector('.costeps [aria-pressed="true"]').textContent.trim() === '1 Learn' && document.querySelectorAll('#screen .step').length === w.learn.length && t.includes(w.big) && /Easy to get wrong/.test(t) && /not from your tutor’s slides/.test(t) && /Wednesday 25 November · 9:30 to 12:30/.test(t); }));
+    await click(page, '#screen [data-act="m2-listen"]');
+    ok('lesson: can be listened to', await P(() => /^Module 2, week 11\. Workshop: your change project/.test(window.__lastListen || '') && window.__listen.title === 'Module 2, week 11'), await P(() => String(window.__lastListen || '').slice(0, 80)));
+    await P(() => window.AndroidApp.listenStop());
+
+    // the tutor: the week, the subject, the grade, the rules
+    await P(() => { window.__calls.length = 0; window.__lastInsert = ''; });
+    await click(page, '#screen [data-act="m2-live"][data-k="teach"]');
+    await page.waitForTimeout(400);
+    const teach = await P(() => window.__lastInsert || '');
+    ok('tutor: Claude gets the week, the handbook’s topics, my subject and my project', /^Be my tutor\./.test(teach) && teach.includes('Week 11 of my module, Wednesday 25 November: "Workshop: your change project, with exemplars"') && teach.includes('Exemplars (WAGOLLs); Assignment support') && /T Level Engineering/.test(teach) && /Weekly in-lesson retrieval rounds/.test(teach), teach.slice(0, 900));
+    ok('tutor: it teaches before class in small steps and helps me word questions for my tutor', /before the class/.test(teach) && /one at a time, and wait for my reply/.test(teach) && /correct any misconception plainly/.test(teach) && /clarification questions to ask my tutor in class/.test(teach) && /I have not read the lesson yet/.test(teach));
+    ok('tutor: it aims at a distinction and at weighing research', /aiming for a distinction/.test(teach) && /detailed, critical analysis on all four learning outcomes/.test(teach) && /where researchers disagree or where the evidence is thin/.test(teach));
+    ok('tutor: it is told the AI rule and not to write the presentation', /AI for shaping only \(AITS 2\)/.test(teach) && /do not write slides, a script or paragraphs for my presentation, not even a model one/.test(teach) && /declare any AI I use/.test(teach));
+    await click(page, '[data-act="close-tutor"]');
+
+    // read, check, how sure: the week is revised and its cards arrive
+    const before = await P(() => window.__planner.allCards().length);
+    await click(page, '#screen [data-act="m2-read"]');
+    ok('check: reading leads to the check', await P(() => document.querySelector('.costeps [aria-pressed="true"]').textContent.trim() === '2 Check' && document.querySelectorAll('#screen .qopt').length === 9) && (await wk(11)).r === '2026-11-24' && !(await P(() => window.__planner.m2Revised(window.__planner.M2_BY[11]))));
+    await P(() => { const w = window.__planner.M2_BY[11]; w.check.forEach((c, i) => document.querySelector(`#screen [data-act="m2-ans"][data-i="${i}"][data-o="${i === 0 ? (c[2] + 1) % 3 : c[2]}"]`).click()); });
+    ok('check: a wrong answer is explained, and the score is counted', await P(() => /2 of 3 right\. How sure do you feel about this week\?/.test(document.querySelector('#screen').textContent) && document.querySelectorAll('#screen .qopt.wrong').length === 1 && /Not quite/.test(document.querySelector('#screen').textContent)));
+    await click(page, '#screen [data-act="m2-conf"][data-n="2"]');
+    const w11 = await wk(11);
+    ok('check: saying how sure marks the week revised today', w11.k === '2026-11-24' && w11.f === 2 && await P(() => window.__planner.m2Revised(window.__planner.M2_BY[11])), w11);
+    ok('cards: the week’s three cards join the review cards, at the front', await P((b) => { const p = window.__planner; const mine = p.allCards().filter((c) => c.src === 'm2w11'); const due = p.dueCards(); return p.allCards().length === b + 3 && mine.length === 3 && mine.every((c) => /^m2-11-\d$/.test(c.id)) && due.slice(0, 3).every((c) => c.src === 'm2w11'); }, before) && await P(() => /3 cards added to your review cards/.test(document.querySelector('#toast').textContent)), await P(() => document.querySelector('#toast').textContent));
+    ok('alarm: a revised week no longer asks', !(await eve('2026-11-24')).some((x) => /revise week 11/.test(x)), await eve('2026-11-24'));
+    await click(page, '#screen [data-act="m2-cards"]');
+    ok('cards: “Review its cards” shows just that week’s, and says where they are from', await P(() => { const p = window.__planner; const t = document.querySelector('#screen').textContent; return p.route === 'study' && p.sub.cardSrc === 'm2w11' && /Module 2 · week 11/.test(t) && /3 due/.test(t) && /Name the four rungs/.test(t); }), await P(() => document.querySelector('#screen').textContent.slice(0, 300)));
+    await click(page, '#screen [data-act="flip"]');
+    await click(page, '#screen [data-act="grade"][data-id="2"]');
+    ok('cards: a week’s card is graded like any other', await P(() => { const p = window.__planner; return !!p.state.cards['m2-11-0'] && p.state.cards['m2-11-0'].due > '2026-11-24' && /2 due/.test(document.querySelector('#screen').textContent); }));
+    await click(page, '#screen [data-act="card-src"]');
+    ok('cards: with all cards shown, a week’s card names its week', await P(() => { const p = window.__planner; return !p.sub.cardSrc && /From Module 2, week 11: Workshop/.test(document.querySelector('#screen').textContent); }), await P(() => document.querySelector('#screen').textContent.slice(0, 400)));
+
+    // questions for class
+    await P(() => { const p = window.__planner; p.sub.mw = 11; p.sub.ms = 'ask'; p.go('module'); });
+    await click(page, '#screen [data-act="m2-ask"][data-i="0"]');
+    await click(page, '#screen [data-act="m2-ask"][data-i="3"]');
+    await type('#m2-own-11', 'Does a trial run count as evidence?');
+    const q11 = await wk(11);
+    ok('ask: ticked questions and my own are kept', q11.a[0] === true && q11.a[3] === true && Object.keys(q11.a).length === 2 && q11.own === 'Does a trial run count as evidence?' && await P(() => document.querySelectorAll('#screen [data-act="m2-ask"][aria-checked="true"]').length === 2), q11);
+    await click(page, '#screen [data-act="m2-ask"][data-i="3"]');
+    ok('ask: a tick comes off again', Object.keys((await wk(11)).a).join() === '0');
+    ok('ask: the distinction line, the outcomes it feeds and the reading', await P(() => { const t = document.querySelector('#screen').textContent; const w = window.__planner.M2_BY[11]; return t.includes(w.dist) && /This week feeds LO1 \(your planning and teaching\), LO2/.test(t) && /Names to look up/.test(t) && /read it before you cite it/.test(t); }));
+    await P(() => { window.__lastInsert = ''; });
+    await click(page, '#screen [data-act="m2-live"][data-k="stretch"]');
+    await page.waitForTimeout(400);
+    const stretch = await P(() => window.__lastInsert || '');
+    ok('tutor stretch: questions at level 7, up the ladder, with no model answers', /^Question me at level 7/.test(stretch) && /describe, explain, analyse or evaluate/.test(stretch) && /limits of the research and one on inclusion/.test(stretch) && /Do not give model answers/.test(stretch) && /AI for shaping only/.test(stretch), stretch.slice(0, 500));
+    await click(page, '[data-act="close-tutor"]');
+    await click(page, '#screen [data-act="m2-ladder"]');
+    ok('ladder: the four rungs, with invented examples', await P(() => { const t = (document.querySelector('#layer .sheet') || { textContent: '' }).textContent; return /Describe\./.test(t) && /Explain\./.test(t) && /Analyse\./.test(t) && /Evaluate\./.test(t) && /invented/.test(t); }));
+    await click(page, '#layer [data-act="close-sheet"]');
+    await P(() => window.__planner.go('home'));
+    const card2 = await P(() => document.querySelector('#m2-card').textContent);
+    ok('home: once revised, the card counts the questions ready for class', /Revised on Tue 24 Nov\. 2 questions ready for class\./.test(card2) && /My questions for class/.test(card2), card2);
+
+    // after class: note it, clear it up, try it
+    await at('2026-11-25T13:10:00');
+    await P(() => window.__planner.go('home'));
+    ok('after: Home asks for five minutes on today’s session', await P(() => /after today’s session/.test(document.querySelector('#m2-card').textContent) && /Note it now/.test(document.querySelector('#m2-card').textContent)));
+    await click(page, '#m2-card [data-act="m2-open"]');
+    ok('after: it opens at After', await P(() => document.querySelector('.costeps [aria-pressed="true"]').textContent.trim() === '4 After' && !!document.querySelector('#m2-took-11') && !!document.querySelector('#m2-fog-11')));
+    await type('#m2-fog-11', 'I am not sure how much theory LO1 needs.');
+    await P(() => { window.__lastInsert = ''; });
+    await click(page, '#screen [data-act="m2-live"][data-k="clear"]');
+    await page.waitForTimeout(400);
+    const clear = await P(() => window.__lastInsert || '');
+    ok('tutor clear: Claude gets what is unclear and is asked to check for misconceptions', /I have just had the class/.test(clear) && clear.includes('I am not sure how much theory LO1 needs.') && /looks like a misconception/.test(clear) && /AI for shaping only/.test(clear), clear.slice(0, 600));
+    await click(page, '[data-act="close-tutor"]');
+    await click(page, '#screen [data-act="m2-tried"]');
+    ok('after: “I tried it” is dated', (await wk(11)).p === '2026-11-25' && await P(() => /Tried Wed 25 Nov/.test(document.querySelector('#screen').textContent)));
+    await P(() => { window.__lastInsert = ''; });
+    await click(page, '#screen [data-act="m2-live"][data-k="try"]');
+    await page.waitForTimeout(400);
+    const tryIt = await P(() => window.__lastInsert || '');
+    ok('tutor practice: Claude gets the step, asks about evidence and who is left out, and does not plan the lesson for me', tryIt.includes(M[10].go) && /note down as evidence/.test(tryIt) && /left out/.test(tryIt) && /Do not write the lesson plan for me/.test(tryIt), tryIt.slice(0, 600));
+    await click(page, '[data-act="close-tutor"]');
+    await type('#m2-took-11', 'The strongest exemplar weighed its own limits on every slide.');
+    ok('after: once noted, the module moves on to next week', (await nowIs()).n === 12 && (await nowIs()).phase === 'before' && (await wk(11)).took.startsWith('The strongest exemplar'), await nowIs());
+
+    // a class that moves
+    await P(() => { const p = window.__planner; p.sub.mw = 12; p.sub.ms = 'after'; p.go('module'); const i = document.querySelector('[data-m2-date="12"]'); i.value = '2026-12-03'; i.dispatchEvent(new Event('change', { bubbles: true })); });
+    ok('moved: a new date is kept, and the eve-of-class alarm follows it', (await wk(12)).d === '2026-12-03' && await P(() => window.__planner.m2Date(window.__planner.M2_BY[12])) === '2026-12-03' && (await eve('2026-12-02')).some((x) => /revise week 12/.test(x)) && !(await eve('2026-12-01')).some((x) => /revise week 12/.test(x)) && await P(() => /Thursday 3 December/.test(document.querySelector('#screen').textContent)), [await wk(12), await eve('2026-12-01'), await eve('2026-12-02')]);
+    await click(page, '#screen [data-act="m2-date-reset"]');
+    ok('moved: back to the handbook’s date', (await wk(12)).d === undefined && await P(() => window.__planner.m2Date(window.__planner.M2_BY[12])) === '2026-12-02');
+
+    // a week with no check (a second microteach), and the list
+    await P(() => { const p = window.__planner; p.sub.mw = 16; p.sub.ms = null; p.go('home'); p.go('module'); });
+    ok('light week: three steps, no check', await P(() => Array.from(document.querySelectorAll('.costeps button')).map((b) => b.textContent.trim()).join('|') === '1 Learn|2 Ask|3 After'));
+    await click(page, '#screen [data-act="m2-read"]');
+    ok('light week: reading it is enough to mark it revised', await P(() => window.__planner.m2Revised(window.__planner.M2_BY[16]) && document.querySelector('.costeps [aria-pressed="true"]').textContent.trim().endsWith('Ask')) && /Week 16 revised/.test(await P(() => document.querySelector('#toast').textContent)));
+    await click(page, '#appbar [data-act="back"]');
+    ok('list: Back from a week shows every week, by term, with the breaks', await P(() => { const p = window.__planner; const t = document.querySelector('#screen').textContent; return p.route === 'module' && p.sub.mw == null && document.querySelectorAll('#screen [data-act="m2-open"].li').length === 34 && /Autumn term/.test(t) && /Spring term/.test(t) && /Summer term/.test(t) && /Christmas break/.test(t) && /Easter break/.test(t) && /2 of 34 weeks revised · 1 tried in your own teaching/.test(t) && /What a distinction asks for/.test(t) && /74, 81, 89 and 96/.test(t); }), await P(() => document.querySelector('#screen').textContent.slice(0, 300)));
+    await click(page, '#appbar [data-act="back"]');
+    ok('list: Back again leaves the module', await P(() => window.__planner.route === 'home'));
+    ok('phone back: from a week it goes to the list first', await P(() => { const p = window.__planner; p.sub.mw = 3; p.go('module'); const a = window.__capgownBack(); return a === true && p.route === 'module' && p.sub.mw == null; }));
+    await P(() => window.__planner.go('more'));
+    ok('more: a Module 2 tile says the next week and its date', await P(() => /Module 2\s*Week 12 · Wed 2 Dec/.test(document.querySelector('#screen').textContent)), await P(() => document.querySelector('#screen').textContent.slice(0, 200)));
+    await click(page, '#screen [data-go="module"]');
+    ok('more: the tile opens the module', await P(() => window.__planner.route === 'module'));
+    await P(() => { const p = window.__planner; p.sub.cpath = 'cp'; p.sub.cq = null; p.go('coach'); });
+    await click(page, '#screen [data-act="m2-all"]');
+    ok('coach: the change project tab links to the weeks', await P(() => window.__planner.route === 'module' && window.__planner.sub.mw == null));
+
+    // the cards can be kept out
+    await P(() => { const p = window.__planner; p.sub.mw = 11; p.sub.ms = 'after'; p.go('module'); });
+    await click(page, '#screen [data-act="m2-cardsw"]');
+    ok('cards: switched off, the week’s cards leave the review cards (what was learned is kept)', await P(() => { const p = window.__planner; return p.allCards().filter((c) => c.src === 'm2w11').length === 0 && p.state.m2.w[11].nocards === true && !!p.state.cards['m2-11-0']; }));
+    await click(page, '#screen [data-act="m2-cardsw"]');
+    ok('cards: switched back on', await P(() => window.__planner.allCards().filter((c) => c.src === 'm2w11').length === 3));
+    for (const scr of ['home', 'study', 'plan', 'progress', 'log', 'settings']) await P((s) => window.__planner.go(s), scr);
+    ok('module: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  // saved module notes survive a reload, and odd values do no harm; old data without them still opens
+  {
+    const st = JSON.parse(JSON.stringify(rich));
+    st.m2 = { w: { 11: { r: 'yesterday', k: '2026-11-24', q: 'x', a: [1], f: 9, own: { a: 1 }, took: 5, fog: 'kept', d: '2026-13-40', nocards: 'yes', p: 7 }, 12: 'oops', x: { r: '2026-11-24' }, 99: { r: '2026-11-24' } }, extra: 1 };
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-24T19:30:00', state: st });
+    const got = await page.evaluate(() => JSON.parse(JSON.stringify(window.__planner.state.m2)));
+    ok('reload: odd values in a week are dropped and good ones kept', got.w[11] && got.w[11].r === undefined && got.w[11].k === '2026-11-24' && JSON.stringify(got.w[11].q) === '{}' && JSON.stringify(got.w[11].a) === '{}' && got.w[11].f === 3 && got.w[11].own === '' && got.w[11].took === '5' && got.w[11].fog === 'kept' && got.w[11].d === undefined && got.w[11].nocards === undefined && got.w[11].p === undefined, got.w[11]);
+    ok('reload: things that are not weeks are dropped', got.w[12] === undefined && got.w.x === undefined, Object.keys(got.w));
+    for (const scr of ['module', 'home', 'study', 'more']) await page.evaluate((s) => window.__planner.go(s), scr);
+    await page.evaluate(() => { const p = window.__planner; p.sub.mw = 99; p.go('home'); p.go('module'); });
+    ok('reload: a week number that does not exist shows the list', await page.evaluate(() => document.querySelectorAll('#screen [data-act="m2-open"].li').length === 34));
+    ok('reload: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  for (const m2 of [undefined, 'junk', [], { w: [] }, null]) {
+    const st = JSON.parse(JSON.stringify(rich));
+    if (m2 === undefined) delete st.m2; else st.m2 = m2;
+    const { ctx, page, errors } = await open(browser, { app: false, now: '2026-11-24T19:30:00', state: st });
+    ok(`old data (${JSON.stringify(m2)}): the module opens empty, in a browser too`, await page.evaluate(() => { const p = window.__planner; p.go('module'); return JSON.stringify(p.state.m2) === '{"w":{}}' && /0 of 34 weeks revised/.test(document.querySelector('#screen').textContent) && !!document.querySelector('#m2-card'); }) && errors.length === 0, errors);
     await ctx.close();
   }
 

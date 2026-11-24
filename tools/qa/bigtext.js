@@ -2,7 +2,7 @@
 // dyslexia-friendly font: nothing may run off the edge of the screen.
 const { chromium, open, overflow } = require('./lib');
 const { rich } = require('./seed');
-const ROUTES = ['home', 'plan', 'study', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice', 'coach'];
+const ROUTES = ['home', 'plan', 'study', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice', 'coach', 'module'];
 const STABS = ['foryou', 'quiz', 'cards', 'mistakes', 'papers'];
 const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placements', 'records', 'pd'];
 (async () => {
@@ -31,6 +31,29 @@ const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placem
     }
     await page.evaluate(() => { const P = window.__planner; P.sub.cq = null; P.go('coach'); document.querySelector('#screen [data-act="co-how"]').click(); });
     await check('coach help sheet');
+    // Module 2: the list, a week at each step (answers picked, a moved date, notes typed), the longest titles,
+    // the weeks with no fixed time, and its two sheets
+    await page.evaluate(() => { document.querySelector('[data-act="close-sheet"]').click(); const P = window.__planner; P.go('home'); P.sub.mw = null; P.go('module'); });
+    await check('module list');
+    for (const [wn, stp] of [[11, 'learn'], [11, 'check'], [11, 'ask'], [11, 'after'], [18, 'learn'], [18, 'check'], [4, 'ask'], [6, 'check'], [32, 'learn'], [33, 'after'], [34, 'learn']]) {
+      await page.evaluate(([num, s]) => {
+        const P = window.__planner; P.go('home'); P.sub.mw = num; P.sub.ms = s; P.go('module');
+        if (s === 'check') { P.M2_BY[num].check.forEach((c, i) => { const b = document.querySelector(`#screen [data-act="m2-ans"][data-i="${i}"][data-o="${i === 0 ? (c[2] + 1) % 3 : c[2]}"]`); if (b) b.click(); }); const f = document.querySelector('#screen [data-act="m2-conf"][data-n="1"]'); if (f) f.click(); }
+        if (s === 'ask') { const u = P.m2Set(num); u.a[0] = true; u.own = 'How much of the theory belongs on the slides, and how much in what I say?'; P.go('home'); P.go('module'); }
+        if (s === 'after') { const u = P.m2Set(num); u.d = '2026-12-03'; u.p = '2026-11-18'; u.took = 'The strongest exemplar weighed its own limits on every slide.'; u.fog = 'I am not sure how much theory the first outcome needs.'; u.pn = 'Tried a five-question round with the Thursday group.'; P.go('home'); P.go('module'); }
+      }, [wn, stp]);
+      await check(`module week ${wn} ${stp}`);
+    }
+    await page.evaluate(() => { const P = window.__planner; delete P.state.m2.w[11].d; delete P.state.m2.w[33]; P.go('home'); P.sub.mw = null; P.go('module'); });
+    await check('module list, with weeks revised and tried');
+    await page.evaluate(() => document.querySelector('#screen [data-act="m2-ladder"]').click());
+    await check('module ladder sheet');
+    await page.evaluate(() => { document.querySelector('[data-act="close-sheet"]').click(); document.querySelector('#screen [data-act="m2-how"]').click(); });
+    await check('module lessons sheet');
+    await page.evaluate(() => { document.querySelector('[data-act="close-sheet"]').click(); const P = window.__planner; P.sub.stab = 'cards'; P.sub.cardSrc = 'm2w11'; P.go('study'); });
+    await check('review cards from a Module 2 week');
+    await page.evaluate(() => { const P = window.__planner; P.sub.cardSrc = null; P.go('home'); });
+    await check('home with the class card');
     // PebblePad: the sheet on its own, carrying a reflection across, and as an older app words it
     await page.evaluate(() => { const P = window.__planner; P.go('home'); P.sub.cq = null; P.sub.ppage = 'obs'; P.go('portfolio'); document.querySelector('#appbar [data-act="pebblepad"]').click(); });
     await check('PebblePad sheet');
