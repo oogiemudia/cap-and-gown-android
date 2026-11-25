@@ -2,12 +2,32 @@
 
 The Cap and Gown study planner as an Android app, with real alarms and Claude inside the app.
 
+## Page 57: Module 3 from the college's own documents and Padlet board
+
+The Module 3 page under More, Assessment is rebuilt from what the college gives out for the portfolio and its professional discussion: nine documents and the Padlet board "Mapping Evidence to the Occupational Standards". There is no Module 3 handbook. This page change needs no new install.
+
+- **What the documents say, and what they do not.** One rule: all 51 Occupational Standards have to be shown as met by the end of the course to pass. They give no grade bands and do not say how the discussion is marked, so the page claims none and says to ask the tutor. The 30 minutes and the nine stories or questions come from the plan the app already held, and the page says which is which.
+- **Everything is in the app's own words.** The college's documents and the board are not copied. The official wording of each standard was already in `KSBS`.
+- **The A to Z of evidence** (`AZ`): the college's 26 kinds of evidence, one for each letter.
+- **Each standard in plain words** (`KSB_PLAIN`), shown on the matrix and on the KSB sheet in Portfolio.
+- **The Padlet board's ideas** (`KSB_IDEAS`): 145 ideas across the 51 standards, each with its A to Z letter where the idea plainly is that kind of evidence.
+- **The evidence matrix** (More, Assessment, Module 3, Evidence matrix): the college's grid of 51 standards by 26 letters, turned into one row for each standard. Tap a row for the wording, the plain meaning and the board's ideas, and tick the kinds you have or plan to use (`state.ax.mx`, the letters for each standard). It can be copied as text.
+- **Justifications**: the college's two templates, practice to theory and theory to practice (`JUST`), as a screen to write on (`state.ax.just`). Speak and Listen sit under every box. A finished one can be copied, taken to PebblePad, or added to the evidence log, which tags its KSBs and ticks J for them on the matrix. Claude's brief (`justBrief`) carries what was written and questions it; it is told not to rewrite it or add references.
+- **Four short guides** (`m3GuideSheet`): what goes where in PebblePad's two workbooks, sharing both with ATLAS, recording an alternative placement, and the A to Z.
+- **A pace** (`m3Pace`): how many standards a week it takes to have every one evidenced by the plan's final KSB check.
+- **The hand-in list** grew from 7 to 12 with what the documents ask for: each piece explained, the Progress Tracking Page, the Statement of Professionalism, mentor meetings recorded, both workbooks shared.
+- **Portfolio**: the KSB sheet shows the plain meaning and opens the college's ideas; the overview has a button to the Module 3 page; Justification is a type in the evidence log.
+
+Saved data: `state.ax.mx` and `state.ax.just` are new. `repair()` keeps only real standards and letters, and cuts a justification to its known parts.
+
+Tests: `logic.js` has a section for the data (26 kinds, 51 meanings, 145 ideas), the page, the four guides, the matrix, both templates, the evidence log, PebblePad, phone back, a reload and damaged data. `bigtext.js` and `clicker.js` open the new screens.
+
 ## Page 56: Assessment under More, and a plan that finishes early
 
 **Assessment** is a new screen under More. It holds what each of the two courses is marked on, aims each one at its top standard, and offers a plan that ends the real work on every assessment about two weeks before it is due. This page change needs no new install.
 
 - **Four assessments** (`AX`): the Module 2 presentation and the Module 3 portfolio with its professional discussion for the PGCE; the knowledge workbook and the evidence of assessing learners for the assessor award. Each has a page: what is handed in, its dates and steps from the planner, how it is marked, what top work looks like, and a list to tick before handing in.
-- **What is and is not graded.** Only Module 2 has bands in the app (from its handbook), so only Module 2 says "distinction". The assessor award has no distinction grade, and the page says so: the aim there is accepted first time. The Module 3 marking grid is not held, and the page says that too.
+- **What is and is not graded.** Only Module 2 has bands in the app (from its handbook), so only Module 2 says "distinction". The assessor award has no distinction grade, and the page says so: the aim there is accepted first time. Module 3 has no grade bands in the college's documents, and the page says that too (see page 57).
 - **Where is my work now?** On the Module 2 page each outcome can be rated Refer, Pass, Merit or Distinction (`state.ax.rate`). The lowest one is named first, with what would lift it (`AX_LIFT`).
 - **Claude.** One brief for each assessment (`axBrief`). They question and check. They do not write slides, answers, stories or records, and the one for assessment records tells Claude not to ask for learners' names.
 - **The early plan** (`AX_GROUPS`, next to `deadlines()`): an earlier evening for 18 steps. The workbook goes to the assessor before Christmas. Standardisation evidence and learner 2 start two weeks sooner, so half term is free. The Module 2 slides are planned and drafted in March beside the project, so a whole first draft exists before Easter, and the final edit is two weeks before the hand-in. The Module 3 portfolio list is checked three weeks before the discussion.

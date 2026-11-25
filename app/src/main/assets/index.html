@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Cap and Gown</title>
-<meta name="capgown-page" content="56">
+<meta name="capgown-page" content="57">
 <meta name="capgown-min-app" content="0">
 <meta name="theme-color" content="#3454D9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -429,7 +429,8 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       // version 7 (page 55): Module 2 week by week, what you have done for each Wednesday class (see m2U)
       m2: { w: {} },
       // version 8 (page 56): Assessment. The early plan (early, since), your own rating of each Module 2 outcome, the hand-in ticks.
-      ax: { rate: {}, must: {} }
+      // Page 57 adds Module 3: mx is the evidence matrix (the letters ticked for each standard), just is your justifications.
+      ax: { rate: {}, must: {}, mx: {}, just: [] }
     };
   }
   function freshCoach() {
@@ -612,12 +613,25 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     });
     // Assessment: the early plan is on only with the day it was switched on; ratings are 1 to 4; ticks are true.
     if (!isObj(out.ax)) out.ax = {};
-    keep(out.ax, (v, k) => ['early', 'since', 'rate', 'must'].includes(k));
+    keep(out.ax, (v, k) => ['early', 'since', 'rate', 'must', 'mx', 'just'].includes(k));
     if (typeof out.ax.early !== 'boolean') delete out.ax.early;
     if (!isDay(out.ax.since) || out.ax.early !== true) delete out.ax.since;
     if (out.ax.early === true && !out.ax.since) delete out.ax.early;
     out.ax.rate = isObj(out.ax.rate) ? keep(out.ax.rate, (v, k) => /^[1-4]$/.test(k) && [1, 2, 3, 4].includes(v)) : {};
     out.ax.must = isObj(out.ax.must) ? keep(out.ax.must, (v, k) => v === true && /^[a-z0-9]{2}-[a-z]$/.test(k)) : {};
+    // Module 3: the matrix holds letters A to Z against a real standard; a justification keeps its words and its KSBs.
+    const isKsb = (k) => typeof k === 'string' && /^(K([1-9]|1\d|20)|S([1-9]|1\d|2[0-5])|B[1-6])$/.test(k);
+    out.ax.mx = isObj(out.ax.mx) ? keep(out.ax.mx, (v, k) => isKsb(k) && typeof v === 'string' && /^[A-Z]{1,60}$/.test(v)) : {};
+    Object.keys(out.ax.mx).forEach((k) => { out.ax.mx[k] = Array.from(new Set(out.ax.mx[k].split(''))).sort().join(''); });
+    out.ax.just = rows(Array.isArray(out.ax.just) ? out.ax.just : [], (j) => j.kind === 'pt' || j.kind === 'tp').slice(0, 40).map((j) => {
+      const o = { id: typeof j.id === 'string' && /^j[a-z0-9]{1,24}$/.test(j.id) ? j.id : 'j' + uid(), kind: j.kind, at: isNum(j.at) && j.at > 0 ? j.at : 0 };
+      ['p', 'why', 'th', 'crit', 'fit', 'not', 'refs'].forEach((k) => { o[k] = str(j[k]).slice(0, 6000); });
+      o.ksbs = Array.isArray(j.ksbs) ? j.ksbs.filter((k, i, a) => isKsb(k) && a.indexOf(k) === i) : [];
+      if (isNum(j.pp) && j.pp > 0) o.pp = j.pp;
+      if (typeof j.ev === 'string' && j.ev) o.ev = j.ev;
+      return o;
+    });
+    out.ax.just = out.ax.just.filter((j, i, a) => a.findIndex((x) => x.id === j.id) === i);
     return out;
   }
   function loadLocal() {
@@ -2868,7 +2882,171 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     ['K1', 'K2', 'K4', 'K19', 'S23', 'B1', 'B2', 'B3', 'B6'],
     ['K7', 'K8', 'K13', 'S1', 'S5', 'S12', 'S14', 'S16', 'S21']
   ];
-  const EVIDENCE_TYPES = ['Lesson plan', 'Observation feedback', 'Reflection', 'Learner work', 'Mentor meeting record', 'Resource', 'Certificate', 'Taught session notes', 'Placement record', 'Other'];
+  const EVIDENCE_TYPES = ['Lesson plan', 'Observation feedback', 'Reflection', 'Justification', 'Learner work', 'Mentor meeting record', 'Resource', 'Certificate', 'Taught session notes', 'Placement record', 'Other'];
+  /* ---------- Module 3: what your college gives out for the portfolio (page 57) ----------
+     From the nine Module 3 documents and the Padlet board "Mapping Evidence to the Occupational Standards".
+     The official wording of each standard is in KSBS above. Everything below is in this app's own words. */
+  // The college's A to Z of possible evidence: [letter, short name, what it is]. The college says it is not a complete list.
+  const AZ = [
+    ['A', 'Annotated plans', 'A scheme of work or lesson plan with your notes on it, showing how you adapted your teaching.'],
+    ['B', 'Reviews of reading', 'A review you wrote of a book, an article or a report.'],
+    ['C', 'CPD notes', 'Notes and slides from training you went to or completed yourself.'],
+    ['D', 'Data', 'Data that shaped your teaching or your assessment.'],
+    ['E', 'Exercises and resources', 'Exercises, resources and slides you made or adapted and used with learners, starters and plenaries included.'],
+    ['F', 'Feedback and marking', 'Your feedback and marking on learners’ work, with names taken out.'],
+    ['G', 'Graphs and infographics', 'A graph, chart or infographic you made or annotated that sums up a theory or an idea.'],
+    ['H', 'Group session work', 'Work from your PGCE group sessions: whiteboards, annotated slides, handouts.'],
+    ['I', 'Independent learning', 'Learning you chose to do by yourself, such as an online course.'],
+    ['J', 'Justifications', 'A written piece that links a theory to your practice, or your practice to a theory.'],
+    ['K', 'Knowledge maps', 'A map or plan of your subject knowledge and the gaps you are working on.'],
+    ['L', 'Lesson plans', 'Plans for lessons you have taught.'],
+    ['M', 'Module assignment work', 'Paragraphs or slides from your module assignments.'],
+    ['N', 'News articles', 'A news article about your subject or the sector.'],
+    ['O', 'Online tools', 'Online tools you have used and developed for learning, such as Padlet, quizzes or TeacherMatic.'],
+    ['P', 'Practical activities', 'A practical activity you set up and ran.'],
+    ['Q', 'Question prompts', 'The question prompts you planned and used.'],
+    ['R', 'Reflections', 'Reflections on critical incidents and on your observed lessons.'],
+    ['S', 'Subject specialist activity', 'Something you did to build or secure your own knowledge of a topic.'],
+    ['T', 'Teaching observation forms', 'Your teaching observation forms, 1 to 10.'],
+    ['U', 'Use of feedback', 'What you did with feedback from mentor meetings, tutorials, assignments or support plans.'],
+    ['V', 'Videos, images, voice', 'A video, a picture or a voice recording that you made.'],
+    ['W', 'Websites', 'A website you used, with your notes on how it helped.'],
+    ['X', 'Extra-curricular', 'Activity beyond lessons, such as trips and employability events.'],
+    ['Y', 'Your meeting notes', 'Your notes from team meetings, open evenings and other placement communications.'],
+    ['Z', 'Something else', 'Any other evidence that is not on this list.']
+  ];
+  const AZ_BY = {};
+  AZ.forEach((a) => { AZ_BY[a[0]] = a; });
+  // What each standard means, in plain words.
+  const KSB_PLAIN = {
+    K1: 'You know the main ideas about how people learn and how to use them in your teaching.',
+    K2: 'You know how to build English and maths into your subject in ways that belong there.',
+    K3: 'You know how a curriculum is designed, planned and put in order.',
+    K4: 'You know ways to make and adapt resources so that every learner can use them.',
+    K5: 'You know teaching, learning and assessment methods that include everyone and are backed by evidence.',
+    K6: 'You know ways to keep every learner involved and stretched.',
+    K7: 'You know how to use starting-point and diagnostic checks, again and again, to plan what comes next.',
+    K8: 'You know ways to get learners to take charge of their own progress.',
+    K9: 'You know the principles of assessment and feedback and how they work in practice.',
+    K10: 'You know how to make a place to learn where learners are safe and supported.',
+    K11: 'You know what gets in the way of learning and how to change your teaching and assessment to get round it.',
+    K12: 'You know the support on offer to learners for health, wellbeing and safeguarding.',
+    K13: 'You know where to find up-to-date information, advice and guidance about learners’ next steps.',
+    K14: 'You know what your organisation’s policies and the outside bodies and frameworks ask of you, and what follows from them.',
+    K15: 'You know ways to build working relationships with other people.',
+    K16: 'You know how to communicate with different audiences, and how to lead a difficult conversation.',
+    K17: 'You know the principles and techniques of coaching and mentoring.',
+    K18: 'You know ways to improve quality.',
+    K19: 'You know how to find development for yourself and how to stay current in the sector and in your subject.',
+    K20: 'You know about new digital and online technology, how it can be used in teaching, and how to stay safe online.',
+    S1: 'You bring research about your subject and about teaching into your lessons, and it changes what you do.',
+    S2: 'You spot barriers to learning, think them through and act to reduce their effect.',
+    S3: 'You set English and maths inside your subject so that key topics make more sense.',
+    S4: 'You choose from a range of teaching and assessment methods to suit the room and the learners.',
+    S5: 'You get learners to set goals that stretch them.',
+    S6: 'You help learners understand equality, diversity and sustainable development.',
+    S7: 'Your teaching shows the wider picture around your subject (policy, the economy, society, technology, law, culture, the environment) and what it means for professional practice.',
+    S8: 'You design and use resources that include everyone and move learners on.',
+    S9: 'You engage and inspire every learner.',
+    S10: 'You set outcomes that let each learner reach or beat their targets.',
+    S11: 'You give learners feedback all the way through, not only at the end.',
+    S12: 'You use the results of initial and diagnostic assessment to plan learning and tailored support, at the start and all the way through.',
+    S13: 'You help learners grow independence and resilience, work well with others, respect others, build skills for work, look for solutions and make change happen.',
+    S14: 'You use assessment data regularly to review and improve your own and others’ practice, and you report gaps in progress and achievement between groups.',
+    S15: 'You follow safeguarding procedures and promote learners’ welfare, as the law requires.',
+    S16: 'You get learners ready for their next step: more education, training or work.',
+    S17: 'You follow internal and external rules, law and guidance, including how learners’ information is recorded, stored and shared.',
+    S18: 'You change how you communicate (style, method and wording) for learners, colleagues and other people you work with.',
+    S19: 'You work with learners to set standards for behaviour, mutual respect and safe working.',
+    S20: 'You challenge behaviour or views that are not acceptable.',
+    S21: 'You keep your knowledge and skills up to date, as a teacher and as a subject specialist, and you manage your own CPD.',
+    S22: 'You go looking for feedback from learners, peers, colleagues, employers and others, and you act on it.',
+    S23: 'You manage your workload by preparing, putting first things first, managing time and responding to change.',
+    S24: 'You work within the legal frameworks that set out a teacher’s duties and responsibilities.',
+    S25: 'You use current digital and online technology safely to improve teaching, learning and assessment.',
+    B1: 'You stay steady and adaptable under challenge and change, keeping your focus and self-control.',
+    B2: 'You ground your practice in the professional standards and in evidence about teaching and learning.',
+    B3: 'You are committed to your own continuing professional development.',
+    B4: 'You act professionally and build good relationships with colleagues, learners and others.',
+    B5: 'You are ethical, fair, consistent and impartial. You value equality and diversity and champion British values, within professional boundaries.',
+    B6: 'You model sustainable practice and promote sustainable development in your subject.'
+  };
+  /* The Padlet board's ideas of what to map to each standard: [letters of the A to Z it matches, the idea].
+     A letter is given only where the idea plainly is that kind of evidence. */
+  const KSB_IDEAS = {
+    K1: [['H', 'Work from your PGCE group sessions, such as whiteboards, annotated slides and handouts'], ['S', 'A subject specialist activity that built or secured your knowledge of a topic']],
+    K2: [['A', 'An annotated scheme of work or lesson plan that marks where English and maths come in'], ['E', 'Exercises, resources and slides you made or adapted and used, starters and plenaries included']],
+    K3: [['A', 'An annotated scheme of work or lesson plan'], ['C', 'Department CPD on planning and sequencing the curriculum']],
+    K4: [['A', 'An annotated scheme of work or lesson plan that shows how you adapted your teaching']],
+    K5: [['E', 'Exercises, resources and slides you made or adapted and used with learners'], ['', 'Teaching, learning and assessment strategies built on evidence you have looked into, evidence about your subject included'], ['Q', 'Your question prompts and questioning strategies']],
+    K6: [['E', 'Exercises, resources and slides you made or adapted and used with learners, starters and plenaries included']],
+    K7: [['D', 'How initial or diagnostic assessment shaped your planning, for example the pitch or the content'], ['Q', 'Your question prompts and questioning strategies']],
+    K8: [['', 'Learner-led activities or tools that hand over ownership of progress, targets included'], ['Q', 'Your question prompts and questioning strategies']],
+    K9: [['E', 'Exercises, resources and slides you made or adapted and used with learners'], ['', 'Taking part in internal verification or internal quality assurance'], ['', 'How you used awarding organisation guidance to plan assessment and feedback'], ['R', 'A reflection on how your department or college approaches assessment and feedback'], ['B', 'Wider reading or research on good assessment and feedback'], ['Q', 'Your question prompts and questioning strategies']],
+    K10: [['', 'Safeguarding, British values and Prevent in your practice'], ['', 'How you responded to challenging behaviour'], ['', 'Your ground rules, and the difference they made in the room']],
+    K11: [['', 'How you adapt your practice so that learners with SEND or high needs get what they need'], ['', 'Barriers that come from the setting, and what you do about them'], ['', 'Adaptive teaching and learning methods you have taken up'], ['', 'Any change you made to the way you assess learners']],
+    K12: [['', 'The resources you point learners to, and the difference that made'], ['', 'Outside agencies and support'], ['', 'Support and services inside the college']],
+    K13: [['', 'The careers education, information, advice and guidance your learners can get'], ['', 'How you bring current progression routes into your teaching: your resources, and links to jobs and other education pathways']],
+    K14: [['', 'How the awarding organisations for your qualifications affect what you do'], ['', 'Internal verification and quality assurance processes'], ['', 'External verification and quality assurance processes'], ['', 'Ofsted, including the framework updated in November 2025']],
+    K15: [['', 'Peer support'], ['', 'Your working relationship with your mentor'], ['', 'Observing other teachers'], ['', 'Networking in the sector'], ['', 'Networking and sharing good practice in your workplace']],
+    K16: [['', 'Times you changed how you communicate to meet a need (SEND or high needs, English as an additional language, low literacy, gaps in earlier education): resources, short accounts, case studies, feedback you gave'], ['R', 'A reflection on your own communication style and approach']],
+    K17: [['', 'What the trainee and mentor relationship has done for you: learning, sharing good practice, feedback'], ['R', 'A reflection on the effect of any other coaching or mentoring']],
+    K18: [['', 'Taking part in quality improvement work in your department or college'], ['Y', 'Meeting notes, minutes and actions'], ['C', 'CPD or training on quality improvement'], ['', 'Work with quality staff, such as coaching or one-to-one support from an Advanced Practitioner']],
+    K19: [['C', 'CPD you have taken up, inside and outside the college'], ['', 'Professional memberships, such as the Society for Education and Training or the Chartered College of Teaching'], ['', 'Networking'], ['', 'Who you follow professionally on social media, such as LinkedIn']],
+    K20: [['O', 'Learning technology tools you tried in your practice, with the difference they made'], ['', 'Teaching online and digital safety as part of your lessons'], ['', 'Artificial intelligence and its part in teaching, learning and assessment'], ['L', 'Lesson plans or schemes of learning that show where technology is used, with a reflection on its effect']],
+    S1: [['J', 'A justification that links theory to your practice, or your practice to theory'], ['G', 'A graph, chart or infographic you made or annotated that sums up a key theory'], ['K', 'A knowledge map of your subject knowledge and the gaps you are working on']],
+    S2: [['J', 'A justification that links theory to your practice, or your practice to theory'], ['L', 'Lesson plans'], ['E', 'Resources'], ['R', 'Reflections on critical incidents and observed lessons that show how you are developing']],
+    S3: [['LE', 'Lesson plans and resources that set English and maths inside your subject'], ['C', 'Reflections on CPD or wider reading']],
+    S4: [['R', 'Reflections on how your methods affect particular learners, such as those with SEND or high needs, with English as an additional language, or who are disengaged'], ['R', 'A reflection on how the learning environment affects learners, backed by research, case studies, short accounts or learner interviews'], ['R', 'Reflections on critical incidents and observed lessons that show how you are developing']],
+    S5: [['', 'Ways your learners set their own targets and goals']],
+    S6: [['', 'What you do and use to promote sustainable practice'], ['', 'Equality, diversity and inclusion policy, and what it looks and feels like in practice'], ['', 'Internal policies and procedures'], ['', 'Outside policy and law, such as the SEND Code of Practice and the Equality Act'], ['B', 'Reflections on reading or research']],
+    S7: [['', 'Policies that bear on your subject'], ['', 'Economic effects, such as the picture of jobs and industry in the local area'], ['', 'Legal matters in your setting or your subject, such as health and safety']],
+    S8: [['E', 'Resources, each with your reason for how it adds value for learners'], ['', 'Learner feedback'], ['', 'Evidence of the effect of resources you used or made']],
+    S9: [['E', 'Activities and resources'], ['L', 'Lesson plans and schemes of learning that show how the whole plan is built to engage and inspire'], ['', 'How you changed the teaching of a core topic that some find dull, to make it more engaging'], ['U', 'What you did with feedback from observations, mentor meetings, tutorials, assignments or support plans']],
+    S10: [['', 'Target setting and its effect'], ['', 'Example targets set against department or college policy']],
+    S11: [['F', 'A range of the feedback you gave to learners'], ['R', 'Reflections on different kinds of feedback: written, audio, video and live, live marking included']],
+    S12: [['D', 'How initial and diagnostic assessment were used to plan learning'], ['', 'The support a learner needed, and how it changed through their course']],
+    S13: [['', 'Example targets linked to these wider skills'], ['L', 'Lesson plans and activities that let learners build them'], ['A', 'A scheme of learning with the wider skills marked on it'], ['', 'Employability skills in the curriculum, and their effect']],
+    S14: [['D', 'How you reviewed assessment data and used it, and the effect'], ['D', 'Department or college tracking documents, and how you use them in your own practice']],
+    S15: [['', 'How safeguarding procedures were followed, as short accounts or case studies'], ['R', 'Reflections on critical incidents and observed lessons that show how you are developing']],
+    S16: [['', 'Transition planning or learner journey evidence'], ['L', 'Lesson plans and materials about getting learners ready for their next steps']],
+    S17: [['', 'Data protection (GDPR) guidance'], ['', 'Following awarding organisation rules on exams, assessment and storing work'], ['', 'The effect of policies on your own practice']],
+    S18: [['E', 'Resources that show you adapting communication to learners’ needs'], ['', 'Communications written for people inside and outside the college'], ['E', 'Resources in other formats, including ones made for a very specific need'], ['R', 'Reflections on critical incidents and observed lessons that show how you are developing']],
+    S19: [['', 'Ground rules and your approach to managing behaviour'], ['', 'College policies on behaviour and on health and safety, such as The Deal at TMC'], ['R', 'Reflections on critical incidents and observed lessons that show how you are developing']],
+    S20: [['', 'British values in action'], ['', 'Activities designed to support healthy debate'], ['', 'Short accounts of incidents, with the action, the next steps and the effect'], ['R', 'Reflections on critical incidents and observed lessons that show how you are developing']],
+    S21: [['C', 'Internal CPD, with evidence and reflections'], ['C', 'External CPD'], ['B', 'Wider reading and research'], ['K', 'A knowledge map of your subject knowledge and the gaps you are working on']],
+    S22: [['RT', 'Reflections on lesson observations 1 to 10'], ['', 'Peer feedback and peer review'], ['T', 'Internal or external observation feedback'], ['', 'Learner voice feedback'], ['', 'Feedback from employers and stakeholders']],
+    S23: [['U', 'Mentor meeting discussions'], ['', 'How you manage your workload, such as AI and productivity tools'], ['', 'How you responded to change in the college, department or team'], ['Y', 'Your notes from team meetings, open evenings or other placement communications']],
+    S24: [['', 'How you work within the occupational standards'], ['', 'Government legislation that applies to teachers and teaching']],
+    S25: [['O', 'Learning technology tools you explored, and their effect on learning and teaching'], ['O', 'AI tools you explored, and their effect on learning and teaching'], ['', 'Learners’ feedback on how the tools affected their learning']],
+    B1: [['U', 'What you did with feedback from mentor meetings, university tutorials, assignments or support plans'], ['R', 'Reflections on critical incidents and observed lessons that show how you are developing']],
+    B2: [['', 'A range of evidence-based teaching and learning approaches you use, with the research or reading behind them'], ['V', 'Screenshots, photos and mind maps from lessons']],
+    B3: [['C', 'Notes and slides from CPD you attended or completed, such as the college’s own sessions'], ['U', 'What you did with feedback from mentor meetings, university tutorials, assignments or support plans']],
+    B4: [['Y', 'Your notes from team meetings, open evenings or other placement communications'], ['R', 'Reflections on critical incidents and observed lessons that show how you are developing']],
+    B5: [['', 'How British values are built into the curriculum, and how that shapes your own behaviour']],
+    B6: [['', 'Modelling sustainability in your practice, such as care over the resources you use'], ['EL', 'Resources or lesson plans where sustainability themes were covered']]
+  };
+  // The college's two justification templates: [field, heading, what a strong answer does, example].
+  const JUST_SHARED = [
+    ['crit', 'Critical assessment of the theory', 'Weigh it. What evidence supports it, who questions it and why, and where has it been tested? Description alone is not assessment.'],
+    ['fit', 'In what ways the theory relates to your practice as a teacher', 'Point to the moment in your teaching that matches the theory, and say what you saw in your learners.'],
+    ['not', 'In what ways the theory does not apply to your practice', 'Name the limits honestly: your learners, your subject, your setting, your time.'],
+    ['refs', 'References (APA 7)', 'List only sources you have read. Author, year, title, where it was published.']
+  ];
+  const JUST = {
+    pt: { name: 'Practice to theory', lead: 'Start from something you do, then find the theory that explains why it works.',
+      fields: [
+        ['p', 'Practice to explore', 'Name one thing you do in your teaching, small enough to describe exactly.'],
+        ['why', 'Why this practice is important to learning, teaching or assessment', 'Say what it does for your learners, and how you know.'],
+        ['th', 'What theories might be applied to your practice', 'Name the theory or theories and who they come from. Only ones you have read.']
+      ].concat(JUST_SHARED) },
+    tp: { name: 'Theory to practice', lead: 'Start from a theory, then show where it lives in your teaching.',
+      fields: [
+        ['p', 'Theory to explore', 'Name the theory and who it comes from.'],
+        ['why', 'How you understand the theory relates to learning, teaching or assessment', 'Explain it in your own words, as you would to a colleague.']
+      ].concat(JUST_SHARED) }
+  };
+  const JUST_KEYS = ['p', 'why', 'th', 'crit', 'fit', 'not', 'refs'];
 
   const V = {};
   /* ---------- icons and small pieces ---------- */
@@ -3974,7 +4152,7 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       ${rw ? `<div class="card tap" data-act="ppage" data-id="review"><div class="row between"><h3>Weekly review</h3><span class="pill ${rw.complete ? 'good' : rw.state === 'tonight' ? 'warn' : 'info'}">${rw.complete ? 'Done' : rw.state === 'tonight' ? 'Tonight' : 'Due ' + esc(fmt(rw.day, { weekday: 'short' }))}</span></div><div class="small muted">${esc(weekLabel(rw.mon))} · ${rw.done} of ${rw.total} checked · about ${(REVIEW.mins || 20)} min</div></div>` : ''}
       <div class="card"><div class="row between"><h3>Recent evidence</h3><button class="small" data-act="ppage" data-id="ksb" style="color:var(--accent);font-weight:700">Evidence log</button></div>
         ${recent.length ? recent.map(evRow).join('') : '<div class="small muted">Nothing logged yet. Add a lesson plan, observation feedback or a reflection, and tag the KSBs it shows.</div>'}</div>
-      <div class="btnrow"><button class="btn sm ghost" data-act="pebblepad">${ic('out', 14)} Open PebblePad</button></div>`;
+      <div class="btnrow"><button class="btn sm ghost" data-act="pebblepad">${ic('out', 14)} Open PebblePad</button><button class="btn sm ghost" data-act="ax-open" data-id="m3">Module 3: matrix and guides</button></div>`;
   };
 
   function evRow(e) {
@@ -4053,12 +4231,14 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
     const duties = DUTY_KSBS.map((list, i) => (list.includes(k) ? i : -1)).filter((i) => i >= 0);
     sheet(`<div class="row between"><span class="pill info" style="font-family:var(--f-mono)">${k}</span>${baseOnly(k) ? '<span class="pill good">Evidenced (baseline)</span>' : ksbCovered().has(k) ? '<span class="pill good">Evidenced</span>' : '<span class="pill bad">Gap</span>'}</div>
       <h3 style="font-size:16px">${esc(KSBS[k])}</h3>
+      <div class="small"><b>In plain words:</b> ${esc(KSB_PLAIN[k])}</div>
       ${duties.length ? `<div class="small muted">Part of duty ${duties.map((i) => i + 1).join(', ')}: ${duties.map((i) => esc(PORT.duties[i])).join('; ')}.</div>` : ''}
       ${ksbBaseBox(k)}
       <div class="li" style="border:0;padding:0"><div class="grow"><b class="small">Already evidenced in PebblePad</b><div class="small muted">For evidence you uploaded before this log.</div></div>${toggle(p.ksbDone[k], 'ksb-done', k, 'Already evidenced in PebblePad')}</div>
       <div class="label">Evidence tagged ${k}</div>
       ${ev.length ? ev.map(evRow).join('') : '<div class="small muted">None yet.</div>'}
       <button class="btn" data-act="ev-new" data-id="${k}">${ic('plus', 16)} Add evidence for ${k}</button>
+      <button class="btn ghost" data-act="mx-open" data-id="${k}">Your college’s ideas for ${k}${mxOf(k) ? ` · ${mxLetters(k)}` : ''}</button>
       <button class="btn ghost" data-act="ask" data-q="${esc(`For my PGCE FES portfolio I need evidence for ${k}: "${KSBS[k]}" I teach the T Level Engineering Common Core (Level 3). Suggest three kinds of evidence from my everyday teaching that could show this, and what to write alongside each. Do not write it for me.`)}">${ic('spark', 14)} Ideas for evidence</button>`);
   }
 
@@ -4612,7 +4792,11 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
   function back() {
     if (route === 'coach' && sub.cq) { sub.cq = null; render(); $('#screen').scrollTop = 0; return; }
     if (route === 'module' && sub.mw != null) { sub.mw = null; sub.ms = null; render(); $('#screen').scrollTop = 0; return; }
-    if (route === 'assessment' && sub.ax) { sub.ax = null; render(); $('#screen').scrollTop = 0; return; }
+    if (route === 'assessment' && sub.ax) {
+      if (sub.ax === 'm3' && sub.axp && sub.axj) sub.axj = null; else if (sub.ax === 'm3' && sub.axp) sub.axp = null; else sub.ax = null;
+      sub.axjDel = null;
+      render(); $('#screen').scrollTop = 0; return;
+    }
     route = stack.pop() || 'home';
     render();
     $('#screen').scrollTop = 0;
@@ -4733,6 +4917,11 @@ ul.vlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
       if (!r) return;
       render();
       carry = { what: 'Your mentor meeting record', text: meetText(r.m), done: r.m.pp ? null : { kind, id: r.m.id, label: 'It is in: mark this meeting as in PebblePad' } };
+    } else if (kind === 'just') {
+      const j = justOf(id);
+      if (!j) return;
+      if (!justFilled(j)) { toast('Write something first.'); return; }
+      carry = { what: 'Your justification', text: justText(j), done: j.pp ? null : { kind, id: j.id, label: 'It is in: mark this justification as in PebblePad' } };
     }
     if (!carry) return;
     ppSheet(carry);
@@ -7017,31 +7206,39 @@ ${n.text.trim()}
       ],
       from: 'From your Module 2 handbook for 2026 to 2027. If this page and the handbook differ, the handbook is right.',
       link: ['go', 'module', 'Module 2, week by week'] },
-    { id: 'm3', course: 'pgce', title: 'Module 3 portfolio and professional discussion', sub: 'PGCE Module 3 · 7X-710021', aim: 'Aim: the top standard', dls: ['pg-ksbr', 'pg-osr', 'pg-ap2', 'pg-pd', 'pg-exit'],
+    { id: 'm3', course: 'pgce', title: 'Module 3 portfolio and professional discussion', sub: 'PGCE Module 3 · 7X-710021', aim: 'Aim: every standard met', dls: ['pg-ksbr', 'pg-osr', 'pg-ap2', 'pg-pd', 'pg-exit'],
       what: [
-        'A PebblePad portfolio of your practice across the year, then a professional discussion: 30 minutes online with your mentor and your tutor.',
-        'Every piece of evidence has to be in the portfolio before the discussion.',
-        'You choose how to run it: visual storytelling (nine stories) or question and answer (nine questions), one for each occupational duty.',
-        `The portfolio list in this app: ${AX_PORT.ksbTotal} KSBs with evidence, ${AX_PORT.hoursTarget} lead teaching hours, ${AX_PORT.observations.length} observations with reflections, two alternative placements with reflections, and your certificates and records.`
+        'Two PebblePad workbooks, both shared with ATLAS: the PGCE FES Portfolio (the Occupational Standards Portfolio) and the Trainee Development Space.',
+        `The portfolio holds your evidence against each of the ${AX_PORT.ksbTotal} Occupational Standards (the KSBs). You choose the evidence, and for each piece you say how it shows the standard. Showing a standard once is enough.`,
+        'The Trainee Development Space holds the Progress Tracking Page, your Statement of Professionalism, the paperwork, feedback and reflection for each observation, and your mentor meeting records.',
+        'The portfolio is assessed in a professional discussion at the end of the course, where you present it. In the plan this app already held, that is 30 minutes online with your mentor and your tutor, run as visual storytelling (nine stories) or as question and answer (nine questions), one for each occupational duty.',
+        `Also on this app’s portfolio list: ${AX_PORT.hoursTarget} lead teaching hours, ${AX_PORT.observations.length} observations with reflections, both alternative placements recorded and mapped to KSBs, and your certificates and records.`
       ],
-      grade: 'This app does not hold the Module 3 marking grid, so it cannot show bands here. Send the Module 3 handbook and they can be added. Until then the aim is the top standard on every duty.',
+      grade: 'Your college’s Module 3 documents give one rule: every one of the 51 standards has to be shown as met by the end of the course to pass. They give no grade bands and do not say how the discussion is marked, so this page claims none. The aim here is every standard met, with evidence you have explained and can talk about. Ask your tutor whether Module 3 is graded or is pass and fail.',
       top: [
-        ['One clear story for each duty.', 'What you did, why you did it (the idea or research behind it), what changed for your learners, and what you would do next.'],
-        ['Point to the evidence.', 'Name the piece in your portfolio that shows it, and the KSBs it covers.'],
-        ['Show how you grew.', 'Use observation feedback and mentor meetings to show what you changed over the year, not only what went well.'],
+        ['Explain every piece.', 'Beside each piece of evidence, say in a line or two how it shows the standard. Your college asks for this.'],
+        ['Choose the strongest piece, not the most pieces.', 'Once is enough for each standard, so pick the piece you can talk about best.'],
+        ['Link theory and practice.', 'A justification shows the thinking behind what you do. The Padlet board suggests one for S1 and S2.'],
+        ['One clear story for each duty.', 'What you did, why you did it, what changed for your learners, and what you would do next.'],
+        ['Point to the evidence as you speak.', 'Name the piece in your portfolio that shows it, and the KSBs it covers.'],
         ['Say it out loud before the day.', 'Thirty minutes goes quickly. Practise each duty against a timer.']
       ],
-      topNote: 'These four points are this app’s reading of strong work, not the module’s own criteria.',
+      topNote: 'The first two points come from your college’s documents. The rest are this app’s reading of strong work, not the module’s own criteria.',
       musts: [
-        ['m3-a', 'Every KSB has at least one piece of evidence'],
-        ['m3-b', 'Each observation has its feedback form and a reflection'],
+        ['m3-a', 'Every one of the 51 standards has at least one piece of evidence'],
+        ['m3-h', 'Each piece says how it shows the standard'],
+        ['m3-b', 'Each observation has its paperwork, the observer’s feedback and your reflection'],
+        ['m3-i', 'Progress Tracking Page ticked after every observation, with the outcome for each section'],
+        ['m3-j', 'Statement of Professionalism completed'],
+        ['m3-k', 'Mentor meetings recorded under Reflections, actions and impact'],
         ['m3-c', 'Teaching hours are logged and the total is shown'],
-        ['m3-d', 'Both alternative placements are logged, each with a reflection'],
+        ['m3-d', 'Both alternative placements recorded as Evidence of Activity and mapped to KSBs'],
         ['m3-e', 'Safeguarding and Prevent certificates are uploaded'],
+        ['m3-l', 'Both workbooks shared with ATLAS, each showing 1 workspace'],
         ['m3-f', 'Stories or questions chosen, with one ready for each of the nine duties'],
         ['m3-g', 'All nine practised out loud']
       ],
-      from: 'From what this app already holds about Module 3. Its handbook has not been added yet.',
+      from: 'From the nine Module 3 documents and the Padlet board your college gives out, and from the plan this app already held. If this page and your tutor differ, your tutor is right.',
       link: ['tab', 'portfolio', 'Portfolio'] },
     { id: 'wb', course: 'assess', title: 'Knowledge workbook', sub: 'Assessor award · Unit D/601/5313', aim: 'Aim: accepted first time', dls: ['as-o12', 'as-o36', 'as-o78', 'as-wb', 'as-pd'],
       what: [
@@ -7134,7 +7331,7 @@ ${n.text.trim()}
     }
     if (a.id === 'm3') {
       const duties = (AX_PORT.duties || []).map((d, i) => `${i + 1}. ${d}`).join('\n');
-      return `Help me get ready for my PGCE Module 3 professional discussion. I teach T Level Engineering in a further education college. The discussion is 30 minutes online with my mentor and my tutor, and I give one story or one answer for each of the nine occupational duties:\n${duties}\n\nTake one duty at a time. Ask me what I did, why I did it, what changed for my learners, which piece of evidence in my portfolio shows it and which KSBs it covers. After each answer, tell me what was strong and what was thin, and ask one follow-up question a tutor might ask. Wait for my reply each time. Do not write my stories or answers for me: I have to say them in my own words.`;
+      return `Help me get ready for my PGCE Module 3 professional discussion, where I present my PebblePad portfolio of evidence against the 51 Occupational Standards. All 51 have to be shown as met to pass, and each piece of evidence has to say how it shows the standard. I teach T Level Engineering in a further education college. In my plan the discussion is 30 minutes online with my mentor and my tutor, and I give one story or one answer for each of the nine occupational duties:\n${duties}\n\nWhere I am: ${ksbCovered().size} of 51 standards count as evidenced in my portfolio log, and I have chosen a kind of evidence for ${mxCount()} of 51 on my evidence matrix.\n\nTake one duty at a time. Ask me what I did, why I did it, what changed for my learners, which piece of evidence in my portfolio shows it and which KSBs it covers. After each answer, tell me what was strong and what was thin, and ask one follow-up question a tutor might ask. Wait for my reply each time. Do not write my stories or answers for me: I have to say them in my own words.`;
     }
     if (a.id === 'wb') {
       const done = AW.filter((q) => awWritten(awE(q))).length;
@@ -7185,6 +7382,8 @@ ${n.text.trim()}
   V.assessment = () => {
     const list = deadlines();
     const open = sub.ax && AX_BY[sub.ax] ? AX_BY[sub.ax] : null;
+    if (open && open.id === 'm3' && sub.axp === 'mx') return axMatrixView();
+    if (open && open.id === 'm3' && sub.axp === 'just') return axJustView();
     if (open) return axDocView(open, list);
     const dated = AX.flatMap((a) => axDls(a, list)).filter((d) => d.due);
     const done = dated.filter((d) => d.complete || d.due < todayKey()).length;
@@ -7230,6 +7429,7 @@ ${n.text.trim()}
         ${low && axRate(low[0]) < 4 ? `<div class="notice"><div><p><b>Work on LO${low[0]} first.</b> It is your lowest, and the presentation is only as strong as its weakest outcome.</p></div></div>` : ''}
         <div class="btnrow"><button class="btn sm" data-act="ax-live" data-id="${a.id}">${ic('spark', 14)} Check it against the top band with Claude</button><button class="btn sm ghost" data-act="m2-ladder">The ladder</button></div></div>`;
     } else if (a.id === 'm3') {
+      html += m3ToolsCard(list);
       const los = (AX_PORT.los && Object.entries(AX_PORT.los).find(([k]) => /Module 3/.test(k))) || null;
       if (los) html += `<div class="card"><h3>What Module 3 looks for</h3><ul class="vlist">${los[1].map((t) => `<li class="small">${esc(t)}</li>`).join('')}</ul></div>`;
     } else if (a.id === 'wb') {
@@ -7242,6 +7442,211 @@ ${n.text.trim()}
         <div class="list">${a.musts.map(([id, t]) => `<button class="li tap" data-act="ax-must" data-id="${id}" role="checkbox" aria-checked="${!!state.ax.must[id]}" style="width:100%;text-align:left"><span class="cotick${state.ax.must[id] ? ' on' : ''}">${state.ax.must[id] ? ic('check', 14) : ''}</span><span class="grow small" style="min-width:0">${esc(t)}</span></button>`).join('')}</div></div>
       <div class="btnrow">${link}<button class="btn sm ghost" data-act="ax-all">All assessments</button></div>`;
     return html;
+  }
+
+  /* ---------- Module 3: the portfolio tools (page 57) ----------
+     The evidence matrix, the two justification templates and four short guides, from what your college gives
+     out for Module 3. The matrix is saved as state.ax.mx (the letters ticked for each standard) and your
+     justifications as state.ax.just. Nothing here writes your evidence or your justification for you. */
+  const mxOf = (k) => (typeof state.ax.mx[k] === 'string' ? state.ax.mx[k] : '');
+  const mxCount = () => KSB_IDS.filter((k) => mxOf(k)).length;
+  // Ticks or unticks one kind of evidence (a letter) for one standard. With no third value it switches.
+  function mxSet(k, l, on) {
+    if (!KSBS[k] || !AZ_BY[l]) return;
+    const have = new Set(mxOf(k).split(''));
+    if (on == null) on = !have.has(l);
+    if (on) have.add(l); else have.delete(l);
+    const s = Array.from(have).sort().join('');
+    if (s) state.ax.mx[k] = s; else delete state.ax.mx[k];
+  }
+  const mxLetters = (k) => mxOf(k).split('').join(' ');
+  // The matrix as plain text, to paste into a document or a message.
+  function mxText() {
+    return `Evidence matrix: ${mxCount()} of ${KSB_IDS.length} standards ${mxCount() === 1 ? 'has' : 'have'} a kind of evidence ticked\n\n${KSB_IDS.map((k) => `${k}: ${mxOf(k) ? mxOf(k).split('').join(', ') : 'nothing yet'}`).join('\n')}\n\nThe letters\n${AZ.map(([l, name]) => `${l}: ${name}`).join('\n')}`;
+  }
+  // How many standards a week it takes to have every one evidenced by the plan's final KSB check.
+  function m3Pace(list) {
+    const left = KSB_IDS.length - ksbCovered().size;
+    const pd = axDl('pg-pd', list);
+    const c = pd ? pd.chunks.find((x) => x.id === 'pg-pd-2') : null;
+    if (!c || c.done || c.dateEff <= todayKey()) return '';
+    if (left <= 0) return `Every standard counts as evidenced, ahead of the final KSB check on ${fmtShort(c.dateEff)}.`;
+    const weeks = Math.max(1, Math.floor(daysBetween(todayKey(), c.dateEff) / 7));
+    const each = Math.ceil(left / weeks);
+    return `${plural(left, 'standard')} still ${left === 1 ? 'needs' : 'need'} evidence. Your plan’s final KSB check is ${fmtShort(c.dateEff)}, ${plural(weeks, 'week')} away: ${each <= 1 ? 'one standard a week gets you there with time to spare' : `${each} a week gets you there`}.`;
+  }
+
+  function axMatrixView() {
+    const f = ['K', 'S', 'B', 'empty'].includes(sub.mxf) ? sub.mxf : 'all';
+    const n = mxCount();
+    const ids = KSB_IDS.filter((k) => f === 'all' || (f === 'empty' ? !mxOf(k) : k[0] === f));
+    const row = (k) => {
+      const logged = evidenceFor(k).length;
+      return `<button class="li tap top" data-act="mx-open" data-id="${k}" style="width:100%;text-align:left"><span class="pill ${mxOf(k) ? 'good' : ''}" style="font-family:var(--f-mono);flex:0 0 auto">${k}</span><span class="grow" style="min-width:0"><span class="small" style="display:block">${esc(KSB_PLAIN[k])}</span><span class="small muted" style="display:block">${mxOf(k) ? `<b style="font-family:var(--f-mono)">${mxLetters(k)}</b>` : 'Nothing ticked'}${logged ? ` · ${logged} in your log` : ''}</span></span></button>`;
+    };
+    return `<div class="card" id="mx-head"><div class="label">Module 3 · evidence matrix</div>
+        <h3 style="font-size:18px">Which kind of evidence shows each standard?</h3>
+        <div class="row between small"><span>Standards with a kind ticked</span><b class="num">${n} / ${KSB_IDS.length}</b></div>
+        <div class="bar"><i style="width:${(n / KSB_IDS.length) * 100}%;background:var(--accent)"></i></div>
+        <div class="small muted">Your college’s matrix sets the 51 standards against the letters A to Z. Here each standard is a row. Tap one to see the Padlet board’s ideas for it and tick the kinds of evidence you have or plan to use. Showing a standard once is enough.</div>
+        <div class="btnrow"><button class="btn sm ghost" data-act="m3-guide" data-id="az">The A to Z</button><button class="btn sm ghost" data-act="mx-copy">Copy the matrix</button></div></div>
+      <div class="card"><div class="chips">${[['all', 'All'], ['K', 'Knowledge'], ['S', 'Skills'], ['B', 'Behaviours'], ['empty', 'Nothing ticked']].map(([k, l]) => `<button class="chip" data-act="mx-filter" data-id="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
+        <div class="list" id="mx-rows">${ids.map(row).join('') || '<div class="small muted">Every standard has a kind of evidence ticked.</div>'}</div></div>
+      <div class="btnrow"><button class="btn sm ghost" data-act="axp" data-id="">Back to Module 3</button><button class="btn sm ghost" data-act="ppage" data-id="ksb">KSB evidence log</button></div>`;
+  }
+  // One standard: its wording, what it means, the Padlet's ideas, and the 26 kinds to tick.
+  function mxSheet(k) {
+    if (!KSBS[k]) return;
+    const have = mxOf(k);
+    const ideas = KSB_IDEAS[k] || [];
+    const logged = evidenceFor(k).length;
+    sheet(`<div class="row between"><span class="pill info" style="font-family:var(--f-mono)">${k}</span><span class="pill ${have ? 'good' : ''} num" id="mx-n">${have ? `${plural(have.length, 'kind')} ticked` : 'Nothing ticked'}</span></div>
+      <h3 style="font-size:16px">${esc(KSBS[k])}</h3>
+      <div class="small"><b>In plain words:</b> ${esc(KSB_PLAIN[k])}</div>
+      <div class="label">Ideas from your college’s Padlet board</div>
+      <ul class="vlist" id="mx-ideas">${ideas.map(([l, t]) => `<li class="small">${esc(t)}${l ? ` <span class="pill info" style="font-family:var(--f-mono)">${l.split('').join(' ')}</span>` : ''}</li>`).join('')}</ul>
+      <div class="label">Kinds of evidence for ${k}</div>
+      <div class="small muted">Tick each kind you have or plan to use. A letter beside an idea above is its place in the A to Z.</div>
+      <div class="chips wrap" id="mx-pick">${AZ.map(([l, name]) => `<button class="chip" data-act="mx-tick" data-id="${k}" data-l="${l}" aria-pressed="${have.includes(l)}"><b style="font-family:var(--f-mono)">${l}</b> ${esc(name)}</button>`).join('')}</div>
+      <div class="small muted">${logged ? `${plural(logged, 'piece')} in your evidence log for ${k}.` : `Nothing in your evidence log for ${k} yet.`} Take names out of anything about learners.</div>
+      <div class="btnrow"><button class="btn sm" data-act="ev-new" data-id="${k}">${ic('plus', 14)} Add evidence for ${k}</button><button class="btn sm ghost" data-act="ksb" data-id="${k}">${k} in my portfolio</button><button class="btn sm ghost" data-act="close-sheet">Done</button></div>`);
+  }
+
+  /* ---------- justifications ---------- */
+  const justOf = (id) => state.ax.just.find((j) => j.id === id) || null;
+  const justName = (j) => { const t = String(j.p || '').trim().replace(/\s+/g, ' '); return !t ? 'Not named yet' : t.length > 60 ? `${t.slice(0, 57).trim()}…` : t; };
+  const justFilled = (j) => JUST[j.kind].fields.filter(([k]) => hasWords(j[k])).length;
+  const justWords = (j) => JUST[j.kind].fields.reduce((n, [k]) => n + wordCount(j[k]), 0);
+  const justLogged = (j) => (j.ev ? state.portfolio.evidence.find((e) => e.id === j.ev) || null : null);
+  // A justification as plain text, under the template's own headings.
+  function justText(j) {
+    const t = JUST[j.kind];
+    return [`Justification: ${t.name.toLowerCase()}`]
+      .concat(t.fields.map(([k, h]) => `${h}\n${String(j[k] || '').trim()}`))
+      .concat(`KSBs covered by this justification\n${j.ksbs.join(', ')}`)
+      .join('\n\n');
+  }
+  function justBrief(j) {
+    return `Act as my PGCE tutor and question a justification I have written for my Module 3 portfolio (${JUST[j.kind].name.toLowerCase()}). I teach T Level Engineering in a further education college. A justification links a theory to my own practice, weighs the theory, and says where it fits my teaching and where it does not. Here is what I have written so far:\n\n${justText(j)}\n\nDo not rewrite it, and do not write any part of it for me. Take one part at a time, starting with my critical assessment of the theory. Tell me what is clear and what is only description, then ask me one question that would make it more critical: the evidence for and against, who disagrees and why, where it fits my learners and where it does not. Check that each KSB I listed is really shown by what I wrote, and say so if one is not. Wait for my reply each time. Only discuss sources I name myself, and do not add references for me.`;
+  }
+  function axJustView() {
+    const open = sub.axj ? justOf(sub.axj) : null;
+    if (open) return axJustEdit(open);
+    const list = state.ax.just.slice().sort((a, b) => (b.at || 0) - (a.at || 0));
+    const row = (j) => `<button class="li tap top" data-act="axj-open" data-id="${esc(j.id)}" style="width:100%;text-align:left"><span class="grow" style="min-width:0"><b style="display:block">${esc(justName(j))}</b><span class="small muted" style="display:block">${esc(JUST[j.kind].name)} · ${justFilled(j)} of ${JUST[j.kind].fields.length} parts · ${plural(justWords(j), 'word')}</span>${j.ksbs.length ? `<span class="tags" style="margin-top:4px">${j.ksbs.map((k) => `<span class="pill info">${k}</span>`).join('')}</span>` : ''}</span>${j.pp ? '<span class="pill good">In PebblePad</span>' : ''}</button>`;
+    return `<div class="card" id="axj-head"><div class="label">Module 3 · justifications</div>
+        <h3 style="font-size:18px">Link theory and practice</h3>
+        <div class="small muted">A justification is a short written piece that ties a theory to something you do, weighs the theory, and says where it fits your teaching and where it does not. Your college gives two templates for it. On the Padlet board it is the first idea for S1 and S2, and it is the letter J in the A to Z.</div>
+        ${['pt', 'tp'].map((k) => `<div class="step"><b class="small">${JUST[k].name}</b><div class="small muted">${JUST[k].lead}</div><button class="btn sm" data-act="axj-new" data-id="${k}" style="margin-top:8px">${ic('plus', 14)} Start one</button></div>`).join('')}</div>
+      <div class="card" id="axj-list"><div class="row between"><h3>Yours</h3><span class="small muted">${plural(list.length, 'justification')}</span></div>
+        ${list.length ? `<div class="list">${list.map(row).join('')}</div>` : '<div class="small muted">None yet. Start with something you already do every week, such as how you open a lesson.</div>'}</div>
+      <div class="card"><h3>What lifts one</h3><ol class="steps">
+        <li><b>One practice, one theory.</b> A narrow piece can go deep. A broad one stays at description.</li>
+        <li><b>Weigh it, do not only describe it.</b> Give the evidence for the theory and one named criticism of it.</li>
+        <li><b>Use your own classroom.</b> Say what you saw in your learners, and point to a piece in your portfolio.</li>
+        <li><b>Say where it does not fit.</b> The limits show your thinking more than the fit does.</li>
+        <li><b>Cite what you have read.</b> APA 7, and nothing you have not opened yourself.</li></ol>
+        <div class="small muted">These five points are this app’s reading of strong critical writing, not your college’s own criteria.</div></div>
+      <div class="btnrow"><button class="btn sm ghost" data-act="axp" data-id="">Back to Module 3</button><button class="btn sm ghost" data-act="axp" data-id="mx">Evidence matrix</button></div>`;
+  }
+  function axJustEdit(j) {
+    const t = JUST[j.kind];
+    const pick = (grp) => KSB_IDS.filter((k) => k[0] === grp).map((k) => `<button data-act="axj-ksb" data-id="${k}" aria-pressed="${j.ksbs.includes(k)}" title="${esc(KSBS[k])}">${k}</button>`).join('');
+    const logged = justLogged(j);
+    return `<div class="card" id="axj-top"><div class="label">Module 3 · justification</div>
+        <h3 style="font-size:18px">${esc(t.name)}</h3>
+        <div class="small muted">${esc(t.lead)} Write it in your own words. This app and Claude will question it, never write it.</div>
+        <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill info num" id="axj-wc">${plural(justWords(j), 'word')}</span><span class="pill num" id="axj-done">${justFilled(j)} of ${t.fields.length} parts written</span>${j.pp ? '<span class="pill good">In PebblePad</span>' : ''}</div></div>
+      <div class="card" id="axj-fields">${t.fields.map(([k, h, hint]) => `<div class="field"><label for="axj-${k}">${esc(h)}</label><div class="help">${esc(hint)}</div><textarea id="axj-${k}" data-input="axj" data-id="${esc(j.id)}" data-k="${k}" maxlength="6000"${k === 'p' ? ' style="min-height:64px"' : ''}>${esc(j[k] || '')}</textarea></div>`).join('')}</div>
+      <div class="card"><div class="field"><span class="flabel">KSBs covered by this justification <span class="muted" id="axj-n">(${j.ksbs.length})</span></span>
+        <div class="small muted">Choose only the standards that what you wrote really shows.</div>
+        <div class="small muted">Knowledge</div><div class="ksbpick">${pick('K')}</div>
+        <div class="small muted">Skills</div><div class="ksbpick">${pick('S')}</div>
+        <div class="small muted">Behaviours</div><div class="ksbpick">${pick('B')}</div></div></div>
+      <div class="card" id="axj-after"><h3>When it is written</h3>
+        <div class="btnrow"><button class="btn sm" data-act="axj-live" data-id="${esc(j.id)}">${ic('spark', 14)} Have Claude question it</button><button class="btn sm ghost" data-act="pp-take" data-k="just" data-id="${esc(j.id)}">${ic('out', 14)} Take it to PebblePad</button><button class="btn sm ghost" data-act="axj-copy" data-id="${esc(j.id)}">Copy it</button></div>
+        <div class="btnrow"><button class="btn sm ghost" data-act="axj-log" data-id="${esc(j.id)}">${logged ? 'Update it in my evidence log' : 'Add it to my evidence log'}</button></div>
+        <div class="small muted">${logged ? 'It is in your evidence log, tagged to its KSBs.' : 'Adding it to your evidence log tags its KSBs there and ticks J for each of them on your matrix.'}</div></div>
+      <div class="btnrow"><button class="btn sm ghost" data-act="axj-open" data-id="">All justifications</button><button class="btn sm ghost danger" data-act="axj-del" data-id="${esc(j.id)}">${sub.axjDel === j.id ? 'Tap again to delete it' : 'Delete'}</button></div>`;
+  }
+
+  /* ---------- the four short guides ---------- */
+  function m3GuideSheet(id) {
+    const steps = (list) => `<ol class="steps">${list.map((t) => `<li>${t}</li>`).join('')}</ol>`;
+    const close = '<button class="btn sm ghost" data-act="close-sheet">Close</button>';
+    if (id === 'az') {
+      const used = (l) => KSB_IDS.filter((k) => mxOf(k).includes(l)).length;
+      sheet(`<h3>The A to Z of evidence</h3>
+        <div class="small muted">26 kinds of evidence your college suggests for the standards. It says the list is not complete, so Z is for anything else. The number on the right is how many standards you have ticked that kind for.</div>
+        <div class="list" id="az-list">${AZ.map(([l, name, what]) => `<div class="li top"><span class="pill info" style="font-family:var(--f-mono);flex:0 0 auto">${l}</span><div class="grow" style="min-width:0"><b class="small" style="display:block">${esc(name)}</b><span class="small muted" style="display:block">${esc(what)}</span></div><span class="small muted num">${used(l) || ''}</span></div>`).join('')}</div>
+        <div class="btnrow"><button class="btn sm" data-act="axp" data-id="mx">Evidence matrix</button>${close}</div>`);
+    } else if (id === 'where') {
+      const li = (h, b) => `<div class="li top"><div class="grow" style="min-width:0"><b class="small" style="display:block">${h}</b><span class="small muted" style="display:block">${b}</span></div></div>`;
+      sheet(`<h3>PebblePad: what goes where</h3>
+        <div class="small muted">You have two workbooks in PebblePad. Both are shared with ATLAS.</div>
+        <div class="label">1. Trainee Development Space</div>
+        <div class="list">
+          ${li('Progress Tracking Page', 'Tick it after each observation and record the outcome for each section (EE, CP, BP and RS), so that the record of your progress across all the observations is complete.')}
+          ${li('Statement of Professionalism', 'Completed at the start of the course.')}
+          ${li('Observations', 'Add links to all the paperwork for an observation at least 2 working days before it, so that your observer can open it from there. Fill in every section of the form, including the targets from your last observation and how you are developing learners’ English and maths. Afterwards, upload the finished form with the observer’s feedback on it, and your reflection.')}
+          ${li('Reflections, actions and impact', 'Your mentor meeting records. The aim is a meeting each week of about 30 minutes, with a formal one at least every 2 weeks. Short talks about your progress count too. Do the three pre-meeting tasks on the template first. Then record successes and areas for development under Reflection and Review of learning, during the meeting or after it.')}
+        </div>
+        <div class="label">2. PGCE FES Portfolio (Occupational Standards Portfolio)</div>
+        <ul class="vlist">
+          <li class="small">Your evidence against each of the 51 standards. All of them have to be shown as met by the end of the course to pass.</li>
+          <li class="small">You choose the evidence: a resource, a lesson plan, a short reflective paragraph, photos.</li>
+          <li class="small">For each piece, say how it shows the standard.</li>
+          <li class="small">Showing a standard once is enough. More is allowed.</li>
+          <li class="small">It is assessed in a professional discussion at the end of the course, where you present the portfolio.</li>
+          <li class="small">It can be used for Professional Formation, which leads to QTLS.</li>
+        </ul>
+        <div class="btnrow"><button class="btn sm ghost" data-act="ppage" data-id="obs">Observations</button><button class="btn sm ghost" data-act="ppage" data-id="meetings">Mentor meetings</button><button class="btn sm ghost" data-act="ppage" data-id="ksb">KSB evidence</button>${close}</div>`);
+    } else if (id === 'share') {
+      sheet(`<h3>Share both workbooks with ATLAS</h3>
+        <div class="small muted">Sharing puts a workbook into the PROFESSIONAL PRACTICE workspace for assessment. Both workbooks need it.</div>
+        ${steps([
+          'In PebblePad, open <b>Resources</b> and choose <b>PGCE FES Trainee Development Space</b>.',
+          'Tick <b>Completed</b>. On the <b>Statement of Professionalism</b> tab, scroll down, choose <b>Yes</b> in the drop-down list, then <b>Save</b>.',
+          'Tap <b>I want to…</b>, then <b>Share</b>, then <b>Share with ATLAS</b>.',
+          'Choose the workspace <b>PROFESSIONAL PRACTICE</b> and check it shows that you can share.',
+          'Choose the assignment with the same name as the workbook, here <b>Trainee Development Space</b>, and tap <b>Share</b>.',
+          'Do steps 3 to 5 again for the <b>PGCE FES Occupational Standards Portfolio</b>, this time choosing the assignment <b>Occupational Standards Portfolio</b>.',
+          'Open <b>Assets</b> and check: each of the two workbooks should say it is shared with 1 workspace.'
+        ])}
+        <div class="notice"><div><b>If one says 2 workspaces and the other says not shared</b><p>Open the one with 2, find the Occupational Standards Portfolio submission on it and tap Remove submission. It changes to “Removed by asset owner”. Close, then share the portfolio itself from step 3.</p></div></div>
+        <div class="small muted">In this app’s words, from your college’s guide “Pebblepad Setup, Portfolio Sharing”. Its pictures show each screen, so use it if a screen looks different.</div>
+        <div class="btnrow"><button class="btn sm ghost" data-act="pebblepad">${ic('out', 14)} Open PebblePad</button>${close}</div>`);
+    } else if (id === 'ap') {
+      sheet(`<h3>Record an alternative placement</h3>
+        <div class="small muted">Each placement goes into the Occupational Standards Portfolio as its own entry.</div>
+        ${steps([
+          'Open your <b>Occupational Standards Portfolio</b>.',
+          'On the <b>Introduction</b> tab, choose <b>Evidence of Activity</b>.',
+          'Give it the title <b>Alternative Placement Year 1</b> or <b>Alternative Placement Year 2</b>.',
+          'Choose <b>add an end date</b> and enter the dates of the placement, covering the 10 hours in total.',
+          'Under <b>Learning activity</b>, choose <b>Alternative Placement experience</b>.',
+          'In the <b>Learning</b> section, add your notes, or the alternative placement grid if you used it. This part has to show what you learnt.',
+          'Add follow-up actions if you have any, then save the entry.',
+          'Map it to every KSB it shows, with <b>I want to…</b>, as usual.'
+        ])}
+        <div class="btnrow"><button class="btn sm ghost" data-act="ppage" data-id="placements">Placements in this app</button>${close}</div>`);
+    }
+  }
+  // The card of Module 3 tools on its Assessment page.
+  function m3ToolsCard(list) {
+    const row = (act, id, h, b, pill) => `<button class="li tap" data-act="${act}" data-id="${id}" style="width:100%;text-align:left"><span class="grow" style="min-width:0"><b style="display:block">${h}</b><span class="small muted" style="display:block">${b}</span></span>${pill || ''}</button>`;
+    const pace = m3Pace(list);
+    return `<div class="card" id="m3-tools"><h3>Build the portfolio</h3>
+      <div class="small muted">From the nine documents and the Padlet board your college gives out for Module 3.</div>
+      ${pace ? `<div class="notice"><div><p id="m3-pace">${esc(pace)}</p></div></div>` : ''}
+      <div class="list">
+        ${row('axp', 'mx', 'Evidence matrix', 'Which kind of evidence shows each standard, with the Padlet board’s ideas for all 51', `<span class="pill ${mxCount() ? 'info' : ''} num">${mxCount()}/${KSB_IDS.length}</span>`)}
+        ${row('axp', 'just', 'Justifications', 'Link a theory to your practice, on your college’s two templates', `<span class="pill ${state.ax.just.length ? 'info' : ''} num">${state.ax.just.length}</span>`)}
+        ${row('m3-guide', 'az', 'The A to Z of evidence', '26 kinds of evidence you could use')}
+        ${row('m3-guide', 'where', 'PebblePad: what goes where', 'The two workbooks and what belongs in each')}
+        ${row('m3-guide', 'share', 'Share both workbooks with ATLAS', 'The steps, and the check at the end')}
+        ${row('m3-guide', 'ap', 'Record an alternative placement', 'Where it goes in the portfolio, step by step')}
+      </div></div>`;
   }
 
   /* ---------- Ask tutor: your own Claude account, inside the app ----------
@@ -7434,8 +7839,8 @@ ${n.text.trim()}
       case 'm2-cardsw': { const w = M2_BY[Number(id)]; if (w) { const u = m2Set(w.n); if (u.nocards) delete u.nocards; else u.nocards = true; commit(); render(); } break; }
       case 'm2-cards': { const w = M2_BY[Number(id)]; if (w) { sub.stab = 'cards'; sub.cardSrc = m2Src(w); sub.cardTopic = null; fcFlip = false; go('study'); } break; }
       // Assessment
-      case 'ax-all': closeSheet(true); sub.ax = null; if (route !== 'assessment') go('assessment'); else { render(); $('#screen').scrollTop = 0; } break;
-      case 'ax-open': if (AX_BY[id]) { sub.ax = id; if (route !== 'assessment') go('assessment'); else { render(); $('#screen').scrollTop = 0; } } break;
+      case 'ax-all': closeSheet(true); sub.ax = null; sub.axp = null; sub.axj = null; if (route !== 'assessment') go('assessment'); else { render(); $('#screen').scrollTop = 0; } break;
+      case 'ax-open': if (AX_BY[id]) { closeSheet(true); sub.ax = id; sub.axp = null; sub.axj = null; if (route !== 'assessment') go('assessment'); else { render(); $('#screen').scrollTop = 0; } } break;
       case 'ax-early-on': {
         const moves = axMoves(todayKey());
         if (!moves.length) { render(); break; }
@@ -7466,6 +7871,73 @@ ${n.text.trim()}
       case 'ax-rate': { const n = Number(id); const b = Number(el.dataset.n); if ([1, 2, 3, 4].includes(n) && [1, 2, 3, 4].includes(b)) { if (state.ax.rate[n] === b) delete state.ax.rate[n]; else state.ax.rate[n] = b; commit(); render(); } break; }
       case 'ax-must': if (AX.some((a) => a.musts.some(([k]) => k === id))) { if (state.ax.must[id]) delete state.ax.must[id]; else state.ax.must[id] = true; commit(); render(); } break;
       case 'ax-live': if (AX_BY[id]) { closeSheet(true); ask(axBrief(AX_BY[id])); } break;
+      // Module 3: the matrix, the justifications, the guides
+      case 'axp': closeSheet(true); sub.ax = 'm3'; sub.axp = ['mx', 'just'].includes(id) ? id : null; sub.axj = null; sub.axjDel = null; if (route !== 'assessment') go('assessment'); else { render(); $('#screen').scrollTop = 0; } break;
+      case 'm3-guide': m3GuideSheet(id); break;
+      case 'mx-filter': sub.mxf = id; render(); break;
+      case 'mx-open': mxSheet(id); break;
+      case 'mx-tick': {
+        const l = el.dataset.l;
+        if (!KSBS[id] || !AZ_BY[l]) break;
+        mxSet(id, l);
+        commit();
+        el.setAttribute('aria-pressed', String(mxOf(id).includes(l)));
+        const n = $('#mx-n');
+        if (n) { n.textContent = mxOf(id) ? `${plural(mxOf(id).length, 'kind')} ticked` : 'Nothing ticked'; n.classList.toggle('good', !!mxOf(id)); }
+        render();
+        break;
+      }
+      case 'mx-copy': copyText(mxText(), '<b>Copied.</b> Paste it wherever you keep your matrix.'); break;
+      case 'axj-new': {
+        if (!JUST[id]) break;
+        if (state.ax.just.length >= 40) { toast('That is 40 justifications. Delete one you no longer need first.'); break; }
+        const j = { id: 'j' + uid().slice(1), kind: id, at: Date.now(), ksbs: [] };
+        JUST_KEYS.forEach((k) => { j[k] = ''; });
+        state.ax.just.push(j);
+        commit();
+        sub.ax = 'm3'; sub.axp = 'just'; sub.axj = j.id; sub.axjDel = null;
+        if (route !== 'assessment') go('assessment'); else { render(); $('#screen').scrollTop = 0; }
+        break;
+      }
+      case 'axj-open': sub.axj = id && justOf(id) ? id : null; sub.axjDel = null; render(); $('#screen').scrollTop = 0; break;
+      case 'axj-ksb': {
+        const j = justOf(sub.axj);
+        if (!j || !KSBS[id]) break;
+        const i = j.ksbs.indexOf(id);
+        if (i >= 0) j.ksbs.splice(i, 1); else { j.ksbs.push(id); j.ksbs.sort((x, y) => KSB_IDS.indexOf(x) - KSB_IDS.indexOf(y)); }
+        commit();
+        el.setAttribute('aria-pressed', String(i < 0));
+        const n = $('#axj-n'); if (n) n.textContent = `(${j.ksbs.length})`;
+        break;
+      }
+      case 'axj-copy': { const j = justOf(id); if (j) copyText(justText(j), 'Copied.'); break; }
+      case 'axj-live': { const j = justOf(id); if (!j) break; if (!justFilled(j)) { toast('Write something first, then Claude can question it.'); break; } ask(justBrief(j)); break; }
+      case 'axj-log': {
+        const j = justOf(id);
+        if (!j) break;
+        if (!hasWords(j.p)) { toast(j.kind === 'pt' ? 'Name the practice first.' : 'Name the theory first.'); break; }
+        if (!j.ksbs.length) { toast('Choose the KSBs it covers first.'); break; }
+        let e = justLogged(j);
+        if (!e) { e = { id: 'e' + uid(), title: '', type: 'Justification', date: todayKey(), link: '', status: j.pp ? 'uploaded' : 'draft', ksbs: [], notes: '' }; p.evidence.push(e); j.ev = e.id; }
+        e.title = `Justification: ${justName(j)}`;
+        e.ksbs = j.ksbs.slice();
+        j.ksbs.forEach((k) => mxSet(k, 'J', true));
+        commit();
+        render();
+        toast(`<b>In your evidence log.</b> J is ticked for ${plural(j.ksbs.length, 'standard')} on your matrix.`);
+        break;
+      }
+      case 'axj-del': {
+        const j = justOf(id);
+        if (!j) break;
+        if (sub.axjDel !== id) { sub.axjDel = id; render(); break; }
+        state.ax.just = state.ax.just.filter((x) => x.id !== id);
+        sub.axj = null; sub.axjDel = null;
+        commit();
+        render(); $('#screen').scrollTop = 0;
+        toast('Deleted.');
+        break;
+      }
       // the coach
       case 'co-path': if (COACH_PATHS.some(([k]) => k === id)) { sub.cpath = id; state.coach.path = id; sub.cq = null; commit(); render(); } break;
       case 'co-how': coachHow(); break;
@@ -7818,6 +8290,7 @@ ${n.text.trim()}
         else if (d.kind === 'ev') { const e = p.evidence.find((x) => x.id === d.id); if (e) e.status = 'uploaded'; }
         else if (d.kind === 'ksb' && KSBS[d.id]) p.ksbDone[d.id] = Date.now();
         else if (d.kind === 'meet') { const m = p.meetings.find((x) => x.id === d.id); if (m) m.pp = Date.now(); }
+        else if (d.kind === 'just') { const j = justOf(d.id); if (j) { j.pp = Date.now(); const e = justLogged(j); if (e && e.status === 'draft') e.status = 'uploaded'; } }
         ppCarry = null;
         commit(); closeSheet(true); render();
         toast('<b>Marked as in PebblePad.</b>');
@@ -8049,6 +8522,15 @@ ${n.text.trim()}
       clearTimeout(window.__paperT); window.__paperT = setTimeout(commit, 600);
       return;
     }
+    if (d.input === 'axj') {
+      const j = justOf(d.id);
+      if (!j || !JUST_KEYS.includes(d.k)) return;
+      j[d.k] = el.value.slice(0, 6000);
+      const wc = $('#axj-wc'); if (wc) wc.textContent = plural(justWords(j), 'word');
+      const dn = $('#axj-done'); if (dn) dn.textContent = `${justFilled(j)} of ${JUST[j.kind].fields.length} parts written`;
+      clearTimeout(window.__coT); window.__coT = setTimeout(commit, 600);
+      return;
+    }
     if (d.input === 'm2') {
       const w = M2_BY[Number(d.id)];
       if (!w || !['own', 'took', 'fog', 'pn'].includes(d.k)) return;
@@ -8232,7 +8714,7 @@ ${n.text.trim()}
   document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); if (!document.hidden) { meetWake(); videoTaken(); videoBack(); } else if (MEET.live) MEET.hidAt = Date.now(); });
 
   // Exposed for testing only
-  window.__planner = { AX, AX_BY, AX_GROUPS, AX_LIGHT, AX_DLS, axEarly, axEarlyFrom, axMoves, axMargin, axBrief, axHomeCard, axNext, M2, M2_BY, M2_LO, M2_BREAKS, m2Now, m2Date, m2Revised, m2CardsOf, m2CardWeeks, m2Brief, m2HomeCard, m2AlarmWeeks, m2Set, m2U, m2OfSrc, videoTaken, ytId, canPlay, playsHere, resumeAt, videoBack, videoCards, lessonCardsOf, pushedCards, allCards, isVideo, VIDEO_CARDS, DECK, resDone, resDoneSheet, resSheet, videoCardSheet, freeAlt, resLocked, resOpen, render, platCard, opensOutside, accessNote, minsLabel, ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
+  window.__planner = { AZ, KSB_PLAIN, KSB_IDEAS, JUST, mxOf, mxCount, mxText, justText, justBrief, m3Pace, AX, AX_BY, AX_GROUPS, AX_LIGHT, AX_DLS, axEarly, axEarlyFrom, axMoves, axMargin, axBrief, axHomeCard, axNext, M2, M2_BY, M2_LO, M2_BREAKS, m2Now, m2Date, m2Revised, m2CardsOf, m2CardWeeks, m2Brief, m2HomeCard, m2AlarmWeeks, m2Set, m2U, m2OfSrc, videoTaken, ytId, canPlay, playsHere, resumeAt, videoBack, videoCards, lessonCardsOf, pushedCards, allCards, isVideo, VIDEO_CARDS, DECK, resDone, resDoneSheet, resSheet, videoCardSheet, freeAlt, resLocked, resOpen, render, platCard, opensOutside, accessNote, minsLabel, ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
 })();
 
 </script>

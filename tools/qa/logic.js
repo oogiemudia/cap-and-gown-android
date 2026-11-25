@@ -2360,7 +2360,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     ok('assessment: two for each course, every one with its dates, what is handed in, what top work looks like and a hand-in list', A.length === 4 && A.filter((a) => a.course === 'pgce').length === 2 && A.filter((a) => a.course === 'assess').length === 2 && A.every((a) => a.title && a.sub && a.aim && a.grade && a.from && a.what.length >= 3 && a.top.length >= 4 && a.musts.length >= 7 && a.dls.length >= 3 && a.dls.every((id) => byId[id] && byId[id].course === a.course)), A.map((a) => a.id + ' ' + a.dls.filter((id) => !byId[id]).join(',')));
     const mustIds = A.flatMap((a) => a.musts.map((m) => m[0]));
     ok('assessment: hand-in ticks have their own ids, and no planner deadline sits in two assessments', new Set(mustIds).size === mustIds.length && mustIds.every((k) => /^[a-z0-9]{2}-[a-z]$/.test(k)) && new Set(A.flatMap((a) => a.dls)).size === A.flatMap((a) => a.dls).length, mustIds);
-    ok('assessment: only Module 2 is called graded, and the other three say plainly that they are not or that the grid is not held', /Distinction \(74, 81, 89 or 96\)/.test(A[0].grade) && /does not hold the Module 3 marking grid/.test(A[1].grade) && /no distinction grade/.test(A[2].grade) && /No distinction grade/.test(A[3].grade) && A[0].aim === 'Aim: distinction' && A[2].aim === 'Aim: accepted first time');
+    ok('assessment: only Module 2 is called graded, and the other three say plainly that they are not or that the grid is not held', /Distinction \(74, 81, 89 or 96\)/.test(A[0].grade) && /give no grade bands/.test(A[1].grade) && /no distinction grade/.test(A[2].grade) && /No distinction grade/.test(A[3].grade) && A[0].aim === 'Aim: distinction' && A[2].aim === 'Aim: accepted first time');
     const badPlan = [];
     const all = {};
     G.forEach(([dl, steps]) => Object.entries(steps).forEach(([id, day]) => {
@@ -2390,7 +2390,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
 
     // switching it on
     await click(page, '#ax-early [data-act="ax-early-on"]');
-    ok('on: the choice and the day are saved, and the steps sit on their earlier evenings', JSON.stringify(await P(() => window.__planner.state.ax)) === '{"rate":{},"must":{},"early":true,"since":"2026-11-24"}' && await eff('pg-m2-1') === '2027-03-01' && await eff('pg-m2-10') === '2027-05-07' && await eff('as-l2-7') === '2027-02-12' && await eff('pg-pd-7') === '2027-05-17' && await eff('as-wb-4') === '2026-12-21' && await eff('pg-m2-12') === '2027-05-20' && await eff('pg-m2-9') === '2027-05-06', await P(() => JSON.stringify(window.__planner.state.ax)));
+    ok('on: the choice and the day are saved, and the steps sit on their earlier evenings', JSON.stringify(await P(() => window.__planner.state.ax)) === '{"rate":{},"must":{},"mx":{},"just":[],"early":true,"since":"2026-11-24"}' && await eff('pg-m2-1') === '2027-03-01' && await eff('pg-m2-10') === '2027-05-07' && await eff('as-l2-7') === '2027-02-12' && await eff('pg-pd-7') === '2027-05-17' && await eff('as-wb-4') === '2026-12-21' && await eff('pg-m2-12') === '2027-05-20' && await eff('pg-m2-9') === '2027-05-06', await P(() => JSON.stringify(window.__planner.state.ax)));
     ok('on: the real work now ends two weeks or more before each due date', await margin('as-wb') === 17 && await margin('as-std') === 14 && await margin('as-l2') === 17 && await margin('pg-m2') === 14 && await margin('pg-pd') === 21, [await margin('as-wb'), await margin('as-std'), await margin('as-l2'), await margin('pg-m2'), await margin('pg-pd')]);
     const loads = await P(() => { const p = window.__planner; const load = {}; p.deadlines().flatMap((d) => d.chunks).forEach((c) => { if (!c.done) load[c.dateEff] = (load[c.dateEff] || 0) + (c.mins || 0); }); return [...new Set(Object.values(p.axEarly()))].map((d) => [d, load[d]]); });
     ok('on: every evening the plan uses stays under an hour', loads.length === 18 && loads.every(([, m]) => m > 0 && m <= 55), loads);
@@ -2447,7 +2447,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     // the other three pages and what each hands to Claude
     const briefOf = async (id) => { await P((x) => { const p = window.__planner; p.go('home'); p.sub.ax = x; p.go('assessment'); window.__lastInsert = ''; }, id); await click(page, '#screen [data-act="ax-live"]'); await page.waitForTimeout(400); const b = await P(() => window.__lastInsert || ''); const t = await P(() => document.querySelector('#screen').textContent); await click(page, '[data-act="close-tutor"]'); return [b, t]; };
     const [b3, t3] = await briefOf('m3');
-    ok('module 3 page: says what the app holds and what it does not, and lists what the module looks for', /Module 3 portfolio and professional discussion/.test(t3) && /does not hold the Module 3 marking grid/.test(t3) && /51 KSBs with evidence, 150 lead teaching hours, 10 observations/.test(t3) && /What Module 3 looks for/.test(t3) && /this app’s reading of strong work, not the module’s own criteria/.test(t3), t3.slice(0, 300));
+    ok('module 3 page: says what the app holds and what it does not, and lists what the module looks for', /Module 3 portfolio and professional discussion/.test(t3) && /give no grade bands/.test(t3) && /150 lead teaching hours, 10 observations with reflections/.test(t3) && /What Module 3 looks for/.test(t3) && /this app’s reading of strong work, not the module’s own criteria/.test(t3), t3.slice(0, 300));
     ok('module 3 tutor: one duty at a time, all nine named, no stories written for me', /professional discussion/.test(b3) && /9\. Next steps, progression/.test(b3) && /1\. Passion for learning/.test(b3) && /Take one duty at a time/.test(b3) && /Do not write my stories or answers for me/.test(b3), b3.slice(0, 500));
     const [bw, tw] = await briefOf('wb');
     ok('workbook page: no distinction grade is claimed, the eight outcomes are listed, and the Coach is one tap away', /no distinction grade/.test(tw) && /The eight outcomes/.test(tw) && /Legal and good practice requirements/.test(tw) && /workbook of 25 questions/.test(tw) && await P(() => !!document.querySelector('#screen [data-go="coach"]')), tw.slice(0, 300));
@@ -2473,7 +2473,7 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     const st = JSON.parse(JSON.stringify(rich));
     st.ax = { early: true, since: '2026-11-20', rate: { 1: 3, 2: 9, 5: 2, x: 1 }, must: { 'm2-a': true, 'wb-c': 'yes', zz: true }, extra: 1 };
     const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-24T19:30:00', state: st });
-    ok('reload: the plan stays on from its day, good ratings and ticks are kept, the rest is dropped', JSON.stringify(await page.evaluate(() => window.__planner.state.ax)) === '{"early":true,"since":"2026-11-20","rate":{"1":3},"must":{"m2-a":true}}' && await page.evaluate(() => window.__planner.deadlines().flatMap((d) => d.chunks).find((c) => c.id === 'pg-m2-1').dateEff === '2027-03-01'), await page.evaluate(() => JSON.stringify(window.__planner.state.ax)));
+    ok('reload: the plan stays on from its day, good ratings and ticks are kept, the rest is dropped', JSON.stringify(await page.evaluate(() => window.__planner.state.ax)) === '{"early":true,"since":"2026-11-20","rate":{"1":3},"must":{"m2-a":true},"mx":{},"just":[]}' && await page.evaluate(() => window.__planner.deadlines().flatMap((d) => d.chunks).find((c) => c.id === 'pg-m2-1').dateEff === '2027-03-01'), await page.evaluate(() => JSON.stringify(window.__planner.state.ax)));
     for (const scr of ['assessment', 'home', 'plan', 'more']) await page.evaluate((s) => window.__planner.go(s), scr);
     ok('reload: no script errors', errors.length === 0, errors);
     await ctx.close();
@@ -2483,6 +2483,172 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     if (ax === undefined) delete st.ax; else st.ax = ax;
     const { ctx, page, errors } = await open(browser, { app: false, now: '2026-11-24T19:30:00', state: st });
     ok(`old or damaged choice (${JSON.stringify(ax)}): the plan is off, nothing has moved, and the screen opens in a browser too`, await page.evaluate(() => { const p = window.__planner; p.go('assessment'); return p.state.ax.early !== true && p.state.ax.since === undefined && JSON.stringify(p.axEarly()) === '{}' && p.deadlines().flatMap((d) => d.chunks).find((c) => c.id === 'pg-m2-1').dateEff === '2027-04-12' && document.querySelectorAll('#screen [data-act="ax-open"]').length === 4; }) && errors.length === 0, errors);
+    await ctx.close();
+  }
+
+  // ---------- Q. Module 3 (page 57): the college's documents and Padlet board, the evidence matrix, justifications ----------
+  {
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-25T08:40:00', state: null });
+    const P = (fn, arg) => page.evaluate(fn, arg);
+    await P(() => { window.__planner.state.settings.chatTipSeen = true; });
+    const KS = await P(() => Object.keys(window.__planner.KSB_PLAIN));
+    const D = await P(() => { const p = window.__planner; return { az: p.AZ, plain: p.KSB_PLAIN, ideas: p.KSB_IDEAS, just: JSON.parse(JSON.stringify(p.JUST)) }; });
+    ok('module 3 data: 26 kinds of evidence, A to Z in order, each with a name and what it is', D.az.length === 26 && D.az.map((a) => a[0]).join('') === 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' && D.az.every((a) => a[1].length > 3 && a[2].length > 20 && /\.$/.test(a[2])));
+    ok('module 3 data: a plain meaning and at least one Padlet idea for each of the 51 standards, in order', KS.length === 51 && KS[0] === 'K1' && KS[19] === 'K20' && KS[20] === 'S1' && KS[44] === 'S25' && KS[50] === 'B6' && KS.every((k) => D.plain[k].length > 20 && Array.isArray(D.ideas[k]) && D.ideas[k].length >= 1) && Object.keys(D.ideas).length === 51);
+    ok('module 3 data: the Padlet’s 145 ideas are all there, and a letter beside one is always a real letter', Object.values(D.ideas).reduce((n, l) => n + l.length, 0) === 145 && Object.values(D.ideas).every((l) => l.every(([lt, t]) => /^[A-Z]{0,2}$/.test(lt) && t.length > 5 && !/\.$/.test(t))));
+    ok('module 3 data: both templates end with the same four parts, and practice to theory has one more', D.just.pt.fields.length === 7 && D.just.tp.fields.length === 6 && D.just.pt.fields.slice(-4).map((f) => f[0]).join() === 'crit,fit,not,refs' && D.just.tp.fields.map((f) => f[0]).join() === 'p,why,crit,fit,not,refs' && D.just.pt.fields.every((f) => f[1] && f[2]));
+
+    // the Module 3 page
+    await P(() => { const p = window.__planner; p.sub.ax = 'm3'; p.go('assessment'); });
+    const t0 = await P(() => document.querySelector('#screen').textContent);
+    ok('module 3 page: the one rule the college gives, no grade bands claimed, and the tutor is named as the one to ask', /every one of the 51 standards has to be shown as met by the end of the course to pass/.test(t0) && /give no grade bands/.test(t0) && /Ask your tutor whether Module 3 is graded or is pass and fail/.test(t0) && /If this page and your tutor differ, your tutor is right/.test(t0));
+    ok('module 3 page: both workbooks, sharing with ATLAS, and saying how each piece shows the standard', /Occupational Standards Portfolio/.test(t0) && /Trainee Development Space/.test(t0) && /shared with ATLAS/.test(t0) && /say how it shows the standard/.test(t0) && /Showing a standard once is enough/.test(t0));
+    ok('module 3 page: twelve things to check before the discussion, the new ones from the college’s documents', await P(() => document.querySelectorAll('#ax-must [data-act="ax-must"]').length === 12) && /Progress Tracking Page ticked after every observation/.test(t0) && /Both workbooks shared with ATLAS, each showing 1 workspace/.test(t0) && /Each piece says how it shows the standard/.test(t0));
+    ok('module 3 page: six tools, and a pace to the plan’s final KSB check', await P(() => document.querySelectorAll('#m3-tools .li.tap').length === 6) && await P(() => /^20 standards still need evidence\. Your plan’s final KSB check is Fri 23 Apr, 21 weeks away: one standard a week gets you there with time to spare\.$/.test(document.querySelector('#m3-pace').textContent)), await P(() => (document.querySelector('#m3-pace') || {}).textContent));
+    await click(page, '#ax-must [data-id="m3-l"]');
+    ok('module 3 page: a new tick is saved', await P(() => window.__planner.state.ax.must['m3-l'] === true && /1 of 12/.test(document.querySelector('#ax-must').textContent)));
+
+    // the four guides
+    const guide = async (id) => { await click(page, `#m3-tools [data-act="m3-guide"][data-id="${id}"]`); const t = await P(() => document.querySelector('#layer .sheet').textContent); return t; };
+    const gAz = await guide('az');
+    ok('guide, A to Z: 26 rows, and it says the list is not complete', await P(() => document.querySelectorAll('#az-list .li').length === 26) && /not complete, so Z is for anything else/.test(gAz) && /Justifications/.test(gAz) && /Teaching observation forms/.test(gAz));
+    await click(page, '#layer [data-act="close-sheet"]');
+    const gW = await guide('where');
+    ok('guide, what goes where: the four parts of the Trainee Development Space and the portfolio’s rules', /Progress Tracking Page/.test(gW) && /EE, CP, BP and RS/.test(gW) && /Statement of Professionalism/.test(gW) && /at least 2 working days before/.test(gW) && /Reflections, actions and impact/.test(gW) && /three pre-meeting tasks/.test(gW) && /Reflection and Review of learning/.test(gW) && /All of them have to be shown as met by the end of the course to pass/.test(gW) && /QTLS/.test(gW));
+    await click(page, '#layer [data-act="ppage"][data-id="meetings"]');
+    ok('guide, what goes where: one tap to Mentor meetings in the portfolio', await P(() => window.__planner.route === 'portfolio' && window.__planner.sub.ppage === 'meetings' && !document.querySelector('#layer .sheet')));
+    await P(() => { const p = window.__planner; p.sub.ax = 'm3'; p.go('assessment'); });
+    const gS = await guide('share');
+    ok('guide, sharing: seven steps ending at 1 workspace each, and the fix when one shows 2', await P(() => document.querySelectorAll('#layer ol.steps li').length === 7) && /Share with ATLAS/.test(gS) && /PROFESSIONAL PRACTICE/.test(gS) && /each of the two workbooks should say it is shared with 1 workspace/.test(gS) && /Remove submission/.test(gS) && /Removed by asset owner/.test(gS) && /use it if a screen looks different/.test(gS));
+    await click(page, '#layer [data-act="close-sheet"]');
+    const gA = await guide('ap');
+    ok('guide, alternative placement: eight steps, from Evidence of Activity to mapping the KSBs', await P(() => document.querySelectorAll('#layer ol.steps li').length === 8) && /Evidence of Activity/.test(gA) && /Alternative Placement Year 1/.test(gA) && /covering the 10 hours in total/.test(gA) && /Alternative Placement experience/.test(gA) && /has to show what you learnt/.test(gA) && /Map it to every KSB it shows/.test(gA));
+    await click(page, '#layer [data-act="close-sheet"]');
+
+    // the evidence matrix
+    await click(page, '#m3-tools [data-act="axp"][data-id="mx"]');
+    ok('matrix: 51 rows, none ticked, each with its plain meaning', await P(() => { const r = document.querySelectorAll('#mx-rows .li'); return r.length === 51 && /0 \/ 51/.test(document.querySelector('#mx-head').textContent) && /Nothing ticked/.test(r[0].textContent) && r[0].textContent.includes(window.__planner.KSB_PLAIN.K1); }));
+    await click(page, '#mx-rows [data-id="S2"]');
+    ok('matrix, one standard: the official wording, the plain meaning, the Padlet’s four ideas with their letters, and 26 kinds to tick', await P(() => { const s = document.querySelector('#layer .sheet'); const li = s.querySelectorAll('#mx-ideas li'); return /Identify, consider and take steps to minimise the impact of barriers to learning/.test(s.textContent) && /In plain words: You spot barriers to learning/.test(s.textContent) && li.length === 4 && /justification/.test(li[0].textContent) && li[0].querySelector('.pill').textContent === 'J' && li[3].querySelector('.pill').textContent === 'R' && s.querySelectorAll('#mx-pick [data-act="mx-tick"]').length === 26 && s.querySelectorAll('#mx-pick [aria-pressed="true"]').length === 0 && /Nothing ticked/.test(document.querySelector('#mx-n').textContent); }));
+    await click(page, '#mx-pick [data-l="R"]');
+    await click(page, '#mx-pick [data-l="J"]');
+    ok('matrix: two ticks are saved in letter order, shown on the sheet and on the row behind it', await P(() => { const p = window.__planner; return p.state.ax.mx.S2 === 'JR' && /2 kinds ticked/.test(document.querySelector('#mx-n').textContent) && document.querySelector('#mx-pick [data-l="J"]').getAttribute('aria-pressed') === 'true' && /J R/.test(document.querySelector('#mx-rows [data-id="S2"]').textContent) && /1 \/ 51/.test(document.querySelector('#mx-head').textContent) && !!document.querySelector('#layer .sheet'); }));
+    await click(page, '#mx-pick [data-l="R"]');
+    ok('matrix: a second tap unticks', await P(() => window.__planner.state.ax.mx.S2 === 'J' && /1 kind ticked/.test(document.querySelector('#mx-n').textContent)));
+    await click(page, '#mx-pick [data-l="J"]');
+    ok('matrix: unticking the last kind leaves nothing saved for that standard', await P(() => !('S2' in window.__planner.state.ax.mx) && /Nothing ticked/.test(document.querySelector('#mx-n').textContent) && /0 \/ 51/.test(document.querySelector('#mx-head').textContent)));
+    await click(page, '#mx-pick [data-l="J"]');
+    await click(page, '#layer [data-act="ksb"]');
+    ok('matrix: one tap to the same standard in the portfolio, which shows the plain meaning and the kinds ticked', await P(() => { const t = document.querySelector('#layer .sheet').textContent; return /In plain words: You spot barriers to learning/.test(t) && /Your college’s ideas for S2 · J/.test(t) && /Already evidenced in PebblePad/.test(t); }));
+    await click(page, '#layer [data-act="mx-open"]');
+    ok('matrix: and back from the portfolio sheet to the ideas', await P(() => !!document.querySelector('#layer #mx-pick') && document.querySelector('#mx-pick [data-l="J"]').getAttribute('aria-pressed') === 'true'));
+    await click(page, '#layer [data-act="close-sheet"]');
+    await click(page, '#screen [data-act="mx-filter"][data-id="empty"]');
+    ok('matrix filter: “Nothing ticked” leaves out the standard that has one', await P(() => document.querySelectorAll('#mx-rows .li').length === 50 && !document.querySelector('#mx-rows [data-id="S2"]')));
+    await click(page, '#screen [data-act="mx-filter"][data-id="B"]');
+    ok('matrix filter: Behaviours shows six', await P(() => document.querySelectorAll('#mx-rows .li').length === 6));
+    await click(page, '#screen [data-act="mx-filter"][data-id="all"]');
+    await P(() => { window.__lastCopy = ''; });
+    await click(page, '#screen [data-act="mx-copy"]');
+    ok('matrix: copied as plain text, one line for each standard, with the key', await P(() => { const c = window.__lastCopy; return /^Evidence matrix: 1 of 51 standards has a kind of evidence ticked\n\nK1: nothing yet\n/.test(c) && /\nS2: J\n/.test(c) && /\nB6: nothing yet\n\nThe letters\nA: Annotated plans\n/.test(c) && /\nZ: Something else$/.test(c) && c.split('\n').length === 81; }), await P(() => window.__lastCopy.slice(0, 200)));
+    ok('phone back: from the matrix to the Module 3 page, then to the list', await P(() => { const p = window.__planner; const a = window.__capgownBack(); const mid = p.route === 'assessment' && p.sub.ax === 'm3' && !p.sub.axp && !!document.querySelector('#m3-tools'); const b = window.__capgownBack(); return a === true && mid && b === true && !p.sub.ax && document.querySelectorAll('#screen [data-act="ax-open"]').length === 4; }));
+
+    // justifications
+    await P(() => { const p = window.__planner; p.sub.ax = 'm3'; p.render(); });
+    await click(page, '#m3-tools [data-act="axp"][data-id="just"]');
+    ok('justifications: both templates offered, none written yet, and what a justification is', await P(() => { const t = document.querySelector('#screen').textContent; return document.querySelectorAll('#screen [data-act="axj-new"]').length === 2 && /Practice to theory/.test(t) && /Theory to practice/.test(t) && /0 justifications/.test(t) && /None yet/.test(t) && /not your college’s own criteria/.test(t); }));
+    await click(page, '#screen [data-act="axj-new"][data-id="pt"]');
+    ok('practice to theory: seven boxes under the template’s headings, each with Speak and Listen, and the 51 KSBs to choose from', await P(() => { const f = document.querySelectorAll('#axj-fields textarea'); const labels = Array.from(document.querySelectorAll('#axj-fields label')).map((l) => l.textContent); return f.length === 7 && labels[0] === 'Practice to explore' && labels[3] === 'Critical assessment of the theory' && labels[6] === 'References (APA 7)' && document.querySelectorAll('#axj-fields .vbar').length === 7 && document.querySelectorAll('#screen [data-act="axj-ksb"]').length === 51 && /0 words/.test(document.querySelector('#axj-wc').textContent) && /0 of 7 parts written/.test(document.querySelector('#axj-done').textContent) && /never write it/.test(document.querySelector('#axj-top').textContent); }));
+    await click(page, '#screen [data-act="axj-live"]');
+    ok('justification: Claude is not asked about an empty one', await P(() => /Write something first/.test(document.querySelector('#toast').textContent) && !window.__lastInsert));
+    await click(page, '#screen [data-act="axj-log"]');
+    ok('justification: it cannot go to the evidence log without a name', await P(() => /Name the practice first/.test(document.querySelector('#toast').textContent) && window.__planner.state.portfolio.evidence.length === 0));
+    await page.fill('#axj-p', 'Weekly retrieval rounds at the start of each lesson');
+    await page.fill('#axj-crit', 'Laboratory studies support the testing effect. Classroom studies with vocational learners are fewer.');
+    ok('justification: typing is kept as you go, with a running count', await P(() => { const j = window.__planner.state.ax.just[0]; return j.kind === 'pt' && j.p === 'Weekly retrieval rounds at the start of each lesson' && /^Laboratory studies/.test(j.crit) && /22 words/.test(document.querySelector('#axj-wc').textContent) && /2 of 7 parts written/.test(document.querySelector('#axj-done').textContent); }), await P(() => document.querySelector('#axj-wc').textContent));
+    await click(page, '#screen [data-act="axj-log"]');
+    ok('justification: nor without a KSB', await P(() => /Choose the KSBs it covers first/.test(document.querySelector('#toast').textContent) && window.__planner.state.portfolio.evidence.length === 0));
+    await click(page, '#screen [data-act="axj-ksb"][data-id="S1"]');
+    await click(page, '#screen [data-act="axj-ksb"][data-id="K1"]');
+    await click(page, '#screen [data-act="axj-ksb"][data-id="B2"]');
+    await click(page, '#screen [data-act="axj-ksb"][data-id="B2"]');
+    ok('justification: KSBs are kept in the standard’s order, and a second tap takes one off', await P(() => JSON.stringify(window.__planner.state.ax.just[0].ksbs) === '["K1","S1"]' && document.querySelector('#axj-n').textContent === '(2)' && document.querySelector('#screen [data-act="axj-ksb"][data-id="K1"]').getAttribute('aria-pressed') === 'true' && document.querySelector('#screen [data-act="axj-ksb"][data-id="B2"]').getAttribute('aria-pressed') === 'false'));
+    await P(() => { window.__lastCopy = ''; });
+    await click(page, '#screen [data-act="axj-copy"]');
+    ok('justification: copied under the template’s headings, with its KSBs', await P(() => { const c = window.__lastCopy; return /^Justification: practice to theory\n\nPractice to explore\nWeekly retrieval rounds at the start of each lesson\n\nWhy this practice is important to learning, teaching or assessment\n\n\nWhat theories might be applied to your practice\n/.test(c) && /\n\nCritical assessment of the theory\nLaboratory studies support/.test(c) && /\n\nReferences \(APA 7\)\n\n\nKSBs covered by this justification\nK1, S1$/.test(c); }), await P(() => window.__lastCopy));
+    await P(() => { window.__lastInsert = ''; });
+    await click(page, '#screen [data-act="axj-live"]');
+    await page.waitForTimeout(400);
+    const bj = await P(() => window.__lastInsert || '');
+    ok('justification tutor: Claude gets my words, questions them one part at a time, and writes nothing and adds no references', /question a justification I have written/.test(bj) && /Weekly retrieval rounds at the start of each lesson/.test(bj) && /Laboratory studies support the testing effect/.test(bj) && /KSBs covered by this justification\nK1, S1/.test(bj) && /Do not rewrite it, and do not write any part of it for me/.test(bj) && /starting with my critical assessment/.test(bj) && /do not add references for me/.test(bj) && /Wait for my reply each time/.test(bj), bj.slice(0, 400));
+    await click(page, '[data-act="close-tutor"]');
+    await click(page, '#screen [data-act="axj-log"]');
+    ok('justification: into the evidence log as a draft tagged K1 and S1, and J is ticked for both on the matrix', await P(() => { const p = window.__planner; const e = p.state.portfolio.evidence; const j = p.state.ax.just[0]; return e.length === 1 && e[0].type === 'Justification' && e[0].title === 'Justification: Weekly retrieval rounds at the start of each lesson' && e[0].status === 'draft' && e[0].date === '2026-11-25' && JSON.stringify(e[0].ksbs) === '["K1","S1"]' && j.ev === e[0].id && p.state.ax.mx.K1 === 'J' && p.state.ax.mx.S1 === 'J' && p.state.ax.mx.S2 === 'J' && /J is ticked for 2 standards/.test(document.querySelector('#toast').textContent) && /Update it in my evidence log/.test(document.querySelector('#axj-after').textContent); }));
+    await click(page, '#screen [data-act="axj-ksb"][data-id="B2"]');
+    await click(page, '#screen [data-act="axj-log"]');
+    ok('justification: logging it again updates the same piece, it does not add a second', await P(() => { const p = window.__planner; const e = p.state.portfolio.evidence; return e.length === 1 && JSON.stringify(e[0].ksbs) === '["K1","S1","B2"]' && p.state.ax.mx.B2 === 'J'; }));
+    await P(() => { window.__lastCopy = ''; });
+    await click(page, '#screen [data-act="pp-take"][data-k="just"]');
+    ok('justification to PebblePad: copied, the ways across are offered, with a button to mark it as in', await P(() => { const s = document.querySelector('#layer .sheet'); return /^Justification: practice to theory/.test(window.__lastCopy) && /Your justification: copied/.test(s.textContent) && /mark this justification as in PebblePad/.test(s.textContent); }));
+    await click(page, '#layer [data-act="pp-done"]');
+    ok('justification to PebblePad: marking it as in marks its piece in the evidence log too', await P(() => { const p = window.__planner; return p.state.ax.just[0].pp > 0 && p.state.portfolio.evidence[0].status === 'uploaded' && /In PebblePad/.test(document.querySelector('#axj-top').textContent); }));
+    await click(page, '#screen [data-act="axj-open"][data-id=""]');
+    ok('justifications list: the one I wrote, with its template, parts, words and KSBs', await P(() => { const t = document.querySelector('#axj-list').textContent; return /1 justification/.test(t) && /Weekly retrieval rounds at the start of each lesson/.test(t) && /Practice to theory · 2 of 7 parts · 22 words/.test(t) && /K1S1B2/.test(t.replace(/\s+/g, '')) && /In PebblePad/.test(t); }), await P(() => document.querySelector('#axj-list').textContent));
+    await click(page, '#screen [data-act="axj-new"][data-id="tp"]');
+    ok('theory to practice: six boxes, the first asks for the theory', await P(() => { const labels = Array.from(document.querySelectorAll('#axj-fields label')).map((l) => l.textContent); return labels.length === 6 && labels[0] === 'Theory to explore' && /How you understand the theory relates/.test(labels[1]) && window.__planner.state.ax.just.length === 2 && window.__planner.state.ax.just[1].kind === 'tp'; }));
+    await click(page, '#screen [data-act="axj-del"]');
+    ok('delete: the first tap only asks', await P(() => window.__planner.state.ax.just.length === 2 && /Tap again to delete it/.test(document.querySelector('#screen [data-act="axj-del"]').textContent)));
+    await click(page, '#screen [data-act="axj-del"]');
+    ok('delete: the second tap deletes that one and goes back to the list', await P(() => { const p = window.__planner; return p.state.ax.just.length === 1 && p.state.ax.just[0].kind === 'pt' && !p.sub.axj && /1 justification/.test(document.querySelector('#axj-list').textContent); }));
+    await click(page, '#axj-list [data-act="axj-open"]');
+    ok('phone back: from one justification to the list, then to Module 3', await P(() => { const p = window.__planner; const open = !!document.querySelector('#axj-fields') && document.querySelector('#axj-p').value === 'Weekly retrieval rounds at the start of each lesson'; const a = window.__capgownBack(); const mid = p.sub.axp === 'just' && !p.sub.axj && !!document.querySelector('#axj-list'); const b = window.__capgownBack(); return open && a === true && mid && b === true && p.sub.ax === 'm3' && !p.sub.axp && !!document.querySelector('#m3-tools'); }));
+
+    // what Claude is told, and the Portfolio's way in
+    await P(() => { window.__lastInsert = ''; });
+    await click(page, '#screen [data-act="ax-live"]');
+    await page.waitForTimeout(400);
+    const b3 = await P(() => window.__lastInsert || '');
+    ok('module 3 tutor: told the pass rule and where I am on the log and the matrix', /All 51 have to be shown as met to pass/.test(b3) && /each piece of evidence has to say how it shows the standard/.test(b3) && /31 of 51 standards count as evidenced in my portfolio log, and I have chosen a kind of evidence for 4 of 51 on my evidence matrix/.test(b3) && /Do not write my stories or answers for me/.test(b3), b3.slice(0, 700));
+    await click(page, '[data-act="close-tutor"]');
+    await P(() => { const p = window.__planner; p.sub.ppage = 'overview'; p.go('portfolio'); });
+    await click(page, '#screen [data-act="ax-open"][data-id="m3"]');
+    ok('portfolio: one tap from its overview to the Module 3 page', await P(() => window.__planner.route === 'assessment' && window.__planner.sub.ax === 'm3' && !!document.querySelector('#m3-tools')));
+    await P(() => { const p = window.__planner; p.sub.ppage = 'ksb'; p.go('portfolio'); });
+    await click(page, '#screen [data-act="ev-new"]');
+    ok('evidence log: Justification is a type you can choose', await P(() => Array.from(document.querySelectorAll('#ev-type option')).some((o) => o.textContent === 'Justification')));
+    await click(page, '#layer [data-act="close-sheet"]');
+    for (const scr of ['home', 'plan', 'study', 'progress', 'more', 'assessment']) await P((s) => window.__planner.go(s), scr);
+    ok('module 3: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  // saved Module 3 work survives a reload; odd values are dropped
+  {
+    const st = JSON.parse(JSON.stringify(rich));
+    const long = 'x'.repeat(7000);
+    st.ax = { rate: {}, must: { 'm3-l': true }, mx: { K1: 'JA', S25: 'ZZA', K21: 'A', S2: 'a', B6: 5, B1: '' , K2: 'R'}, just: [
+      { id: 'jabc1', kind: 'pt', at: 5, p: 'Retrieval rounds', why: 7, crit: long, ksbs: ['S1', 'K1', 'K1', 'Q9', 3], pp: 9, ev: 'e1', extra: true },
+      { id: 'jabc1', kind: 'tp', p: 'A copy with the same id' },
+      { id: 'bad id', kind: 'tp', p: 'Cognitive load theory', ksbs: 'K1' },
+      { id: 'jzz', kind: 'essay', p: 'Not a template' }, 'junk', null
+    ] };
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-25T09:00:00', state: st });
+    const ax = await page.evaluate(() => JSON.parse(JSON.stringify(window.__planner.state.ax)));
+    ok('reload: the matrix keeps real standards and letters, in order and once each', JSON.stringify(ax.mx) === '{"K1":"AJ","S25":"AZ","K2":"R"}' && ax.must['m3-l'] === true, JSON.stringify(ax.mx));
+    ok('reload: a justification keeps its words and KSBs; a repeated id, a bad template and junk are dropped; long text is cut', ax.just.length === 2 && ax.just[0].id === 'jabc1' && ax.just[0].p === 'Retrieval rounds' && ax.just[0].why === '7' && ax.just[0].crit.length === 6000 && JSON.stringify(ax.just[0].ksbs) === '["S1","K1"]' && ax.just[0].pp === 9 && ax.just[0].ev === 'e1' && !('extra' in ax.just[0]) && ax.just[0].th === '' && /^j[a-z0-9]+$/.test(ax.just[1].id) && ax.just[1].id !== 'jabc1' && ax.just[1].kind === 'tp' && ax.just[1].p === 'Cognitive load theory' && JSON.stringify(ax.just[1].ksbs) === '[]', JSON.stringify(ax.just).slice(0, 300));
+    await page.evaluate(() => { const p = window.__planner; p.sub.ax = 'm3'; p.sub.axp = 'just'; p.go('assessment'); });
+    ok('reload: the list opens with both', await page.evaluate(() => /2 justifications/.test(document.querySelector('#axj-list').textContent) && /Retrieval rounds/.test(document.querySelector('#axj-list').textContent)));
+    await page.evaluate(() => { const p = window.__planner; p.sub.axp = 'mx'; p.render(); });
+    ok('reload: the matrix opens with three standards ticked', await page.evaluate(() => /3 \/ 51/.test(document.querySelector('#mx-head').textContent)));
+    ok('reload: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  for (const [mx, just] of [[undefined, undefined], ['junk', 'junk'], [[], {}], [null, null], [{ K1: ['A'] }, [[]]]]) {
+    const st = JSON.parse(JSON.stringify(rich));
+    st.ax = { rate: {}, must: {} };
+    if (mx !== undefined) st.ax.mx = mx;
+    if (just !== undefined) st.ax.just = just;
+    const { ctx, page, errors } = await open(browser, { app: false, now: '2026-11-25T09:00:00', state: st });
+    ok(`old or damaged Module 3 data (${JSON.stringify([mx, just])}): an empty matrix, no justifications, and the screens open in a browser too`, await page.evaluate(() => { const p = window.__planner; p.sub.ax = 'm3'; p.go('assessment'); const a = JSON.stringify(p.state.ax.mx) === '{}' && JSON.stringify(p.state.ax.just) === '[]' && !!document.querySelector('#m3-tools'); p.sub.axp = 'mx'; p.render(); const b = document.querySelectorAll('#mx-rows .li').length === 51; p.sub.axp = 'just'; p.render(); return a && b && /0 justifications/.test(document.querySelector('#axj-list').textContent); }) && errors.length === 0, errors.join(' | '));
     await ctx.close();
   }
 
