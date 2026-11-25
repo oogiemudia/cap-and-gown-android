@@ -2486,7 +2486,89 @@ const click = (page, sel) => page.evaluate((s) => { const el = document.querySel
     await ctx.close();
   }
 
-  // ---------- Q. Module 3 (page 57): the college's documents and Padlet board, the evidence matrix, justifications ----------
+  // ---------- Page 57: the usual teaching week (19.5 h) and the 25 November update ----------
+  const portfolioAt = (page, pp) => page.evaluate((x) => { const p = window.__planner; p.sub.ppage = x; p.go('portfolio'); }, pp);
+  {
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-25T19:30:00', state: null });
+    const P = (f, a) => page.evaluate(f, a);
+    ok('usual week: 19.5 h from the data, half terms and holidays known', await P(() => { const p = window.__planner; return p.usualWeek() === 19.5 && ['2026-10-26', '2026-12-21', '2026-12-28', '2027-02-15', '2027-04-05', '2027-04-12'].every((m) => p.TEACH_BREAKS.includes(m)); }));
+    const weeks = await P(() => window.__planner.weeksToLog());
+    ok('weeks to log: the nine teaching weeks from 14 Sep to 16 Nov, half term left out, this week not yet', JSON.stringify(weeks) === JSON.stringify(['2026-09-14', '2026-09-21', '2026-09-28', '2026-10-05', '2026-10-12', '2026-10-19', '2026-11-02', '2026-11-09', '2026-11-16']), weeks);
+    await portfolioAt(page, 'overview');
+    const card = await P(() => (document.querySelector('#pf-update') || {}).textContent || '');
+    ok('overview: the update card says what it will change', /25 November/.test(card) && /19\.5 h/.test(card) && /placement 2 has its 10 hours/.test(card) && /9 teaching weeks since 14 September/.test(card) && /put 10 hours on placement 2/.test(card) && /“arranged” and “10 hours logged”/.test(card), card);
+    ok('overview: nothing changes until it is tapped', await P(() => { const s = window.__planner.state.portfolio; return s.hours.length === 0 && !s.placements[2] && !s.checks.ap2h; }));
+    await click(page, '#pf-update [data-act="pf-update"]');
+    const after = await P(() => { const p = window.__planner; const s = p.state.portfolio; return { n: s.hours.length, all: s.hours.every((h) => h.lead === 19.5 && h.other === 0 && h.remote === 0), lead: p.hoursTotals().lead, setting: p.hoursTotals().setting, pl: s.placements[2], a: !!s.checks.ap2a, h: !!s.checks.ap2h, ap1: !!s.checks.ap1h, applied: !!s.applied['2026-11-25'], card: !!document.querySelector('#pf-update'), log: p.state.log[0].what, left: p.weeksToLog().length }; });
+    ok('update: nine weeks at 19.5 h, 175.5 lead hours, placement 2 at 10 hours and both ticks, placement 1 untouched', after.n === 9 && after.all && after.lead === 175.5 && after.setting === 175.5 && after.pl && after.pl.hours === '10' && after.a && after.h && !after.ap1 && after.left === 0, after);
+    ok('update: the card goes and the change is in How it adapts', after.applied && !after.card && after.log === 'Portfolio updated from your message to Claude', after);
+    await portfolioAt(page, 'placements');
+    ok('placements: placement 2 shows 10 hours and 2 of 3 ticks', await P(() => document.querySelector('#pl-hours-2').value === '10' && /2\/3/.test(document.querySelector('#screen').textContent)));
+    await portfolioAt(page, 'hours');
+    const hp = await P(() => ({ gap: !!document.querySelector('#hours-gap'), usual: (document.querySelector('#hours-usual') || {}).textContent || '', lead: document.querySelector('#h-lead').value, box: document.querySelector('#h-usual').value }));
+    ok('hours page: no weeks left to log, the usual week and the totals ahead are shown, this week starts at 19.5', !hp.gap && /19\.5 h/.test(hp.usual) && /150 lead hours reached/.test(hp.usual) && /about 4 more teaching weeks to 250 in your setting/.test(hp.usual) && hp.lead === '19.5' && hp.box === '19.5', hp);
+    await click(page, '[data-act="hours-add"]');
+    ok('hours page: one tap logs this week at 19.5, then the box empties', await P(() => { const p = window.__planner; return p.state.portfolio.hours.length === 10 && p.hoursTotals().lead === 195 && document.querySelector('#h-lead').value === '' && /already in the log/.test(document.querySelector('#screen').textContent); }));
+    // a different usual week, then back
+    await P(() => { const el = document.querySelector('#h-usual'); el.value = '22.5'; el.dispatchEvent(new Event('change', { bubbles: true })); });
+    ok('usual week: can be changed', await P(() => window.__planner.usualWeek() === 22.5 && /22\.5 h/.test(document.querySelector('#hours-usual').textContent)));
+    await P(() => { const el = document.querySelector('#h-usual'); el.value = ''; el.dispatchEvent(new Event('change', { bubbles: true })); });
+    ok('usual week: emptied, it goes back to 19.5', await P(() => window.__planner.usualWeek() === 19.5 && window.__planner.state.portfolio.nums.usual === ''));
+    ok('update: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  // an older record with some hours: only the missing weeks, a warning about the hours before the log
+  {
+    const st = JSON.parse(JSON.stringify(rich));
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-25T19:30:00', state: st });
+    const P = (f, a) => page.evaluate(f, a);
+    await portfolioAt(page, 'hours');
+    const g = await P(() => ({ n: document.querySelectorAll('#hours-gap .pill:not(.warn)').length, t: document.querySelector('#hours-gap').textContent }));
+    ok('older record: 2 November is already logged, so eight weeks are left, with a note about the 40 h before the log', g.n === 8 && /Log all 8 at 19\.5 h each/.test(g.t) && /40 h under Hours before this log/.test(g.t), g);
+    await click(page, '#hours-gap [data-act="hours-fill"]');
+    ok('older record: the eight weeks are added and nothing else changes', await P(() => { const p = window.__planner; const s = p.state.portfolio; return s.hours.length === 9 && p.hoursTotals().lead === 40 + 3 + 8 * 19.5 && s.hours.find((h) => h.id === 'h1').lead === 3 && !document.querySelector('#hours-gap'); }));
+    await portfolioAt(page, 'overview');
+    ok('older record: the update card now only offers the placement', await P(() => { const t = (document.querySelector('#pf-update') || {}).textContent || ''; return /put 10 hours on placement 2/.test(t) && !/teaching weeks since/.test(t); }));
+    await click(page, '#pf-update [data-act="pf-update-no"]');
+    ok('not now: the card goes, the placement is left alone', await P(() => { const s = window.__planner.state.portfolio; return s.applied['2026-11-25'] === 'not now' && !document.querySelector('#pf-update') && !s.placements[2] && !s.checks.ap2h; }));
+    ok('older record: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  // the weekly review logs the usual week in one tap and ticks itself
+  {
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-27T19:30:00', state: null });
+    const P = (f, a) => page.evaluate(f, a);
+    await portfolioAt(page, 'review');
+    ok('review: the hours item offers the usual week', await P(() => /Log 19\.5 h for this week/.test((document.querySelector('#rv-2026-11-23') || {}).textContent || '')));
+    await click(page, '#rv-2026-11-23 [data-act="hours-week"]');
+    ok('review: one tap logs w/c 23 Nov and ticks the item', await P(() => { const p = window.__planner; return p.state.portfolio.hours.length === 1 && p.state.portfolio.hours[0].date === '2026-11-23' && !!p.state.reviews['2026-11-23'].hours && /This week is in the hours log/.test(document.querySelector('#rv-2026-11-23').textContent); }));
+    ok('review: half term week offers nothing to log', await P(() => { const t = (document.querySelector('#rv-2026-10-26') || {}).textContent || ''; return /no teaching to log/.test(t) && !document.querySelector('#rv-2026-10-26 [data-act="hours-week"]'); }));
+    ok('review: no script errors', errors.length === 0, errors);
+    await ctx.close();
+  }
+  // before the year starts, after it ends, and with nothing to do
+  {
+    const { ctx, page, errors } = await open(browser, { app: true, now: '2026-09-10T19:30:00', state: null });
+    ok('before the year: no weeks to log', await page.evaluate(() => window.__planner.weeksToLog().length === 0));
+    await ctx.close();
+    const st = JSON.parse(JSON.stringify(rich));
+    st.portfolio.placements = { 2: { hours: '10' } };
+    st.portfolio.checks = { ap2a: 1, ap2h: 1 };
+    const b = await open(browser, { app: true, now: '2027-09-01T19:30:00', state: st });
+    const late = await b.page.evaluate(() => window.__planner.weeksToLog());
+    ok('after the year: weeks stop at the last review week, holidays left out', late.length > 0 && late[late.length - 1] <= '2027-06-04' && !late.some((m) => ['2026-12-21', '2027-02-15', '2027-04-05'].includes(m)), late.slice(-3));
+    await b.page.evaluate(() => { window.__planner.state.portfolio.hours = []; window.__planner.weeksToLog().forEach((m) => window.__planner.state.portfolio.hours.push({ id: 'x' + m, date: m, lead: 1, other: 0, remote: 0 })); });
+    ok('nothing to do: no update card', await b.page.evaluate(() => { const p = window.__planner; p.sub.ppage = 'overview'; p.go('portfolio'); return p.pfUpdatePlan() === null && !document.querySelector('#pf-update'); }) && errors.length === 0 && b.errors.length === 0, b.errors);
+    await b.ctx.close();
+  }
+  for (const bad of [{ applied: 'junk' }, { applied: { '2026-11-25': {} } }, { nums: { usual: 'x' } }, { placements: { 2: { hours: { n: 10 } } } }, { placements: 'junk' }]) {
+    const st = JSON.parse(JSON.stringify(rich));
+    Object.assign(st.portfolio, bad);
+    const { ctx, page, errors } = await open(browser, { app: false, now: '2026-11-25T19:30:00', state: st });
+    ok(`damaged (${JSON.stringify(bad)}): opens, usual week is 19.5, the update is offered`, await page.evaluate(() => { const p = window.__planner; p.sub.ppage = 'overview'; p.go('portfolio'); const a = !!document.querySelector('#pf-update'); p.sub.ppage = 'hours'; p.go('portfolio'); p.sub.ppage = 'placements'; p.go('portfolio'); return a && p.usualWeek() === 19.5 && typeof p.state.portfolio.applied === 'object'; }) && errors.length === 0, errors);
+    await ctx.close();
+  }
+  // ---------- Q. Module 3 (page 58): the college's documents and Padlet board, the evidence matrix, justifications ----------
   {
     const { ctx, page, errors } = await open(browser, { app: true, now: '2026-11-25T08:40:00', state: null });
     const P = (fn, arg) => page.evaluate(fn, arg);

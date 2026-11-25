@@ -6,7 +6,7 @@ const { rich } = require('./seed');
 const SCREENS = [];
 ['home', 'plan', 'portfolio', 'progress', 'more', 'courses', 'learn', 'library', 'terms', 'goals', 'log', 'settings', 'about', 'deadlines', 'add', 'paper', 'voice', 'coach', 'module', 'assessment'].forEach((r) => SCREENS.push({ name: r, route: r, sub: {} }));
 ['m2', 'm3', 'wb', 'ev'].forEach((x) => SCREENS.push({ name: 'assessment/' + x, route: 'assessment', sub: { ax: x } }));
-// Module 3 (page 57): the matrix, the justifications, and one justification being written
+// Module 3 (page 58): the matrix, the justifications, and one justification being written
 const JSEED = { mx: { S2: 'JR', K1: 'A' }, just: [{ id: 'jseed1', kind: 'pt', at: 1, p: 'Weekly retrieval rounds', why: '', th: '', crit: 'The evidence is mostly from laboratories.', fit: '', not: '', refs: '', ksbs: ['K1', 'S1'] }] };
 [['assessment/m3/matrix', { ax: 'm3', axp: 'mx' }], ['assessment/m3/just', { ax: 'm3', axp: 'just' }], ['assessment/m3/just/edit', { ax: 'm3', axp: 'just', axj: 'jseed1' }]].forEach(([n, s]) => SCREENS.push({ name: n, route: 'assessment', sub: s, ax: JSEED }));
 [['module/learn', { mw: 11, ms: 'learn' }], ['module/check', { mw: 11, ms: 'check' }], ['module/ask', { mw: 11, ms: 'ask' }], ['module/after', { mw: 11, ms: 'after' }], ['module/light', { mw: 29 }]].forEach(([n, s]) => SCREENS.push({ name: n, route: 'module', sub: s }));

@@ -66,7 +66,7 @@ const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placem
       await page.evaluate((x) => { const P = window.__planner; P.go('home'); P.sub.ax = x; if (x === 'm2') { P.state.ax.rate = { 1: 3, 2: 4, 3: 2, 4: 1 }; P.state.ax.must['m2-a'] = true; P.state.ax.must['m2-g'] = true; } P.go('assessment'); }, id);
       await check('assessment ' + id);
     }
-    // Module 3 (page 57): the guides, the matrix and its sheet, the justifications
+    // Module 3 (page 58): the guides, the matrix and its sheet, the justifications
     await page.evaluate(() => { const P = window.__planner; P.go('home'); P.sub.ax = 'm3'; P.sub.axp = null; P.go('assessment'); });
     for (const g of ['az', 'where', 'share', 'ap']) {
       await page.evaluate((x) => { document.querySelector(`#m3-tools [data-act="m3-guide"][data-id="${x}"]`).click(); }, g);
