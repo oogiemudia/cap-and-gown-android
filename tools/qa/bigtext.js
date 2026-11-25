@@ -66,6 +66,40 @@ const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placem
       await page.evaluate((x) => { const P = window.__planner; P.go('home'); P.sub.ax = x; if (x === 'm2') { P.state.ax.rate = { 1: 3, 2: 4, 3: 2, 4: 1 }; P.state.ax.must['m2-a'] = true; P.state.ax.must['m2-g'] = true; } P.go('assessment'); }, id);
       await check('assessment ' + id);
     }
+    // Module 3 (page 58): the guides, the matrix and its sheet, the justifications
+    await page.evaluate(() => { const P = window.__planner; P.go('home'); P.sub.ax = 'm3'; P.sub.axp = null; P.go('assessment'); });
+    for (const g of ['talk', 'az', 'where', 'share', 'ap']) {
+      await page.evaluate((x) => { document.querySelector(`#m3-tools [data-act="m3-guide"][data-id="${x}"]`).click(); }, g);
+      await check('module 3 guide ' + g);
+      await page.evaluate(() => { document.querySelector('#layer [data-act="close-sheet"]').click(); });
+    }
+    await page.evaluate(() => { const P = window.__planner; P.state.ax.mx = { K1: 'AEHJLQRS', S2: 'JLER', S22: 'RTU', B6: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' }; P.sub.axp = 'mx'; P.render(); });
+    await check('module 3 matrix');
+    for (const k of ['K9', 'S13', 'B6']) {
+      await page.evaluate((x) => { document.querySelector(`#mx-rows [data-id="${x}"]`).click(); }, k);
+      await check('module 3 matrix sheet ' + k);
+      await page.evaluate(() => { document.querySelector('#layer [data-act="close-sheet"]').click(); });
+    }
+    await page.evaluate(() => { const P = window.__planner; P.sub.ppage = 'ksb'; P.go('portfolio'); document.querySelector('#screen [data-act="ksb"][data-id="B6"]').click(); });
+    await check('portfolio KSB sheet with the plain meaning and the kinds ticked');
+    await page.evaluate(() => {
+      const P = window.__planner;
+      document.querySelector('#layer [data-act="close-sheet"]').click();
+      const words = 'Weekly retrieval rounds at the start of every Mechanical and Electrical lesson, five questions, two of them from earlier weeks. ';
+      P.state.ax.just = [
+        { id: 'jbig1', kind: 'pt', at: 2, p: words, why: words.repeat(3), th: 'The testing effect (Roediger and Karpicke, 2006) and spaced practice.', crit: words.repeat(4), fit: words.repeat(2), not: words, refs: 'Roediger, H. L., & Karpicke, J. D. (2006). Test-enhanced learning. Psychological Science, 17(3), 249-255.', ksbs: ['K1', 'K5', 'K9', 'S1', 'S2', 'S4', 'S11', 'S14', 'S21', 'S25', 'B2', 'B3'], pp: 5 },
+        { id: 'jbig2', kind: 'tp', at: 1, p: '', why: '', th: '', crit: '', fit: '', not: '', refs: '', ksbs: [] }
+      ];
+      P.go('home'); P.sub.ax = 'm3'; P.sub.axp = 'just'; P.sub.axj = null; P.go('assessment');
+    });
+    await check('module 3 justifications list');
+    for (const id of ['jbig1', 'jbig2']) {
+      await page.evaluate((x) => { const P = window.__planner; P.sub.axj = x; P.sub.axjDel = x === 'jbig2' ? x : null; P.render(); }, id);
+      await check('module 3 justification ' + id);
+    }
+    await page.evaluate(() => { const P = window.__planner; P.sub.axj = 'jbig1'; P.sub.axjDel = null; P.render(); document.querySelector('#screen [data-act="pp-take"][data-k="just"]').click(); });
+    await check('module 3 justification to PebblePad');
+    await page.evaluate(() => { const P = window.__planner; document.querySelector('#layer [data-act="close-sheet"]').click(); P.state.ax.just = []; P.state.ax.mx = {}; P.sub.axp = null; P.sub.axj = null; });
     await page.evaluate(() => { const P = window.__planner; P.sub.ax = null; P.state.ax.early = false; delete P.state.ax.since; P.go('log'); });
     await check('how it adapts, with the early plan entry');
     await page.evaluate(() => window.__planner.go('home'));

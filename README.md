@@ -2,6 +2,27 @@
 
 The Cap and Gown study planner as an Android app, with real alarms and Claude inside the app.
 
+## Page 58: Module 3 from the college's own documents and Padlet board
+
+The Module 3 page under More, Assessment is rebuilt from what the college gives out for the portfolio and its professional discussion: nine documents, the Padlet board "Mapping Evidence to the Occupational Standards", and the tutor's slides for the portfolio development session. There is no Module 3 handbook. This page change needs no new install.
+
+- **Module 3 is not graded.** The slides say: no grade, pass or fail, with resubmission. So the page aims at a pass first time and says there is no distinction here. The documents add the rule that all 51 Occupational Standards have to be shown as met by the end of the course, and the slides that an answer with no evidence in the portfolio is no pass. The slides appear to be from March 2025, so no dates are taken from them. The nine stories or questions come from the plan the app already held, and the page says which is which.
+- **Everything is in the app's own words.** The college's documents and the board are not copied. The official wording of each standard was already in `KSBS`.
+- **The A to Z of evidence** (`AZ`): the college's 26 kinds of evidence, one for each letter.
+- **Each standard in plain words** (`KSB_PLAIN`), shown on the matrix and on the KSB sheet in Portfolio.
+- **The Padlet board's ideas** (`KSB_IDEAS`): 145 ideas across the 51 standards, each with its A to Z letter where the idea plainly is that kind of evidence.
+- **The evidence matrix** (More, Assessment, Module 3, Evidence matrix): the college's grid of 51 standards by 26 letters, turned into one row for each standard. Tap a row for the wording, the plain meaning and the board's ideas, and tick the kinds you have or plan to use (`state.ax.mx`, the letters for each standard). It can be copied as text.
+- **Justifications**: the college's two templates, practice to theory and theory to practice (`JUST`), as a screen to write on (`state.ax.just`). Speak and Listen sit under every box. A finished one can be copied, taken to PebblePad, or added to the evidence log, which tags its KSBs and ticks J for them on the matrix. Claude's brief (`justBrief`) carries what was written and questions it; it is told not to rewrite it or add references.
+- **Five short guides** (`m3GuideSheet`): the professional conversation (from the slides: about 30 minutes, a fixed number of questions, what a question looks like, what to do before the day, the Professional Practice checklist), what goes where in PebblePad's two workbooks, sharing both with ATLAS, recording an alternative placement, and the A to Z.
+- **Practise a question** (`mxBrief`): on the matrix, any standard can be practised with Claude the way the slides set the exercise. Claude asks, then says whether the answer pointed to direct evidence. It does not write the answer.
+- **A pace** (`m3Pace`): how many standards a week it takes to have every one evidenced by the plan's final KSB check.
+- **The hand-in list** grew from 7 to 14 with what the documents and the slides ask for: each piece explained, the Progress Tracking Page, the Statement of Professionalism, mentor meetings recorded, both workbooks shared, a reliable connection on the day, a copy of the portfolio downloaded.
+- **Portfolio**: the KSB sheet shows the plain meaning and opens the college's ideas; the overview has a button to the Module 3 page; Justification is a type in the evidence log.
+
+Saved data: `state.ax.mx` and `state.ax.just` are new. `repair()` keeps only real standards and letters, and cuts a justification to its known parts.
+
+Tests: `logic.js` has a section for the data (26 kinds, 51 meanings, 145 ideas), the page, the five guides, the matrix and its practice question, both templates, the evidence log, PebblePad, phone back, a reload and damaged data. `bigtext.js` and `clicker.js` open the new screens.
+
 ## Page 57: a usual teaching week of 19.5 hours, and placement 2's hours
 
 On 25 November Godswill said he teaches 19.5 hours a week and has covered the 10 hours of his alternative placement. The portfolio now works from that. This page change needs no new install.
@@ -19,7 +40,7 @@ Damaged saved data is repaired as before: `applied` keeps only real ticks, a usu
 **Assessment** is a new screen under More. It holds what each of the two courses is marked on, aims each one at its top standard, and offers a plan that ends the real work on every assessment about two weeks before it is due. This page change needs no new install.
 
 - **Four assessments** (`AX`): the Module 2 presentation and the Module 3 portfolio with its professional discussion for the PGCE; the knowledge workbook and the evidence of assessing learners for the assessor award. Each has a page: what is handed in, its dates and steps from the planner, how it is marked, what top work looks like, and a list to tick before handing in.
-- **What is and is not graded.** Only Module 2 has bands in the app (from its handbook), so only Module 2 says "distinction". The assessor award has no distinction grade, and the page says so: the aim there is accepted first time. The Module 3 marking grid is not held, and the page says that too.
+- **What is and is not graded.** Only Module 2 has bands in the app (from its handbook), so only Module 2 says "distinction". The assessor award has no distinction grade, and the page says so: the aim there is accepted first time. Module 3 is pass or fail with no grade, and the page says that too (see page 58).
 - **Where is my work now?** On the Module 2 page each outcome can be rated Refer, Pass, Merit or Distinction (`state.ax.rate`). The lowest one is named first, with what would lift it (`AX_LIFT`).
 - **Claude.** One brief for each assessment (`axBrief`). They question and check. They do not write slides, answers, stories or records, and the one for assessment records tells Claude not to ask for learners' names.
 - **The early plan** (`AX_GROUPS`, next to `deadlines()`): an earlier evening for 18 steps. The workbook goes to the assessor before Christmas. Standardisation evidence and learner 2 start two weeks sooner, so half term is free. The Module 2 slides are planned and drafted in March beside the project, so a whole first draft exists before Easter, and the final edit is two weeks before the hand-in. The Module 3 portfolio list is checked three weeks before the discussion.
