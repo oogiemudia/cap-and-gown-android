@@ -7281,24 +7281,25 @@ ${n.text.trim()}
       ],
       from: 'From your Module 2 handbook for 2026 to 2027. If this page and the handbook differ, the handbook is right.',
       link: ['go', 'module', 'Module 2, week by week'] },
-    { id: 'm3', course: 'pgce', title: 'Module 3 portfolio and professional discussion', sub: 'PGCE Module 3 · 7X-710021', aim: 'Aim: every standard met', dls: ['pg-ksbr', 'pg-osr', 'pg-ap2', 'pg-pd', 'pg-exit'],
+    { id: 'm3', course: 'pgce', title: 'Module 3 portfolio and professional discussion', sub: 'PGCE Module 3 · 7X-710021', aim: 'Aim: pass first time', dls: ['pg-ksbr', 'pg-osr', 'pg-ap2', 'pg-pd', 'pg-exit'],
       what: [
         'Two PebblePad workbooks, both shared with ATLAS: the PGCE FES Portfolio (the Occupational Standards Portfolio) and the Trainee Development Space.',
         `The portfolio holds your evidence against each of the ${AX_PORT.ksbTotal} Occupational Standards (the KSBs). You choose the evidence, and for each piece you say how it shows the standard. Showing a standard once is enough.`,
         'The Trainee Development Space holds the Progress Tracking Page, your Statement of Professionalism, the paperwork, feedback and reflection for each observation, and your mentor meeting records.',
-        'The portfolio is assessed in a professional discussion at the end of the course, where you present it. In the plan this app already held, that is 30 minutes online with your mentor and your tutor, run as visual storytelling (nine stories) or as question and answer (nine questions), one for each occupational duty.',
+        'The portfolio is assessed in a professional discussion at the end of the course (your tutor’s slides call it a professional conversation). The slides say it lasts about 30 minutes, the number of questions is fixed, and every answer has to use an example from your PebblePad portfolio.',
+        'In the plan this app already held, it is online with your mentor and your tutor, run as visual storytelling (nine stories) or as question and answer (nine questions), one for each occupational duty.',
         `Also on this app’s portfolio list: ${AX_PORT.hoursTarget} lead teaching hours, ${AX_PORT.observations.length} observations with reflections, both alternative placements recorded and mapped to KSBs, and your certificates and records.`
       ],
-      grade: 'Your college’s Module 3 documents give one rule: every one of the 51 standards has to be shown as met by the end of the course to pass. They give no grade bands and do not say how the discussion is marked, so this page claims none. The aim here is every standard met, with evidence you have explained and can talk about. Ask your tutor whether Module 3 is graded or is pass and fail.',
+      grade: 'Module 3 is not graded, so there is no distinction to aim for here. Your tutor’s slides say: no grade, pass or fail, with resubmission. Your college’s documents add the rule: every one of the 51 standards has to be shown as met by the end of the course to pass. And the slides say an answer with no evidence in your portfolio is no pass. So the aim is a pass first time, with every standard met and evidence you can talk from. The slides appear to be from March 2025, so check with your tutor that nothing has changed this year.',
       top: [
         ['Explain every piece.', 'Beside each piece of evidence, say in a line or two how it shows the standard. Your college asks for this.'],
-        ['Choose the strongest piece, not the most pieces.', 'Once is enough for each standard, so pick the piece you can talk about best.'],
+        ['Quality, not number.', 'The slides say it is the quality of the evidence that counts, not how many pieces. Once is enough for each standard, so pick the piece you can talk about best.'],
+        ['Answer from your portfolio.', 'Name the piece in PebblePad that shows what you say, and the KSBs it covers. The slides put it bluntly: no evidence, no pass.'],
+        ['Be clear and concise.', 'The number of questions is fixed and the time is about 30 minutes. Say what you did, why you did it and what changed for your learners, then stop.'],
         ['Link theory and practice.', 'A justification shows the thinking behind what you do. The Padlet board suggests one for S1 and S2.'],
-        ['One clear story for each duty.', 'What you did, why you did it, what changed for your learners, and what you would do next.'],
-        ['Point to the evidence as you speak.', 'Name the piece in your portfolio that shows it, and the KSBs it covers.'],
         ['Say it out loud before the day.', 'Thirty minutes goes quickly. Practise each duty against a timer.']
       ],
-      topNote: 'The first two points come from your college’s documents. The rest are this app’s reading of strong work, not the module’s own criteria.',
+      topNote: 'The first four points come from your college’s documents and your tutor’s slides. The last two are this app’s reading of strong work, not the module’s own criteria.',
       musts: [
         ['m3-a', 'Every one of the 51 standards has at least one piece of evidence'],
         ['m3-h', 'Each piece says how it shows the standard'],
@@ -7307,13 +7308,15 @@ ${n.text.trim()}
         ['m3-j', 'Statement of Professionalism completed'],
         ['m3-k', 'Mentor meetings recorded under Reflections, actions and impact'],
         ['m3-c', 'Teaching hours are logged and the total is shown'],
-        ['m3-d', 'Both alternative placements recorded as Evidence of Activity and mapped to KSBs'],
+        ['m3-d', 'Both alternative placements recorded as Evidence of Activity, each with a reflection, and mapped to KSBs'],
         ['m3-e', 'Safeguarding and Prevent certificates are uploaded'],
         ['m3-l', 'Both workbooks shared with ATLAS, each showing 1 workspace'],
         ['m3-f', 'Stories or questions chosen, with one ready for each of the nine duties'],
-        ['m3-g', 'All nine practised out loud']
+        ['m3-g', 'All nine practised out loud'],
+        ['m3-m', 'A reliable internet connection arranged for the day'],
+        ['m3-n', 'A copy of the portfolio downloaded before the course ends, for job applications and QTLS']
       ],
-      from: 'From the nine Module 3 documents and the Padlet board your college gives out, and from the plan this app already held. If this page and your tutor differ, your tutor is right.',
+      from: 'From the nine Module 3 documents, the Padlet board and your tutor’s portfolio session slides, and from the plan this app already held. If this page and your tutor differ, your tutor is right.',
       link: ['tab', 'portfolio', 'Portfolio'] },
     { id: 'wb', course: 'assess', title: 'Knowledge workbook', sub: 'Assessor award · Unit D/601/5313', aim: 'Aim: accepted first time', dls: ['as-o12', 'as-o36', 'as-o78', 'as-wb', 'as-pd'],
       what: [
@@ -7406,7 +7409,7 @@ ${n.text.trim()}
     }
     if (a.id === 'm3') {
       const duties = (AX_PORT.duties || []).map((d, i) => `${i + 1}. ${d}`).join('\n');
-      return `Help me get ready for my PGCE Module 3 professional discussion, where I present my PebblePad portfolio of evidence against the 51 Occupational Standards. All 51 have to be shown as met to pass, and each piece of evidence has to say how it shows the standard. I teach T Level Engineering in a further education college. In my plan the discussion is 30 minutes online with my mentor and my tutor, and I give one story or one answer for each of the nine occupational duties:\n${duties}\n\nWhere I am: ${ksbCovered().size} of 51 standards count as evidenced in my portfolio log, and I have chosen a kind of evidence for ${mxCount()} of 51 on my evidence matrix.\n\nTake one duty at a time. Ask me what I did, why I did it, what changed for my learners, which piece of evidence in my portfolio shows it and which KSBs it covers. After each answer, tell me what was strong and what was thin, and ask one follow-up question a tutor might ask. Wait for my reply each time. Do not write my stories or answers for me: I have to say them in my own words.`;
+      return `Help me get ready for my PGCE Module 3 professional discussion, where I present my PebblePad portfolio of evidence against the 51 Occupational Standards. All 51 have to be shown as met to pass, and each piece of evidence has to say how it shows the standard. My tutor’s slides say it is pass or fail with no grade, the number of questions is fixed, and every answer has to use an example from my PebblePad portfolio: no evidence, no pass. I teach T Level Engineering in a further education college. In my plan the discussion is 30 minutes online with my mentor and my tutor, and I give one story or one answer for each of the nine occupational duties:\n${duties}\n\nWhere I am: ${ksbCovered().size} of 51 standards count as evidenced in my portfolio log, and I have chosen a kind of evidence for ${mxCount()} of 51 on my evidence matrix.\n\nTake one duty at a time. Ask me what I did, why I did it, what changed for my learners, which piece of evidence in my portfolio shows it and which KSBs it covers. After each answer, tell me what was strong and what was thin, and ask one follow-up question a tutor might ask. Wait for my reply each time. Do not write my stories or answers for me: I have to say them in my own words.`;
     }
     if (a.id === 'wb') {
       const done = AW.filter((q) => awWritten(awE(q))).length;
@@ -7569,6 +7572,11 @@ ${n.text.trim()}
         <div class="list" id="mx-rows">${ids.map(row).join('') || '<div class="small muted">Every standard has a kind of evidence ticked.</div>'}</div></div>
       <div class="btnrow"><button class="btn sm ghost" data-act="axp" data-id="">Back to Module 3</button><button class="btn sm ghost" data-act="ppage" data-id="ksb">KSB evidence log</button></div>`;
   }
+  // A practice question on one standard, the way the tutor's slides set the exercise: a question, then "do you have direct evidence?"
+  function mxBrief(k) {
+    const kinds = mxOf(k).split('').filter((l) => AZ_BY[l]).map((l) => AZ_BY[l][1].toLowerCase());
+    return `Help me practise for my PGCE Module 3 professional conversation. It is pass or fail, lasts about 30 minutes with a fixed number of questions, and every answer has to use an example from my PebblePad portfolio: no evidence, no pass. I teach T Level Engineering in a further education college.\n\nAsk me one question a tutor could ask about ${k}: "${KSBS[k]}" Begin it with "With reference to your PebblePad portfolio". ${kinds.length ? `On my evidence matrix I have chosen these kinds of evidence for it: ${kinds.join(', ')}.` : 'I have not chosen my evidence for it yet, so first ask me what I have that could show it.'}\n\nAfter I answer, tell me whether I pointed to direct evidence, whether I was clear and concise, and what a tutor might ask next. Then ask me one more question on ${k}. Wait for my reply each time. Do not write my answer for me.`;
+  }
   // One standard: its wording, what it means, the Padlet's ideas, and the 26 kinds to tick.
   function mxSheet(k) {
     if (!KSBS[k]) return;
@@ -7584,7 +7592,7 @@ ${n.text.trim()}
       <div class="small muted">Tick each kind you have or plan to use. A letter beside an idea above is its place in the A to Z.</div>
       <div class="chips wrap" id="mx-pick">${AZ.map(([l, name]) => `<button class="chip" data-act="mx-tick" data-id="${k}" data-l="${l}" aria-pressed="${have.includes(l)}"><b style="font-family:var(--f-mono)">${l}</b> ${esc(name)}</button>`).join('')}</div>
       <div class="small muted">${logged ? `${plural(logged, 'piece')} in your evidence log for ${k}.` : `Nothing in your evidence log for ${k} yet.`} Take names out of anything about learners.</div>
-      <div class="btnrow"><button class="btn sm" data-act="ev-new" data-id="${k}">${ic('plus', 14)} Add evidence for ${k}</button><button class="btn sm ghost" data-act="ksb" data-id="${k}">${k} in my portfolio</button><button class="btn sm ghost" data-act="close-sheet">Done</button></div>`);
+      <div class="btnrow"><button class="btn sm" data-act="ev-new" data-id="${k}">${ic('plus', 14)} Add evidence for ${k}</button><button class="btn sm ghost" data-act="mx-live" data-id="${k}">${ic('spark', 14)} Practise a question on ${k}</button><button class="btn sm ghost" data-act="ksb" data-id="${k}">${k} in my portfolio</button><button class="btn sm ghost" data-act="close-sheet">Done</button></div>`);
   }
 
   /* ---------- justifications ---------- */
@@ -7655,6 +7663,46 @@ ${n.text.trim()}
         <div class="small muted">26 kinds of evidence your college suggests for the standards. It says the list is not complete, so Z is for anything else. The number on the right is how many standards you have ticked that kind for.</div>
         <div class="list" id="az-list">${AZ.map(([l, name, what]) => `<div class="li top"><span class="pill info" style="font-family:var(--f-mono);flex:0 0 auto">${l}</span><div class="grow" style="min-width:0"><b class="small" style="display:block">${esc(name)}</b><span class="small muted" style="display:block">${esc(what)}</span></div><span class="small muted num">${used(l) || ''}</span></div>`).join('')}</div>
         <div class="btnrow"><button class="btn sm" data-act="axp" data-id="mx">Evidence matrix</button>${close}</div>`);
+    } else if (id === 'talk') {
+      sheet(`<h3>The professional conversation</h3>
+        <div class="small muted">What your tutor’s slides for the portfolio development session say about the day.</div>
+        <div class="notice"><div><b>No grade: pass or fail, with resubmission</b><p>There is no distinction for Module 3. The aim is a pass first time.</p></div></div>
+        <div class="label">On the day</div>
+        <ul class="vlist" id="talk-day">
+          <li class="small">It lasts about 30 minutes, and the number of questions is fixed. Be clear and concise.</li>
+          <li class="small">Use examples from your PebblePad portfolio in every answer. No evidence, no pass.</li>
+          <li class="small">A professional conversation is clear and respectful. You listen actively, keep a fitting tone, and stay on a constructive goal.</li>
+          <li class="small">Make sure your internet connection is reliable. Use a university building if you need to.</li>
+        </ul>
+        <div class="label">What a question looks like</div>
+        <div class="small muted">Each one names the standards it tests and asks for an example from your portfolio. The slides practise four:</div>
+        <ul class="vlist" id="talk-q">
+          <li class="small"><b>K15, K16.</b> What you would want to cover in a professional conversation with a colleague who is not working with you.</li>
+          <li class="small"><b>S18, B4.</b> A time you had a professional conversation with a colleague to resolve an important problem at work.</li>
+          <li class="small"><b>S7.</b> How your teaching shows the wider context of your subject, and what that means for professional practice.</li>
+          <li class="small"><b>S21.</b> How you keep your knowledge and skills up to date, as a teacher and as a subject specialist.</li>
+        </ul>
+        <div class="label">Practise it</div>
+        <div class="small">Take one knowledge, one skill and one behaviour. Write a question you could be asked on each. Then check: is there direct evidence in your PebblePad portfolio to support your answer? On the evidence matrix, every standard has a button to practise a question with Claude.</div>
+        <div class="label">Before the day</div>
+        <ul class="vlist" id="talk-before">
+          <li class="small">List the significant gaps in your KSB evidence, and map what you have already done to them. Evidence can come from placement, from university or from your own self-directed learning.</li>
+          <li class="small">If you still have gaps, talk to others about the evidence they have found.</li>
+          <li class="small">It is the quality of the evidence that counts, not the number of pieces.</li>
+          <li class="small">From a taught session, record only how what you learnt applies to you as a teacher.</li>
+          <li class="small">Use the last formative sessions to get the portfolio ready.</li>
+          <li class="small">Download the portfolio before the end of the year. It is full of evidence for job applications and for QTLS.</li>
+        </ul>
+        <div class="label">The Professional Practice checklist</div>
+        <ul class="vlist" id="talk-check">
+          <li class="small">Feedback uploaded on all ten teaching observations.</li>
+          <li class="small">A reflection written after the feedback on each of the ten.</li>
+          <li class="small">A reflection for both alternative placements.</li>
+          <li class="small">Safeguarding and Prevent certificates uploaded.</li>
+          <li class="small">SEND specialists only: proof of passing the Level 3 qualification.</li>
+        </ul>
+        <div class="small muted">In this app’s words, from your tutor’s slides. They appear to be from March 2025, so no dates are taken from them: check this year’s with your tutor.</div>
+        <div class="btnrow"><button class="btn sm" data-act="axp" data-id="mx">Evidence matrix</button><button class="btn sm ghost" data-act="ppage" data-id="pd">Professional discussion</button>${close}</div>`);
     } else if (id === 'where') {
       const li = (h, b) => `<div class="li top"><div class="grow" style="min-width:0"><b class="small" style="display:block">${h}</b><span class="small muted" style="display:block">${b}</span></div></div>`;
       sheet(`<h3>PebblePad: what goes where</h3>
@@ -7712,11 +7760,12 @@ ${n.text.trim()}
     const row = (act, id, h, b, pill) => `<button class="li tap" data-act="${act}" data-id="${id}" style="width:100%;text-align:left"><span class="grow" style="min-width:0"><b style="display:block">${h}</b><span class="small muted" style="display:block">${b}</span></span>${pill || ''}</button>`;
     const pace = m3Pace(list);
     return `<div class="card" id="m3-tools"><h3>Build the portfolio</h3>
-      <div class="small muted">From the nine documents and the Padlet board your college gives out for Module 3.</div>
+      <div class="small muted">From the nine documents, the Padlet board and the slides your college gives out for Module 3.</div>
       ${pace ? `<div class="notice"><div><p id="m3-pace">${esc(pace)}</p></div></div>` : ''}
       <div class="list">
         ${row('axp', 'mx', 'Evidence matrix', 'Which kind of evidence shows each standard, with the Padlet board’s ideas for all 51', `<span class="pill ${mxCount() ? 'info' : ''} num">${mxCount()}/${KSB_IDS.length}</span>`)}
         ${row('axp', 'just', 'Justifications', 'Link a theory to your practice, on your college’s two templates', `<span class="pill ${state.ax.just.length ? 'info' : ''} num">${state.ax.just.length}</span>`)}
+        ${row('m3-guide', 'talk', 'The professional conversation', 'Pass or fail, about 30 minutes, and no evidence means no pass')}
         ${row('m3-guide', 'az', 'The A to Z of evidence', '26 kinds of evidence you could use')}
         ${row('m3-guide', 'where', 'PebblePad: what goes where', 'The two workbooks and what belongs in each')}
         ${row('m3-guide', 'share', 'Share both workbooks with ATLAS', 'The steps, and the check at the end')}
@@ -7951,6 +8000,7 @@ ${n.text.trim()}
       case 'm3-guide': m3GuideSheet(id); break;
       case 'mx-filter': sub.mxf = id; render(); break;
       case 'mx-open': mxSheet(id); break;
+      case 'mx-live': if (KSBS[id]) { closeSheet(true); ask(mxBrief(id)); } break;
       case 'mx-tick': {
         const l = el.dataset.l;
         if (!KSBS[id] || !AZ_BY[l]) break;
@@ -8824,7 +8874,7 @@ ${n.text.trim()}
   document.addEventListener('visibilitychange', () => { if (!document.hidden && todayKey() !== lastDay) newDay(); if (!document.hidden) { meetWake(); videoTaken(); videoBack(); } else if (MEET.live) MEET.hidAt = Date.now(); });
 
   // Exposed for testing only
-  window.__planner = { AZ, KSB_PLAIN, KSB_IDEAS, JUST, mxOf, mxCount, mxText, justText, justBrief, m3Pace, AX, AX_BY, AX_GROUPS, AX_LIGHT, AX_DLS, axEarly, axEarlyFrom, axMoves, axMargin, axBrief, axHomeCard, axNext, M2, M2_BY, M2_LO, M2_BREAKS, m2Now, m2Date, m2Revised, m2CardsOf, m2CardWeeks, m2Brief, m2HomeCard, m2AlarmWeeks, m2Set, m2U, m2OfSrc, videoTaken, ytId, canPlay, playsHere, resumeAt, videoBack, videoCards, lessonCardsOf, pushedCards, allCards, isVideo, VIDEO_CARDS, DECK, resDone, resDoneSheet, resSheet, videoCardSheet, freeAlt, resLocked, resOpen, render, platCard, opensOutside, accessNote, minsLabel, ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, hoursTotals, usualWeek, weeksToLog, pfUpdatePlan, TEACH_BREAKS, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
+  window.__planner = { AZ, KSB_PLAIN, KSB_IDEAS, JUST, mxOf, mxCount, mxText, mxBrief, justText, justBrief, m3Pace, AX, AX_BY, AX_GROUPS, AX_LIGHT, AX_DLS, axEarly, axEarlyFrom, axMoves, axMargin, axBrief, axHomeCard, axNext, M2, M2_BY, M2_LO, M2_BREAKS, m2Now, m2Date, m2Revised, m2CardsOf, m2CardWeeks, m2Brief, m2HomeCard, m2AlarmWeeks, m2Set, m2U, m2OfSrc, videoTaken, ytId, canPlay, playsHere, resumeAt, videoBack, videoCards, lessonCardsOf, pushedCards, allCards, isVideo, VIDEO_CARDS, DECK, resDone, resDoneSheet, resSheet, videoCardSheet, freeAlt, resLocked, resOpen, render, platCard, opensOutside, accessNote, minsLabel, ownCard, ownStatus, ownChanged, meetCatchUp, deadlines, alarmPlan, heal, replan, setEnergy, saveReflection, nextStep, patterns, streak, weekText, lastDayFor, capFor, portfolioParts, portfolioPct, portfolioReadiness, hoursTotals, usualWeek, weeksToLog, pfUpdatePlan, TEACH_BREAKS, ksbCovered, dueCards, weakTopics, buildIcs, go, recommend, catalogue, guessTopic, guessKind, topicHeat, selfTest, takeSavedLinks, listen, listenCmd, listenState, podOf, findEp, epFor, podFeed, podState, podCmd, podQuick, POD, PODQ, PODF, SHOWS, dictEvent, dictToggle, splitParts, spokenText, spokenPlain, lessonText, LS, DICT, LESSONS, ONLINE, HUBS, TOPICS, PAGE, AW, AW_BY, REFS, VERBS, CP_DAILY, KSBS, awToday, awSittings, awOrder, awEnd, awHandedLo, ksbToday, ksbGaps, coachToday, coachStreak, awTeachPrompt, awCheckPrompt, coachWeekPrompt, ksbTeachPrompt, cpCoachPrompt, awAllText, MEET, MEET_FIELDS, meetPrompt, meetParse, meetText, meetEvent, meetTick, meetBanner, get sub() { return sub; }, get route() { return route; }, get state() { return state; } };
 })();
 
 </script>

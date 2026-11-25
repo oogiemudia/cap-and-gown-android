@@ -68,7 +68,7 @@ const PPAGES = ['overview', 'review', 'ksb', 'hours', 'obs', 'meetings', 'placem
     }
     // Module 3 (page 58): the guides, the matrix and its sheet, the justifications
     await page.evaluate(() => { const P = window.__planner; P.go('home'); P.sub.ax = 'm3'; P.sub.axp = null; P.go('assessment'); });
-    for (const g of ['az', 'where', 'share', 'ap']) {
+    for (const g of ['talk', 'az', 'where', 'share', 'ap']) {
       await page.evaluate((x) => { document.querySelector(`#m3-tools [data-act="m3-guide"][data-id="${x}"]`).click(); }, g);
       await check('module 3 guide ' + g);
       await page.evaluate(() => { document.querySelector('#layer [data-act="close-sheet"]').click(); });
